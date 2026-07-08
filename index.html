@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Σφουγγαράς — Sponge Diver</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔱</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <canvas id="sea"></canvas>
+
+  <!-- In-game HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-panel meander-top">
+      <div class="breath-row">
+        <span class="hud-label">Breath</span>
+        <div class="breath-bar"><div id="breath-fill"></div></div>
+      </div>
+      <div class="hud-stats">
+        <span id="hud-depth">0 m</span>
+        <span id="hud-money">₯ 0</span>
+      </div>
+    </div>
+    <div class="hud-panel bag-panel meander-top">
+      <span class="hud-label">Net Bag</span>
+      <div id="bag-pips"></div>
+    </div>
+  </div>
+
+  <div id="caption"></div>
+  <div id="toasts"></div>
+  <div id="surface-hint" class="hidden">At the surface &nbsp;·&nbsp; <b>B</b> — boat shop &nbsp;·&nbsp; <b>S / ↓</b> — dive</div>
+  <div id="vignette"></div>
+  <div id="flash"></div>
+
+  <!-- Touch layer (only shown on coarse-pointer devices) -->
+  <div id="joy-base" class="hidden"></div>
+  <div id="joy-knob" class="hidden"></div>
+  <button id="touch-pause" class="touch-btn">II</button>
+  <button id="touch-shop" class="touch-btn hidden">⛵ Boat Shop</button>
+
+  <!-- Catch sold tally -->
+  <div id="tally" class="hidden meander-top"></div>
+
+  <!-- Shop overlay -->
+  <div id="shop" class="overlay hidden">
+    <div class="panel shop-panel meander-top">
+      <div class="shop-head">
+        <h2>The Boat Shop</h2>
+        <p class="shop-sub">Fine diving equipment &amp; questionable blessings</p>
+        <div class="shop-money" id="shop-money">₯ 0</div>
+      </div>
+      <div id="shop-cards"></div>
+      <button class="btn" id="shop-close">Back to the water &nbsp;(B)</button>
+    </div>
+  </div>
+
+  <!-- Title screen -->
+  <div id="title" class="overlay">
+    <div class="panel title-panel meander-top">
+      <p class="title-eyebrow">Kalymnos, Ancient Greece — more or less</p>
+      <h1>ΣΦΟΥΓΓΑΡΑΣ</h1>
+      <p class="title-sub">The Sponge Diver</p>
+      <p class="title-blurb">
+        Dive from your little boat, gather sponges from the seafloor and sell them
+        for drachmae. Train your lungs, buy better gear, and go deeper —
+        amphorae, pearls and stranger treasures wait in the dark.
+        Mind the urchins. Mind the jellyfish. <em>Mind the sharks.</em>
+      </p>
+      <div class="controls-grid">
+        <span><b>WASD / Arrows</b></span><span>swim</span>
+        <span><b>Hover close</b></span><span>gather loot</span>
+        <span><b>B</b></span><span>shop, at the surface</span>
+        <span><b>Esc</b></span><span>pause</span>
+        <span><b>M</b></span><span>mute</span>
+      </div>
+      <button class="btn btn-big" id="start-btn">Dive In</button>
+      <p class="title-save-note hidden" id="title-save-note"></p>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div id="pause" class="overlay hidden">
+    <div class="panel pause-panel meander-top">
+      <h2>Paused</h2>
+      <div id="pause-stats" class="pause-stats"></div>
+      <div class="pause-buttons">
+        <button class="btn" id="resume-btn">Keep Diving (Esc)</button>
+        <button class="btn btn-quiet" id="mute-btn">Mute</button>
+        <button class="btn btn-quiet" id="reset-btn">Reset Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blackout -->
+  <div id="blackout" class="overlay hidden">
+    <div class="blackout-text">
+      <h2>Blackout</h2>
+      <p id="blackout-line">The sea keeps your catch. The crew hauls you up.</p>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/touch.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/dangers.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/hud.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
