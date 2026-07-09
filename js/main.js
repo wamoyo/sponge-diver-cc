@@ -18,10 +18,11 @@ function newState () {
     drachmae: 0,
     xp: 0,
     training: { apnea: 0, stroke: 0, discipline: 0 },
-    upgrades: { fins: 0, stone: 0, light: 0, net: 0, knife: 0, kamaki: 0, charm: 0, boat: 0, sail: 0, favor: 0 },
-    relics: { hide: false, feast: false, feastPending: false }, // what the bosses owed you
+    upgrades: { fins: 0, stone: 0, light: 0, net: 0, knife: 0, kamaki: 0, charm: 0, boat: 0, sail: 0, buddy: 0 },
+    relics: { hide: false, feast: false, feastPending: false, fins: false, sight: false, hunt: false },
+    slain: { karcharias: false, kraken: false, ketos: false },
+    bottlesRead: {},
     tridentClaimed: false,
-    bottleRead: false,
     stats: { dives: 0, blackouts: 0, earned: 0, deepest: 0, items: 0 },
     muted: false,
     player: null,
@@ -35,7 +36,10 @@ function newState () {
     holdFullAt: 0,
     sellCooldown: 0,
     transferAcc: 0,
+    tunnelCd: 0,
+    rescued: false,
     inkT: 0,
+    buddy: { x: 470, y: -4, phase: 0 },
     zoom: 1,
     zoomTarget: 1,
     devMode: false, // the G toggle — godlike stats for exploring; never saved
@@ -121,6 +125,26 @@ function updateFish (state, dt) {
   }
 }
 
+// Side effect: the gentle company — mantas and monk seals cruise slow
+// elliptical laps around their home water, facing along their travel and
+// nosing up or down with it (drawSeal/drawManta read dir + tilt).
+function updateCruisers (state, dt) {
+  var lists = [state.world.decor.mantas, state.world.decor.seals]
+  for (var l = 0; l < lists.length; l++) {
+    for (var i = 0; i < lists[l].length; i++) {
+      var c = lists[l][i]
+      c.lapA += dt * c.spd
+      var nx = c.homeX + Math.cos(c.lapA) * c.rx
+      if (Math.abs(nx - c.x) > dt * 5) c.dir = nx > c.x ? 1 : -1
+      c.x = nx
+      c.y = c.homeY + Math.sin(c.lapA) * c.ry
+      var vy = Math.cos(c.lapA) * c.ry * c.spd
+      var vx = Math.sin(c.lapA) * c.rx * c.spd
+      c.tilt = Math.atan2(vy, Math.abs(vx) + 60) // gentle, even at the turnarounds
+    }
+  }
+}
+
 // ---------- Boot ----------
 
 var canvas = document.getElementById('sea')
@@ -171,6 +195,11 @@ function openPause () {
   state.mode = 'paused'
   var s = state.stats
   var lv = SD.levelFromXp(state.xp)
+  var secrets = (state.relics.fins ? 1 : 0) + (state.relics.sight ? 1 : 0) + (state.relics.hunt ? 1 : 0) +
+    (SD.worldFlags.wellTunnel ? 1 : 0) + (SD.worldFlags.quarryOpen ? 1 : 0) + (SD.worldFlags.anemoneFell ? 1 : 0)
+  var bottles = 0
+  for (var bK in state.bottlesRead) { if (state.bottlesRead[bK]) bottles++ }
+  var slain = (state.slain.karcharias ? 1 : 0) + (state.slain.kraken ? 1 : 0) + (state.slain.ketos ? 1 : 0)
   document.getElementById('pause-stats').innerHTML =
     '<span>Diver level</span><span>' + lv.level + ' (' + lv.into + '/' + lv.need + ' xp)</span>' +
     '<span>Fitness</span><span>' + Math.round(SD.fitness(state) * 100) + '%</span>' +
@@ -178,7 +207,10 @@ function openPause () {
     '<span>Deepest</span><span>' + s.deepest + ' m</span>' +
     '<span>Items recovered</span><span>' + (s.items || 0) + '</span>' +
     '<span>Lifetime earned</span><span>' + SD.fmtDr(s.earned) + '</span>' +
-    '<span>Blackouts</span><span>' + s.blackouts + '</span>' +
+    '<span>Rescues by Yiannis</span><span>' + s.blackouts + '</span>' +
+    '<span>Secrets uncovered</span><span>' + secrets + ' / 6</span>' +
+    '<span>Nikandros\' bottles</span><span>' + bottles + ' / 6</span>' +
+    '<span>Monsters slain</span><span>' + slain + ' / 3</span>' +
     '<span>Trident of Poseidon</span><span>' + (state.tridentClaimed ? 'claimed 🔱' : 'still down there') + '</span>'
   document.getElementById('mute-btn').textContent = state.muted ? 'Unmute' : 'Mute'
   document.getElementById('pause').classList.remove('hidden')
@@ -192,13 +224,15 @@ function closePause () {
   document.getElementById('reset-btn').textContent = 'Reset Save'
 }
 
-// Side effect: flips mute on the audio engine + save
+// Side effect: flips mute on the audio engine + save. The visible pill is
+// also the user gesture desktop browsers demand before they allow audio.
 function toggleMute () {
   state.muted = !state.muted
   SD.audio.init()
   SD.audio.setMuted(state.muted)
   SD.saveGame(state)
   document.getElementById('mute-btn').textContent = state.muted ? 'Unmute' : 'Mute'
+  document.getElementById('mute-pill').textContent = state.muted ? '🔇' : '🔊'
   SD.hud.toast(state.muted ? '🔇 Muted' : '🔊 Sound on')
   if (!state.muted) SD.audio.pickup() // audible proof
 }
@@ -298,6 +332,7 @@ function bindInput () {
   document.getElementById('start-btn').addEventListener('click', startGame)
   document.getElementById('resume-btn').addEventListener('click', closePause)
   document.getElementById('mute-btn').addEventListener('click', toggleMute)
+  document.getElementById('mute-pill').addEventListener('click', toggleMute)
   document.getElementById('dev-btn').addEventListener('click', toggleDev)
 
   // the contextual pills work by mouse on any device
@@ -317,6 +352,10 @@ function bindInput () {
   document.getElementById('parchment-close').addEventListener('click', function () {
     SD.hud.hideParchment()
     state.mode = 'playing'
+  })
+  document.getElementById('again-btn').addEventListener('click', function () {
+    SD.resetSave()
+    location.reload()
   })
   document.getElementById('reset-btn').addEventListener('click', function () {
     if (!resetBtnArmed) {
@@ -363,6 +402,8 @@ function frame (nowMs) {
   } else if (state.mode === 'blackout') {
     state.blackoutT += dt
     if (state.blackoutT > 3) SD.finishBlackout(state)
+  } else if (state.mode === 'gameover') {
+    // the sea is still; nothing more happens for this diver
   } else {
     SD.updateDangers(state, dt, false) // idle ambience behind menus
     SD.updateFauna(state, dt, false)
@@ -370,6 +411,7 @@ function frame (nowMs) {
 
   state.inkT = Math.max(0, state.inkT - dt)
   updateFish(state, dt)
+  updateCruisers(state, dt)
   updateBubbles(state, dt)
 
   // camera zoom eases toward its target; the visible world window grows as it shrinks
@@ -391,6 +433,7 @@ function boot () {
   state.boat = SD.newBoat()
   SD.applySave(state, SD.loadGame())
   state.player = SD.newPlayer()
+  state.buddy = { x: state.player.x - 62, y: -4, phase: 0 }
   state.player.breath = SD.maxBreath(state)
   state.world = SD.genWorld(state)
   state.cam.x = state.player.x - window.innerWidth / 2
@@ -399,6 +442,7 @@ function boot () {
   SD.hud.init()
   SD.shop.init(state)
   SD.temple.init(state)
+  document.getElementById('mute-pill').textContent = state.muted ? '🔇' : '🔊'
   bindInput()
   SD.touch.init(canvas) // pointer joystick — mouse and finger alike
   if (SD.touch.isTouchDevice()) bindTouch()

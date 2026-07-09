@@ -144,9 +144,21 @@ SD.hud = (function () {
     tallyTimer = setTimeout(function () { el.tally.classList.add('hidden') }, 4200)
   }
 
-  // Side effect: unrolls the message in the bottle
-  function showParchment (state) {
+  // Nikandros' six messages, in the order the sea keeps them
+  var BOTTLE_TEXTS = [
+    '\u00abSo you found my cave \u2014 and my fino beds. Keep them; where I have gone I need no sponges. Listen: cross the deep water, past the kelp, past the dark. Under the far mountain the Earth-Shaker keeps a temple, and he trains the lungs of those who bring him tribute \u2014 fish, diver, not coin. And mind the middle of the crossing. What sleeps down there owns everything that glitters.\u00bb',
+    '\u00abThe forest hides a throat of stone \u2014 eighty meters if it is one. Where it bottoms, the east wall is only kelp, and behind the kelp I heard water MOVING. I never had the knife for it. Perhaps you will.\u00bb',
+    '\u00abThe great one ahead is called Anemone. Her belly still holds the captain\'s strongbox \u2014 I have seen it through the breach. Mind the white shark. He has kept her forty years, and he considers himself owed.\u00bb',
+    '\u00abThe columns of fire throw a man upward like a cork from a jar. Old men say Hephaestus works below, and I believe them. Go down BETWEEN the fires, take the black glass, and ride a column home laughing.\u00bb',
+    '\u00abSomething in that hole took my brother whole. If an arm takes you \u2014 STAB. Do not pull away. Stab, and keep stabbing, and it will remember why it fears us.\u00bb',
+    '\u00abIf you are reading this, I did not come back up. The trident sang to me and I reached for it. The god is faster than he looks, friend. Take everything \u2014 it is yours now. And light a lamp in the village for Nikandros.\u00bb'
+  ]
+
+  // Side effect: unrolls one of Nikandros' messages
+  function showParchment (state, idx) {
     state.mode = 'parchment'
+    var textEl = document.getElementById('parchment-text')
+    if (textEl) textEl.textContent = BOTTLE_TEXTS[idx || 0]
     el.parchment.classList.remove('hidden')
   }
 
@@ -155,21 +167,24 @@ SD.hud = (function () {
     el.parchment.classList.add('hidden')
   }
 
-  // Side effect: shows the blackout overlay with a line fitting the loss
-  function showBlackout (state, kept) {
-    var line
-    if (state.upgrades.favor > 0 && kept.length) {
-      line = 'Everything goes dark... but Poseidon holds your net closed.'
-    } else if (kept.indexOf('trident') !== -1) {
-      line = 'Everything goes dark. The sea takes your catch — but your hands will not give up the trident.'
-    } else if (state.player.bag.length || kept.length) {
-      line = 'The sea keeps your catch. The fishermen drag you to the shallows, coughing.'
-    } else {
-      line = 'Everything goes dark. The fishermen drag you to the shallows, coughing.'
-    }
-    el['blackout-line'].textContent = line
+  // Side effect: the rescue — your buddy reaches you in the dark
+  function showBlackout (state) {
+    el['blackout-line'].textContent =
+      'The world narrows to a point of light... and a hand closes on your wrist. ' +
+      'Yiannis. He kicks for the sun with you under his arm, your catch still knotted to your belt.'
     el.blackout.classList.remove('hidden')
     requestAnimationFrame(function () { el.blackout.classList.add('dark') })
+  }
+
+  // Side effect: beyond the buddy's reach, freediving keeps its oldest rule
+  function showGameOver (state, depthM) {
+    var go = document.getElementById('gameover')
+    document.getElementById('gameover-line').textContent =
+      'You blacked out at ' + Math.round(depthM) + ' meters \u2014 beyond the ' +
+      SD.config.buddyRescueM[state.upgrades.buddy] + ' meters your buddy is trained to reach. ' +
+      'No one dives alone and dives long. The village will light a lamp for you, beside the one for Nikandros.'
+    go.classList.remove('hidden')
+    requestAnimationFrame(function () { go.classList.add('dark') })
   }
 
   // Side effect: hides the blackout overlay
@@ -192,6 +207,7 @@ SD.hud = (function () {
     showParchment: showParchment,
     hideParchment: hideParchment,
     showBlackout: showBlackout,
+    showGameOver: showGameOver,
     hideBlackout: hideBlackout,
     setVisible: setVisible
   }

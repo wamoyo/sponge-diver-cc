@@ -81,6 +81,16 @@ and veterans find their kaiki already tied up at the dock).
   entangling kelp — and the Earth-Shaker himself: wake him and he closes,
   winds up, and drives the trident. He never leaves his vault. Dodge the
   windup, grab, and run.
+- **Hephaestus' Vents are a gauntlet:** each vent throws a cone of lift
+  that widens all the way to ~8 m below the surface. Untrained divers
+  simply cannot force their way down through the cores — go around, or
+  come back stronger. At the bottom the throats are narrow, with calm
+  water between them for looting obsidian. Then step into a column and
+  ride it home.
+- **The Wreck of the Anemone:** a giant merchant ship lies breached in the
+  Graveyard. Swim in through the torn planking amidships and rob the hold —
+  amphorae, a helmet, gold — while a moray watches from the dark and
+  Karcharias circles outside.
 - **It gets murky, then dark.** Detail fades past your clarity radius
   (olive-oil goggles extend it; ink shrinks it) and past ~18 m the water
   goes properly dark (goggles light that too). Region captions name the
@@ -89,6 +99,15 @@ and veterans find their kaiki already tied up at the dock).
   catch, an aulos flourish for level-ups, a temple gong for offerings, a
   conch-and-rumble when something immense wakes, papyrus rustle for the
   message. All synthesized live, no audio files.
+
+## The Art Lab
+
+Open `art-lab.html` — a live workbench that renders **every sprite in the
+game** (the diver with sliders for fitness and gear, Poseidon's whole attack
+cycle, the boss cast with state buttons, all fauna, dangers, loot, and world
+pieces) using the game's actual draw functions from `js/render.js`. Change
+the code, refresh, judge. Space freezes every animation; the 🌑 button
+previews everything against deep water.
 
 ## Tuning
 

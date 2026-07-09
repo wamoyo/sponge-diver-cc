@@ -44,7 +44,10 @@ SD.awardXp = function (state, amount) {
 // input is analog: {x, y} each in -1..1 (keyboard feeds ±1, joystick fractions).
 SD.updatePlayer = function (state, input, dt) {
   var p = state.player
-  if (p.aboard) return // the kaiki carries you; boat.js drives this frame
+  if (p.aboard) { // the kaiki carries you; boat.js drives this frame
+    updateBuddy(state, dt)
+    return
+  }
   var cfg = SD.config.player
   var pxPerM = SD.config.pxPerM
 
@@ -92,6 +95,7 @@ SD.updatePlayer = function (state, input, dt) {
     }
   }
 
+  var prevX = p.x
   p.x += p.vx * dt
   p.y += p.vy * dt
   p.swimPhase += dt * (3 + SD.dist(0, 0, p.vx, p.vy) * 0.045)
@@ -100,11 +104,40 @@ SD.updatePlayer = function (state, input, dt) {
   p.x = SD.clamp(p.x, 150, SD.config.world.widthPx - 150)
   var floorY = SD.floorYAt(p.x)
   if (p.y > floorY - cfg.radius) {
-    p.y = floorY - cfg.radius
-    if (p.vy > 0) p.vy = 0
+    // if the ground rises like a WALL along our motion (shaft sides, the
+    // wells, the trench cliffs), stop at it — never ride up its face
+    var prevFloorY = SD.floorYAt(prevX)
+    var slope = (prevFloorY - floorY) / Math.max(Math.abs(p.x - prevX), 0.001)
+    if (slope > 4 || p.y - (floorY - cfg.radius) > 46) {
+      p.x = prevX
+      p.vx = 0
+      floorY = prevFloorY
+    }
+    if (p.y > floorY - cfg.radius) {
+      p.y = floorY - cfg.radius
+      if (p.vy > 0) p.vy = 0
+    }
   }
-  if (p.y < surfY) {
-    p.y = Math.max(p.y, surfY - 6) // bobbing at the waterline, never airborne
+
+  // the mountain's belly: its carved underside is terrain too — the cliff
+  // face is a wall, the passage roof presses you down, the dome soars
+  var ceilY = SD.ceilingYAt(p.x)
+  if (p.y < ceilY + cfg.radius) {
+    var prevCeilY = SD.ceilingYAt(prevX)
+    var cSlope = (ceilY - prevCeilY) / Math.max(Math.abs(p.x - prevX), 0.001)
+    if (cSlope > 4 || ceilY + cfg.radius - p.y > 46) {
+      p.x = prevX
+      p.vx = 0
+      ceilY = prevCeilY
+    }
+    if (p.y < ceilY + cfg.radius) {
+      p.y = ceilY + cfg.radius
+      if (p.vy < 0) p.vy = 0
+    }
+  }
+
+  if (p.y < surfY && floorY > surfY) { // only where there IS water below —
+    p.y = Math.max(p.y, surfY - 6)     // dry ledges above the line are land
     if (p.vy < -30) p.vy = -30
   }
 
@@ -163,7 +196,51 @@ SD.updatePlayer = function (state, input, dt) {
     SD.updateBoatTransfer(state, dt)
     updateDockSelling(state, dt)
   }
+  updateBuddy(state, dt)
+  updateWellTunnel(state, dt)
   updateHarvest(state, dt)
+}
+
+// Side effect: your safety buddy holds position above and just left of you,
+// never deeper than his training allows. The first rule: never dive alone.
+function updateBuddy (state, dt) {
+  var p = state.player
+  var b = state.buddy
+  var maxY = SD.config.buddyRescueM[state.upgrades.buddy] * SD.config.pxPerM
+  var surfY = SD.surfaceYAt(p.x)
+  var targetX = p.x - 62
+  var targetY = SD.clamp(p.y * 0.55, surfY - 4, maxY)
+  if (p.aboard) { // he treads water beside the kaiki
+    targetX = state.boat.x - 90
+    targetY = surfY - 2
+  }
+  var ease = 1 - Math.exp(-3.2 * dt)
+  b.x += (targetX - b.x) * ease
+  b.y += (targetY - b.y) * ease
+  b.phase += dt * (3 + Math.abs(targetY - b.y) * 0.02)
+}
+
+// Side effect: the Well's freed current flings you between its two mouths
+function updateWellTunnel (state, dt) {
+  if (!SD.worldFlags.wellTunnel) return
+  if (state.tunnelCd > 0) { state.tunnelCd -= dt; return }
+  var p = state.player
+  var A = SD.config.wellMouthA
+  var B = SD.config.wellMouthB
+  var dest = null
+  if (SD.dist(p.x, p.y, A.x, A.y) < 46) dest = B
+  else if (SD.dist(p.x, p.y, B.x, B.y) < 46) dest = A
+  if (dest) {
+    state.tunnelCd = 2.5
+    SD.burstBubbles(state, p.x, p.y, 14)
+    p.x = dest.x + (dest === B ? 60 : -60)
+    p.y = dest.y
+    p.vx = dest === B ? 180 : -180
+    p.vy = 0
+    SD.burstBubbles(state, p.x, p.y, 14)
+    SD.audio.splash()
+    SD.hud.toast('The current takes you!')
+  }
 }
 
 // Side effect: settles a completed dive — log it, pay the depth in experience
@@ -322,10 +399,65 @@ function takeLoot (state, item) {
   }
 
   if (item.type === 'bottle') {
-    state.bottleRead = true
+    state.bottlesRead[item.idx || 0] = true
     SD.awardXp(state, info.xp)
     SD.audio.parchment()
-    SD.hud.showParchment(state)
+    SD.hud.showParchment(state, item.idx || 0)
+    SD.saveGame(state)
+    return
+  }
+
+  // — the found origins and the one-time wonders —
+  if (info.event === 'fins') {
+    state.relics.fins = true
+    if (state.upgrades.fins < 1) state.upgrades.fins = 1
+    SD.audio.fanfare()
+    SD.hud.toast('🕊️ THE FINS OF HERMES — the god grants; the chandlery refines', 'big')
+    SD.awardXp(state, info.xp)
+    SD.saveGame(state)
+    return
+  }
+  if (info.event === 'sight') {
+    state.relics.sight = true
+    if (state.upgrades.light < 1) state.upgrades.light = 1
+    SD.audio.fanfare()
+    SD.hud.toast("🫒 THE TRADER'S GOGGLES — suddenly, the sea has edges", 'big')
+    SD.awardXp(state, info.xp)
+    SD.saveGame(state)
+    return
+  }
+  if (info.event === 'hunt') {
+    state.relics.hunt = true
+    if (state.upgrades.kamaki < 1) state.upgrades.kamaki = 1
+    SD.audio.fanfare()
+    SD.hud.toast('🎣 AN OLD KAMAKI — still sharp. Someone hunted here before you', 'big')
+    SD.awardXp(state, info.xp)
+    SD.saveGame(state)
+    return
+  }
+  if (info.event === 'tunnel') {
+    SD.worldFlags.wellTunnel = true
+    SD.audio.fanfare()
+    SD.hud.toast('🌊 The kelp gives — a CURRENT roars through! The Well and the Pearl Banks are joined', 'big')
+    SD.awardXp(state, info.xp)
+    SD.saveGame(state)
+    return
+  }
+  if (info.event === 'quarry') {
+    SD.worldFlags.quarryOpen = true
+    var qx = SD.config.quarrySlabX
+    var cache = [
+      { type: 'statue', dx: 40, dy: -14 },
+      { type: 'statue', dx: 95, dy: -12 },
+      { type: 'laurel', dx: 65, dy: -30 }
+    ]
+    for (var c = 0; c < cache.length; c++) {
+      loot.push({ type: cache[c].type, x: qx + cache[c].dx, y: SD.floorYAt(qx + cache[c].dx) + cache[c].dy, phase: 0, progress: 0, taken: false, respawnAt: 0 })
+    }
+    state.effects.shake = 10
+    SD.audio.fanfare()
+    SD.hud.toast('⛏️ The slab falls away — a mason\'s cache, sealed since the quarry drowned', 'big')
+    SD.awardXp(state, info.xp)
     SD.saveGame(state)
     return
   }
@@ -342,6 +474,10 @@ function takeLoot (state, item) {
 
   p.bag.push(item.type)
 
+  if (info.event === 'topple') {
+    SD.toppleAnemone(state)
+  }
+
   if (info.offering) {
     SD.awardXp(state, info.xp) // a hunt teaches; tribute never reaches the fishmonger
     SD.audio.pickup()
@@ -355,33 +491,73 @@ function takeLoot (state, item) {
   }
 }
 
-// Side effect: begins the blackout sequence — someone will haul you out
-SD.startBlackout = function (state) {
-  var p = state.player
-  state.mode = 'blackout'
-  state.blackoutT = 0
-  state.stats.blackouts += 1
-  state.stats.dives += 1
+// Side effect: the Anemone falls — the strongbox was her ballast. The
+// crevasse opens beneath her and she slides in, stern-first, forever.
+SD.toppleAnemone = function (state) {
+  SD.worldFlags.anemoneFell = true
+  state.effects.shake = 18
+  SD.audio.conch()
   SD.audio.blackout()
+  SD.hud.toast('⚓ HER TIMBERS SCREAM — THE ANEMONE IS FALLING. SWIM!', 'big')
 
-  var kept = []
-  if (state.upgrades.favor > 0) {
-    kept = p.bag // Poseidon holds your net closed
+  // the ground opens: reseat everything in the span on the new floor
+  var gw = SD.config.giantWreckX
+  var loot = state.world.loot
+  for (var i = 0; i < loot.length; i++) {
+    if (Math.abs(loot[i].x - gw - 50) < 280 && !loot[i].taken) {
+      loot[i].y = SD.floorYAt(loot[i].x) - 14
+    }
   }
-  state.blackoutKept = kept
-
-  // half the depth still teaches you something
-  SD.awardXp(state, Math.round(p.diveMaxM * 0.2))
-  SD.hud.showBlackout(state, kept)
+  // her hull re-lies stern-down in the grave; new bones, new cache
+  var world = state.world
+  world.rocks = world.rocks.filter(function (r) { return !r.hidden || Math.abs(r.x - gw) > 900 })
+  var gy = SD.floorYAt(gw + 50)
+  world.rocks.push(
+    { x: gw - 120, y: gy - 420, r: 130, hidden: true },
+    { x: gw + 40, y: gy - 240, r: 120, hidden: true },
+    { x: gw + 130, y: gy - 60, r: 110, hidden: true }
+  )
+  world.decor.giantWreck = { x: gw + 50, y: gy, scale: 2.1, fallen: true }
+  var cache = [
+    { type: 'laurel', dx: -60 }, { type: 'laurel', dx: 40 },
+    { type: 'helmet', dx: -10 }, { type: 'amphora', dx: 90 }
+  ]
+  for (var c = 0; c < cache.length; c++) {
+    loot.push({ type: cache[c].type, x: gw + 50 + cache[c].dx, y: SD.floorYAt(gw + 50 + cache[c].dx) - 14, phase: 0, progress: 0, taken: false, respawnAt: 0 })
+  }
   SD.saveGame(state)
 }
 
-// Side effect: wakes the diver in the dock shallows after a blackout.
-// Whatever made it into the kaiki's hold is untouched — the sea only
-// takes what you carry.
+// Side effect: breath is gone. The first rule of freediving decides what
+// happens next: if you blacked out within your buddy's reach, he takes you
+// up — you keep your catch, and everyone goes home. Beyond his reach, the
+// sea keeps you, and everything ends.
+SD.startBlackout = function (state) {
+  var p = state.player
+  var depthNow = SD.depthM(p.y)
+  var reach = SD.config.buddyRescueM[state.upgrades.buddy] + 1.5
+  state.stats.blackouts += 1
+  state.stats.dives += 1
+
+  if (depthNow <= reach) {
+    state.mode = 'blackout'
+    state.blackoutT = 0
+    state.rescued = true
+    SD.audio.blackout()
+    SD.awardXp(state, Math.round(p.diveMaxM * 0.2))
+    SD.hud.showBlackout(state)
+    SD.saveGame(state)
+  } else {
+    state.mode = 'gameover'
+    SD.audio.blackout()
+    SD.hud.showGameOver(state, depthNow)
+  }
+}
+
+// Side effect: your buddy hauls you to the boat, and everyone goes home —
+// you, your catch, the kaiki, and him. That is what buddies are for.
 SD.finishBlackout = function (state) {
   var p = state.player
-  p.bag = state.blackoutKept || []
   p.x = SD.config.world.dock.x + 160
   p.y = -4
   p.vx = 0
@@ -391,9 +567,11 @@ SD.finishBlackout = function (state) {
   p.diveMaxM = 0
   p.wasUnder = false
   p.entangled = 0
+  p.aboard = false
+  state.boat.x = SD.config.world.boatStartX
+  state.buddy.x = p.x - 62
+  state.buddy.y = -4
   state.mode = 'playing'
   SD.hud.hideBlackout()
-  if (p.bag.length && state.upgrades.favor > 0) {
-    SD.hud.toast("Poseidon's Favor: your catch survived", 'warn')
-  }
+  SD.hud.toast('🤝 Yiannis hauls you home. "Breathe. The sponges will keep."')
 }

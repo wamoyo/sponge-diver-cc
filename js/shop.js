@@ -34,6 +34,14 @@ SD.shop = (function () {
     return out
   }
 
+  // Pure: some gear must be FOUND before the chandlery will touch it
+  function lockedNote (state, id) {
+    if (id === 'fins' && !state.relics.fins) return 'The gods grant first — something waits in a western cave'
+    if (id === 'light' && !state.relics.sight) return 'A trader\'s kit lies among the pearls, they say'
+    if (id === 'kamaki' && !state.relics.hunt) return 'An old kamaki rusts in a carcass in the meadows'
+    return null
+  }
+
   // Side effect: rebuilds all shop cards from current state
   function rebuild (state) {
     moneyEl.textContent = SD.fmtDr(state.drachmae)
@@ -41,6 +49,17 @@ SD.shop = (function () {
     var catalog = SD.config.upgrades
     for (var i = 0; i < catalog.length; i++) {
       var u = catalog[i]
+      var locked = lockedNote(state, u.id)
+      if (locked) {
+        html += '<div class="shop-card maxed">' +
+          '<div class="card-icon">🔒</div>' +
+          '<div class="card-body">' +
+          '<h3>' + u.name + '</h3>' +
+          '<div class="card-flavor">' + locked + '</div>' +
+          '<button class="btn" disabled>Not for sale — yet</button>' +
+          '</div></div>'
+        continue
+      }
       var tier = state.upgrades[u.id]
       var maxed = tier >= u.tiers.length
       var cost = maxed ? 0 : u.tiers[tier]

@@ -44,6 +44,7 @@
   <div id="joy-base" class="hidden"></div>
   <div id="joy-knob" class="hidden"></div>
   <button id="touch-pause" class="touch-btn">II</button>
+  <button id="mute-pill" class="touch-btn">🔊</button>
   <button id="touch-shop" class="touch-btn hidden">🏺 Chandlery</button>
   <button id="touch-temple" class="touch-btn hidden">🏛️ Temple</button>
   <button id="touch-boat" class="touch-btn hidden">⛵ Board</button>
@@ -82,15 +83,8 @@
   <div id="parchment" class="overlay hidden">
     <div class="panel parchment-panel">
       <p class="parchment-eyebrow">A message, sealed with wax</p>
-      <p class="parchment-text">
-        «So you found my cave — and my fino beds. Keep them; where I have gone
-        I need no sponges. Listen: cross the deep water, past the kelp, past
-        the dark. On the eastern sand stands the temple of the Earth-Shaker,
-        and the god trains the lungs of those who bring him tribute — fish,
-        diver, not coin. And mind the middle of the crossing. What sleeps in
-        the trench owns everything that glitters in it.»
-      </p>
-      <p class="parchment-sign">— Ν.</p>
+      <p class="parchment-text" id="parchment-text"></p>
+      <p class="parchment-sign">— Νίκανδρος</p>
       <button class="btn" id="parchment-close">Fold it away</button>
     </div>
   </div>
@@ -136,11 +130,21 @@
     </div>
   </div>
 
-  <!-- Blackout -->
+  <!-- Blackout: the rescue -->
   <div id="blackout" class="overlay hidden">
     <div class="blackout-text">
       <h2>Blackout</h2>
-      <p id="blackout-line">The sea keeps your catch. The fishermen drag you out.</p>
+      <p id="blackout-line">A hand closes on your wrist.</p>
+    </div>
+  </div>
+
+  <!-- Game over: beyond the buddy's reach -->
+  <div id="gameover" class="overlay hidden">
+    <div class="blackout-text">
+      <h2>ΘΑΝΑΤΟΣ</h2>
+      <p id="gameover-line">The sea keeps you.</p>
+      <p class="gameover-rule">The first rule of freediving: never dive beyond your buddy's reach.</p>
+      <button class="btn btn-big" id="again-btn">Begin Again</button>
     </div>
   </div>
 

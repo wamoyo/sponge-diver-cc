@@ -24,7 +24,14 @@ SD.floorDepthAt = function (x) {
     }
   }
   var wobble = Math.sin(x * 0.004) * 1.6 + Math.sin(x * 0.013) * 0.9
-  return m + wobble * SD.clamp(m / 10, 0, 1)
+  m += wobble * SD.clamp(m / 10, 0, 1)
+  // the Anemone's Grave: the crevasse she tore open when she fell
+  if (SD.worldFlags && SD.worldFlags.anemoneFell) {
+    var gw = SD.config.giantWreckX + 50
+    var t2 = 1 - Math.abs(x - gw) / 260
+    if (t2 > 0) m += 44 * SD.smoothstep(0, 1, t2)
+  }
+  return m
 }
 
 // Pure: seafloor y in px at a given world x
@@ -64,12 +71,13 @@ function makeRocks (rng) {
     }
   }
 
-  // mid-depth field boulders (24–100 m) — eel homes, urchin perches
+  // mid-depth field boulders (24–100 m) — eel homes, urchin perches.
+  // The Anemone's grave is kept clear; she needs no company.
   for (i = 0; i < 70; i++) {
     for (var t2 = 0; t2 < 30; t2++) {
       x = SD.rngRange(rng, 9000, 37000)
       var m2 = SD.floorDepthAt(x)
-      if (m2 >= 24 && m2 <= 100) break
+      if (m2 >= 24 && m2 <= 100 && Math.abs(x - SD.config.giantWreckX) > 900) break
     }
     drop(x, SD.rngRange(rng, 40, 88))
   }
@@ -170,55 +178,145 @@ function makeShafts () {
   return out
 }
 
-// Pure: the hollow Temple Mountain — a rock massif from above the waterline
-// down to a low passage along the seafloor; a shaft rises through the body
-// into the air-pocket chamber where the temple stands on a dry ledge.
-function makeMountain () {
-  var mt = SD.config.world.mountain
-  var rocks = []
+// Pure: the Anemone — a giant merchant wreck lying breached in the
+// Graveyard. Hidden collision stones trace her hull; a gap in the upper
+// planking lets a diver swim into the cargo hold and rob the dead.
+function makeGiantWreck (state) {
+  var wx = SD.config.giantWreckX
+  var S = 2.1 // she was a great ship — ~45 m of her
+  if (SD.worldFlags.anemoneFell) {
+    // she lies stern-down in the crevasse she tore open
+    var gy = SD.floorYAt(wx + 50)
+    return {
+      x: wx + 50,
+      y: gy,
+      scale: S,
+      fallen: true,
+      rocks: [
+        { x: wx - 120, y: gy - 420, r: 130, hidden: true }, // the raised bow
+        { x: wx + 40, y: gy - 240, r: 120, hidden: true },  // amidships, tilted
+        { x: wx + 130, y: gy - 60, r: 110, hidden: true }   // the buried stern
+      ],
+      lootSpots: [
+        { type: 'laurel', x: wx - 10, y: gy - 14 },
+        { type: 'laurel', x: wx + 90, y: gy - 12 },
+        { type: 'helmet', x: wx + 40, y: gy - 16 },
+        { type: 'amphora', x: wx - 60, y: gy - 14 },
+        { type: 'amphora', x: wx + 140, y: gy - 15 }
+      ]
+    }
+  }
+  var floorY = SD.floorYAt(wx)
+  // hidden hull walls (drawn as timber by drawGiantWreck, not as stone)
+  var rocks = [
+    { x: wx - 240 * S, y: floorY - 70 * S, r: 72 * S * 0.92, hidden: true },  // the bow
+    { x: wx - 130 * S, y: floorY - 138 * S, r: 55 * S * 0.92, hidden: true }, // fore deck
+    { x: wx - 10 * S, y: floorY - 150 * S, r: 55 * S * 0.92, hidden: true },  // mid deck
+    // — the breach: open water amidships up top —
+    { x: wx + 205 * S, y: floorY - 130 * S, r: 58 * S * 0.92, hidden: true }, // aft deck
+    { x: wx + 262 * S, y: floorY - 66 * S, r: 70 * S * 0.92, hidden: true }   // the stern
+  ]
+  return {
+    x: wx,
+    y: floorY,
+    scale: S,
+    rocks: rocks,
+    lootSpots: [
+      { type: 'amphora', x: wx - 130 * S, y: floorY - 16 },
+      { type: 'amphora', x: wx - 55 * S, y: floorY - 14 },
+      { type: 'amphora', x: wx + 40 * S, y: floorY - 15 },
+      { type: 'shard', x: wx - 90 * S, y: floorY - 12 },
+      { type: 'helmet', x: wx + 10 * S, y: floorY - 60 },
+      { type: 'laurel', x: wx + 95 * S, y: floorY - 16 },
+      { type: 'laurel', x: wx - 20 * S, y: floorY - 90 },
+      { type: 'statue', x: wx - 300 * S, y: floorY - 12 }, // spilled at the bow, half-buried
+      { type: 'strongbox', x: wx + 120, y: floorY - 18 }    // the captain's box — her ballast, and her doom
+    ]
+  }
+}
 
-  // Side effect on rocks: convenience
-  function put (x, y, r) { rocks.push({ x: x, y: y, r: r }) }
+// Pure: the one-time wonders and the story's bones — found gear origins,
+// the Great Pearl in its jelly ring, the sealed ways, Nikandros' bottles,
+// and the quiet dead who tried before you.
+function makeSpecials (state) {
+  var cfg = SD.config
+  var out = { rocks: [], loot: [], jellies: [], decor: {} }
 
-  // the west face — a cliff from above the water down to the mouth at ~13 m;
-  // the way in yawns between the cliff's foot and the seafloor
-  put(mt.faceX + 40, -170, 150)
-  put(mt.faceX + 45, 90, 130)
-  put(mt.faceX + 55, 290, 115) // cliff foot ends ~12.5 m; the mouth is below
-
-  // the crown, above the waterline
-  for (var cx = mt.faceX + 250; cx < 41950; cx += 280) {
-    put(cx, -190 - Math.sin(cx * 0.01) * 70, 200)
+  function item (type, x, y, extra) {
+    var it = { type: type, x: x, y: y, phase: 0, progress: 0, taken: false, respawnAt: 0 }
+    if (extra) for (var k in extra) it[k] = extra[k]
+    out.loot.push(it)
   }
 
-  // body over the gallery, west of the pocket — the ceiling steps down as
-  // the floor falls away, a long dark hall descending under the rock
-  for (var bx = mt.faceX + 260; bx < mt.shaftX1 - 60; bx += 220) {
-    put(bx, 150, 145)
-    put(bx + 90, 440, 130)
-    if (bx > mt.faceX + 450) put(bx + 30, 690, 115)
+  // — the Statue of Hermes, in a shallow alcove of the sponge grounds —
+  var hx = cfg.hermesX
+  var hFloor = SD.floorYAt(hx)
+  out.rocks.push(
+    { x: hx - 95, y: hFloor - 44, r: 55 },
+    { x: hx + 95, y: hFloor - 40, r: 52 },
+    { x: hx + 8, y: hFloor - 118, r: 62 } // the roof over the god
+  )
+  out.decor.hermes = { x: hx, y: hFloor }
+  if (!state.relics.fins) item('hermesFins', hx + 26, hFloor - 12)
+
+  // — the pearl-trader's bones, goggles still in his kit —
+  var kx = cfg.pearlKitX
+  out.decor.pearlKit = { x: kx, y: SD.floorYAt(kx) }
+  if (!state.relics.sight) item('pearlKit', kx + 18, SD.floorYAt(kx) - 10)
+
+  // — the great dead grouper in the meadows, an old kamaki through it —
+  var gx = cfg.grouperX
+  out.decor.carcass = { x: gx, y: SD.floorYAt(gx) }
+  if (!state.relics.hunt) item('grouperKamaki', gx + 12, SD.floorYAt(gx) - 22)
+
+  // — the Great Pearl, ringed by jellyfish, sealed to all but a legend edge —
+  var px = cfg.greatPearlX
+  var pFloor = SD.floorYAt(px)
+  item('greatPearl', px, pFloor - 14)
+  for (var j = 0; j < 8; j++) {
+    var ja = (j / 8) * Math.PI * 2
+    out.jellies.push({
+      x: px + Math.cos(ja) * 120,
+      y: pFloor - 90 + Math.sin(ja) * 70,
+      baseY: pFloor - 90 + Math.sin(ja) * 70,
+      phase: ja, drift: 0
+    })
   }
 
-  // the pocket chamber: thin ceiling, bowl floor, dry ledge — shaft gap on the west
-  for (var px = mt.pocketX1 + 40; px < mt.pocketX2 - 20; px += 150) {
-    put(px, -45, 85) // ceiling above the air
+  // — the sealed ways —
+  if (!SD.worldFlags.wellTunnel) item('blockage', cfg.wellMouthA.x, cfg.wellMouthA.y)
+  if (!SD.worldFlags.quarryOpen) item('slab', cfg.quarrySlabX, SD.floorYAt(cfg.quarrySlabX) - 20)
+  if (SD.worldFlags.quarryOpen) {
+    // the opened alcove keeps its cache
+    var qx = cfg.quarrySlabX
+    item('statue', qx + 40, SD.floorYAt(qx + 40) - 14)
+    item('statue', qx + 95, SD.floorYAt(qx + 95) - 12)
+    item('laurel', qx + 65, SD.floorYAt(qx + 65) - 30)
   }
-  for (var fx = mt.shaftX2 + 60; fx < mt.pocketX2 - 90; fx += 130) {
-    put(fx, 540, 95) // the bowl floor under the pocket water
-  }
-  put(mt.ledgeX + 70, 250, 95)   // the dry ledge the temple stands on
-  put(mt.ledgeX + 210, 235, 85)
-  put(mt.pocketX2 - 10, 120, 110) // east wall of the chamber
-  put(mt.pocketX2 - 20, 420, 105)
 
-  // body below/east of the pocket, down to the passage ceiling
-  for (var dx = mt.shaftX2 + 40; dx < 41950; dx += 210) {
-    put(dx, 690, 120)
+  // — Nikandros' trail: six bottles, each where its warning matters —
+  for (var b = 0; b < cfg.bottles.length; b++) {
+    if (state.bottlesRead[b]) continue
+    var bb = cfg.bottles[b]
+    item('bottle', bb.x, SD.floorYAt(bb.x) + (bb.dy || -12), { idx: b })
   }
-  put(41950, 200, 140)
-  put(41980, 520, 130)
+  // his bones, beside the hoard
+  out.decor.nikandros = { x: 30480, y: SD.floorYAt(30480) }
 
-  return rocks
+  // — three more divers who never surfaced, each with a keepsake —
+  var bones = [
+    { x: 12480, trinket: 'shard' },   // the kelp took him
+    { x: 23150, trinket: 'laurel' },  // the sharks found her
+    { x: 26550, trinket: 'obsidian' } // the fires kept him warm, at least
+  ]
+  out.decor.skeletons = []
+  for (var s = 0; s < bones.length; s++) {
+    var sx = bones[s].x
+    out.decor.skeletons.push({ x: sx, y: SD.floorYAt(sx) })
+    item(bones[s].trinket, sx + 24, SD.floorYAt(sx + 24) - 10)
+  }
+
+  return out
 }
 
 // Pure: the kelp forest — 5 km of stalks with hidden clearings, rooted in
@@ -654,27 +752,36 @@ function makeDecor (rng, kelpWreckX) {
     columns.push({ x: cx, y: SD.floorYAt(cx), h: SD.rngRange(rng, 90, 170), tilt: SD.rngRange(rng, -0.16, 0.16), broken: rng() < 0.7 })
   }
 
-  // wrecks: the kelp's swallowed kaiki + a fleet's graveyard
+  // wrecks: the kelp's swallowed kaiki + a fleet's graveyard, giving the
+  // Anemone's huge grave a wide berth
   var wrecks = [{ x: kelpWreckX, y: SD.floorYAt(kelpWreckX) }]
-  var wreckXs = [20800, 21900, 22800, 23600]
+  var wreckXs = [20250, 22800, 23600]
   for (i = 0; i < wreckXs.length; i++) {
     wrecks.push({ x: wreckXs[i], y: SD.floorYAt(wreckXs[i]) })
   }
 
-  // the quarry's cut stone: blocks and two half-carved giants
+  // the quarry's cut stone: a drowned industry of it — blocks, giants,
+  // and a colonnade's worth of extra marble
   var blocks = []
-  for (i = 0; i < 14; i++) {
-    var qx = SD.rngRange(rng, cfg.quarry.x1 + 300, cfg.quarry.x2 - 300)
+  for (i = 0; i < 40; i++) {
+    var qx = SD.rngRange(rng, cfg.quarry.x1 + 200, cfg.quarry.x2 - 200)
     blocks.push({
       x: qx, y: SD.floorYAt(qx),
-      w: SD.rngRange(rng, 40, 110), h: SD.rngRange(rng, 26, 60),
-      tilt: SD.rngRange(rng, -0.12, 0.12)
+      w: SD.rngRange(rng, 36, 120), h: SD.rngRange(rng, 22, 64),
+      tilt: SD.rngRange(rng, -0.14, 0.14)
     })
   }
   var giants = [
+    { x: 17650, y: SD.floorYAt(17650), h: 190, tilt: -0.12 },
     { x: 18200, y: SD.floorYAt(18200), h: 210, tilt: -0.18 },
-    { x: 19200, y: SD.floorYAt(19200), h: 170, tilt: 0.24 }
+    { x: 18850, y: SD.floorYAt(18850), h: 160, tilt: 0.1 },
+    { x: 19200, y: SD.floorYAt(19200), h: 170, tilt: 0.24 },
+    { x: 19520, y: SD.floorYAt(19520), h: 230, tilt: -0.05 }
   ]
+  for (var qc = 0; qc < 6; qc++) { // fallen colonnade
+    var qcx = SD.rngRange(rng, cfg.quarry.x1 + 250, cfg.quarry.x2 - 250)
+    columns.push({ x: qcx, y: SD.floorYAt(qcx), h: SD.rngRange(rng, 80, 150), tilt: SD.rngRange(rng, -0.5, 0.5), broken: rng() < 0.85 })
+  }
 
   // gorgonian fans + seahorses for the pretty shallows
   var fans = []
@@ -704,6 +811,45 @@ function makeDecor (rng, kelpWreckX) {
     })
   }
 
+  // Pure: one lap-cruising creature — home point, lap ellipse, own pace
+  function cruiser (x, y, rx, ry, spd) {
+    return {
+      homeX: x, homeY: y, x: x, y: y,
+      rx: rx, ry: ry, spd: spd,
+      lapA: rng() * SD.TAU, dir: 1, tilt: 0, phase: rng() * SD.TAU
+    }
+  }
+
+  // monk seals lap the sunny shallows — the sponge grounds and the lagoon
+  var seals = []
+  for (i = 0; i < 4; i++) {
+    var sealZone = i < 3 ? [1100, 2750] : [37700, 39200]
+    for (var sTry = 0; sTry < 40; sTry++) {
+      var slx = SD.rngRange(rng, sealZone[0], sealZone[1])
+      var slm = SD.floorDepthAt(slx)
+      if (slm > 7 && slm < 22) {
+        seals.push(cruiser(slx, slm * 0.5 * SD.config.pxPerM,
+          SD.rngRange(rng, 60, 110), SD.rngRange(rng, 14, 24), SD.rngRange(rng, 0.5, 0.75)))
+        break
+      }
+    }
+  }
+
+  // mantas soar the open deeps — the banks, the graveyard, the approaches
+  var mantas = []
+  var mantaZones = [[14600, 16800], [21000, 23400], [27600, 33000]]
+  for (i = 0; i < mantaZones.length; i++) {
+    for (var mTry = 0; mTry < 40; mTry++) {
+      var mnx = SD.rngRange(rng, mantaZones[i][0], mantaZones[i][1])
+      var mnm = SD.floorDepthAt(mnx)
+      if (mnm > 34) {
+        mantas.push(cruiser(mnx, SD.rngRange(rng, 22, mnm - 14) * SD.config.pxPerM,
+          SD.rngRange(rng, 130, 200), SD.rngRange(rng, 20, 34), SD.rngRange(rng, 0.16, 0.26)))
+        break
+      }
+    }
+  }
+
   return {
     grass: grass,
     columns: columns,
@@ -712,6 +858,8 @@ function makeDecor (rng, kelpWreckX) {
     giants: giants,
     fans: fans,
     seahorses: seahorses,
+    seals: seals,
+    mantas: mantas,
     hoard: hoard,
     shrine: { x: cfg.vaultX, y: SD.floorYAt(cfg.vaultX) }
   }
@@ -722,22 +870,42 @@ SD.genWorld = function (state) {
   var rng = SD.makeRng(SD.config.worldSeed)
   var cave = makeCave()
   var shafts = makeShafts()
+  var giantWreck = makeGiantWreck(state)
+  var specials = makeSpecials(state)
   var kelpWreckX = 10700
-  var rocks = makeRocks(rng).concat(cave.rocks, shafts.rocks, makeMountain())
+  var rocks = makeRocks(rng).concat(cave.rocks, shafts.rocks, giantWreck.rocks, specials.rocks)
   var decor = makeDecor(rng, kelpWreckX)
   decor.cave = { x: cave.x, y: cave.y, r: cave.r }
+  decor.giantWreck = { x: giantWreck.x, y: giantWreck.y, scale: giantWreck.scale, fallen: !!giantWreck.fallen }
+  decor.hermes = specials.decor.hermes
+  decor.pearlKit = specials.decor.pearlKit
+  decor.carcass = specials.decor.carcass
+  decor.nikandros = specials.decor.nikandros
+  decor.skeletons = specials.decor.skeletons
   var dangers = makeDangers(rng, rocks)
-  // a moray keeps house in the swallowed kaiki
+  // a moray keeps house in the swallowed kaiki, another in the Anemone's hold
   dangers.eels.push({
     homeX: kelpWreckX + 20, homeY: SD.floorYAt(kelpWreckX + 20) - 30, r: 60,
     x: kelpWreckX + 20, y: SD.floorYAt(kelpWreckX + 20) - 30,
     mode: 'lurk', cooldown: 0, targetX: 0, targetY: 0, bit: false, phase: 0
   })
+  dangers.eels.push({
+    homeX: giantWreck.x + 150, homeY: giantWreck.y - 30, r: 60,
+    x: giantWreck.x + 150, y: giantWreck.y - 30,
+    mode: 'lurk', cooldown: 0, targetX: 0, targetY: 0, bit: false, phase: 2
+  })
+  var loot = makeLoot(state, rng, rocks, cave, shafts, kelpWreckX)
+  for (var gw = 0; gw < giantWreck.lootSpots.length; gw++) {
+    var spot = giantWreck.lootSpots[gw]
+    loot.push({ type: spot.type, x: spot.x, y: spot.y, phase: rng() * SD.TAU, progress: 0, taken: false, respawnAt: 0 })
+  }
+  loot = loot.concat(specials.loot)
+  dangers.jellies = dangers.jellies.concat(specials.jellies)
   return {
     rocks: rocks,
     kelp: makeKelp(rng),
     currents: makeCurrents(rng),
-    loot: makeLoot(state, rng, rocks, cave, shafts, kelpWreckX),
+    loot: loot,
     fauna: makeFauna(rng),
     dangers: dangers,
     fishSchools: makeFish(rng),

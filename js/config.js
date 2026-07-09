@@ -4,9 +4,15 @@
 var SD = window.SD || {}
 window.SD = SD
 
+SD.worldFlags = { anemoneFell: false, wellTunnel: false, quarryOpen: false }
+
 SD.config = {
 
   pxPerM: 32, // world scale: 32 canvas px = 1 meter of sea
+
+  // (SD.worldFlags — anemoneFell, wellTunnel, quarryOpen — is stamped onto
+  // SD at boot from the save, so the pure terrain/region functions can read
+  // the world's permanent scars without carrying state around)
 
   worldSeed: 480, // fixed seed — the sea is one real, learnable place (480 BC, naturally)
 
@@ -62,12 +68,15 @@ SD.config = {
       { x: 37600, m: 9 }, { x: 37900, m: 6 },
       { x: 38160, m: 7 }, { x: 38260, m: 62 }, { x: 38400, m: 65 }, { x: 38500, m: 7 }, // the Blue Hole shaft
       { x: 38800, m: 5 }, { x: 39200, m: 6 }, { x: 39600, m: 7 },
-      // — the water runs on beneath the Temple Mountain —
-      { x: 39900, m: 20 }, { x: 40200, m: 34 }, { x: 40800, m: 40 },
-      { x: 41400, m: 38 }, { x: 41800, m: 30 }, { x: 42000, m: 26 }
+      // — beneath the Temple Mountain: the passage floor falls away into
+      // the great cavern, then climbs onto the dry temple plateau —
+      { x: 39900, m: 15 }, { x: 40100, m: 22 }, { x: 40500, m: 34 },
+      { x: 40800, m: 38 }, { x: 41050, m: 32 }, { x: 41200, m: 22 },
+      { x: 41330, m: 13 }, { x: 41450, m: 7 }, { x: 41560, m: 5.2 },
+      { x: 41800, m: 4.8 }, { x: 42000, m: 4.5 }
     ],
     dock: { x: 470, radius: 150 },       // home jetty — swim here to sell, B for the chandlery
-    temple: { x: 41430, radius: 320 },   // inside the mountain's air pocket — T to train
+    temple: { x: 41520, radius: 300 },   // on the plateau inside the mountain — T to train
     vaultX: 30600,                       // center of the hoard on Poseidon's Plain
     caveX: 3200,                         // the winding Divers' Cave in the sponge grounds
     kelpX1: 9000,                        // the forest spans the flat shelf
@@ -81,17 +90,21 @@ SD.config = {
     graveyard: { x1: 20000, x2: 24000 },
     ventsZone: { x1: 24000, x2: 27000 },
     lagoon: { x1: 37500, x2: 39650 },
-    // the hollow mountain: rock from above the waterline down to the tunnel,
-    // a winding way in at ~28 m, and a great air pocket over a dry ledge
+    // the Temple Mountain: SOLID rock, carved. Its underside is terrain in
+    // its own right — ceilingPoints mirror floorPoints. You descend the
+    // face, follow the passage east as the floor falls away, and the roof
+    // soars into one giant cavern: an air pocket over a natural plateau.
     mountain: {
       faceX: 39900,                      // the cliff face where the sea meets rock
-      tunnelY1: 26 * 32,                 // the way in, on the west face
-      tunnelY2: 38 * 32,
-      shaftX1: 41000, shaftX2: 41260,    // the rising throat into the pocket
-      pocketX1: 41060, pocketX2: 41800,  // the air-pocket chamber
+      ceilingPoints: [
+        { x: 39900, m: 13.5 }, { x: 40200, m: 14.5 }, { x: 40650, m: 15 },  // the passage roof
+        { x: 40780, m: 4.5 }, { x: 41000, m: 1.6 }, { x: 41400, m: 1.2 },   // the cavern dome
+        { x: 41700, m: 2 }, { x: 41860, m: 6.5 }, { x: 41950, m: 12 },
+        { x: 42000, m: 14 }                                                 // sealed to the east
+      ],
+      pocketX1: 40800, pocketX2: 41850,  // where the cavern holds trapped air
       pocketSurfaceY: 6 * 32,            // the water level inside the mountain
-      pocketCeilY: 1.2 * 32,             // rock above the air
-      ledgeX: 41430, ledgeY: 5.6 * 32    // the dry shelf the temple stands on
+      ledgeX: 41520, ledgeY: 5 * 32      // the plateau's crown, for the shrine + braziers
     },
     boatStartX: 560,
     boatMaxX: 39650                      // she anchors at the mountain's face, no further
@@ -148,8 +161,30 @@ SD.config = {
   },
   kamakiReach: [0, 55, 75, 95],        // strike distance px by kamaki tier
   kamakiCooldown: [0, 1.1, 0.8, 0.55], // seconds between thrusts by tier
-  ventsUpdraft: 300,                   // px/s^2 of rising water over a vent
+  // Hephaestus' vents: cones of lift from each throat, widening as they
+  // rise, reaching to within ~8 m of the surface. Weak swimmers cannot
+  // force their way down through the core — train first, or go around.
+  ventsUpdraft: 820,                   // px/s^2 at the core, scaled by fitness
+  ventTopM: 8,                         // the lift dies out this close to the surface
   ventCount: 7,
+  giantWreckX: 21500,                  // the Anemone herself, hull breached, enterable
+  hermesX: 5150,                       // the alcove where the god's fins wait
+  pearlKitX: 14350,                    // the pearl-trader's bones, and his goggles
+  grouperX: 8750,                      // the carcass in the meadows, kamaki still in it
+  greatPearlX: 15650,                  // ringed by jellyfish, openable only by a legend edge
+  wellMouthA: { x: 11830, y: 78 * 32 },   // the kelp-choked opening at the Well's floor
+  wellMouthB: { x: 14180, y: 27 * 32 },   // ...and where its current spits you out
+  quarrySlabX: 18620,                  // the sealed alcove among the terraces
+
+  // Nikandros' trail — six bottles, six warnings, one ending
+  bottles: [
+    { x: 3208, dy: -14, at: 'cave' },      // the Divers' Cave (placed at its floor)
+    { x: 11640, dy: -10, at: 'well' },     // the Kelp Well's lip
+    { x: 20450, dy: -12, at: 'graveyard' },// before the Anemone's bow
+    { x: 25450, dy: -12, at: 'vents' },    // among the fires
+    { x: 33920, dy: -12, at: 'grotto' },   // the grotto's rim
+    { x: 30480, dy: -12, at: 'hoard' }     // beside his bones, in the hoard itself
+  ],
 
   // breath drain: 1 s/s, plus pressure past pressureStartM, plus panic when low
   breath: {
@@ -189,13 +224,22 @@ SD.config = {
     amphora: { name: 'Amphora', value: 90, xp: 20, weight: 3, minM: 40, maxM: 92, harvest: 2.2, count: 22, regrow: 180, placement: 'floor' },
     helmet: { name: 'Bronze Helmet', value: 150, xp: 28, weight: 3, minM: 55, maxM: 95, harvest: 2.0, count: 10, regrow: 240, placement: 'floor' },
     laurel: { name: 'Gold Laurel', value: 260, xp: 40, weight: 2, minM: 60, maxM: 110, harvest: 2.0, count: 9, regrow: 300, placement: 'floor' },
-    statue: { name: 'Marble Head', value: 400, xp: 55, weight: 4, minM: 42, maxM: 125, harvest: 2.6, count: 8, regrow: 380, placement: 'floor' },
+    statue: { name: 'Marble Head', value: 400, xp: 55, weight: 4, minM: 42, maxM: 125, harvest: 2.6, count: 14, regrow: 380, placement: 'floor' },
     obsidian: { name: 'Obsidian Shard', value: 120, xp: 24, weight: 2, minM: 68, maxM: 86, harvest: 1.6, count: 8, regrow: 200, placement: 'floor', zone: 'vents' },
     coin: { name: "Poseidon's Coin", value: 400, xp: 45, weight: 1, minM: 130, maxM: 135, harvest: 1.0, count: 5, regrow: 200, placement: 'floor' },
     octopus: { name: 'Octopus', value: 0, offering: 4, xp: 14, weight: 2, minM: 10, maxM: 60, harvest: 2.4, count: 16, regrow: 200, placement: 'floor', needsKnife: true },
     chest: { name: 'Abyssal Treasure Chest', value: 1800, xp: 300, weight: 12, minM: 134, maxM: 135, harvest: 3.5, count: 1, regrow: 900, placement: 'vault', heavy: true },
     trident: { name: 'Trident of Poseidon', value: 0, xp: 400, weight: 0, minM: 134, maxM: 135, harvest: 3.2, count: 1, regrow: 0, placement: 'vault', relic: true },
-    bottle: { name: 'Message in a Bottle', value: 0, xp: 5, weight: 0, minM: 0, maxM: 0, harvest: 0.8, count: 1, regrow: 0, placement: 'surface' },
+    bottle: { name: 'Message in a Bottle', value: 0, xp: 5, weight: 0, minM: 0, maxM: 0, harvest: 0.8, count: 0, regrow: 0, placement: 'special' },
+    // — the found origins: the gods grant gear; the chandlery only refines it —
+    hermesFins: { name: 'Bronze Fins of Hermes', value: 0, xp: 60, weight: 0, harvest: 2.6, count: 0, regrow: 0, placement: 'special', needsKnife: 1, event: 'fins' },
+    pearlKit: { name: "Pearl-Trader's Kit", value: 0, xp: 60, weight: 0, harvest: 2.0, count: 0, regrow: 0, placement: 'special', event: 'sight' },
+    grouperKamaki: { name: 'Old Kamaki', value: 0, xp: 60, weight: 0, harvest: 2.0, count: 0, regrow: 0, placement: 'special', event: 'hunt' },
+    // — one-time wonders —
+    strongbox: { name: "Captain's Strongbox", value: 2500, xp: 200, weight: 14, harvest: 3.0, count: 0, regrow: 0, placement: 'special', heavy: true, event: 'topple' },
+    greatPearl: { name: 'The Great Pearl', value: 2800, xp: 220, weight: 5, harvest: 3.2, count: 0, regrow: 0, placement: 'special', needsKnife: 4 },
+    blockage: { name: 'Kelp-Choked Opening', value: 0, xp: 40, weight: 0, harvest: 2.2, count: 0, regrow: 0, placement: 'special', needsKnife: 1, event: 'tunnel' },
+    slab: { name: 'Sealed Marble Slab', value: 0, xp: 40, weight: 0, harvest: 2.4, count: 0, regrow: 0, placement: 'special', needsKnife: 2, event: 'quarry' },
     // boss tributes — never spawned, only dropped by the fallen
     sharkFin: { name: 'Fin of Karcharias', value: 0, offering: 25, xp: 60, weight: 4, harvest: 1.2, count: 0, regrow: 0, placement: 'drop' },
     krakenBeak: { name: "Kraken's Beak", value: 0, offering: 40, xp: 90, weight: 5, harvest: 1.4, count: 0, regrow: 0, placement: 'drop' },
@@ -304,18 +348,19 @@ SD.config = {
       levels: ['—', '+40%', '+85%']
     },
     {
-      id: 'favor', icon: '🔱', name: "Poseidon's Favor",
-      flavor: 'The god personally guarantees your catch. Terms apply.',
-      what: 'Keep your bag if you black out',
-      tiers: [1200],
-      levels: ['no', 'yes']
+      id: 'buddy', icon: '🤝', name: 'Your Safety Buddy',
+      flavor: 'Cousin Yiannis, trained in the old ways. NEVER dive alone — the first rule of the deep.',
+      what: 'Rescue depth — black out within it and he saves you, your catch, and the day',
+      tiers: [350, 1000],
+      levels: ['meets you at 10 m', 'meets you at 20 m', 'meets you at 30 m']
     }
   ],
+  buddyRescueM: [10, 20, 30],   // rescue depth by buddy tier — beyond it, the sea keeps you
 
   netCapacity: [2, 4, 7, 10, 14, 19, 25],    // carry weight by net tier
   holdCapacity: [0, 24, 48, 90],              // boat hold weight by boat tier
-  boatSpeed: 300,                             // sailing px/s before the Sails of Boreas
-  sailMults: [1, 1.4, 1.85],                  // sailing multiplier by sail tier
+  boatSpeed: 320,                             // sailing px/s before the Sails of Boreas
+  sailMults: [1, 1.8, 3],                     // sailing multiplier by sail tier — full sails FLY
   boatBoardRadius: 95,                        // close enough to board (E) — anywhere along the hull
   boatTransferRadius: 110,                    // surfacing this close auto-loads the hold
   knifeMults: [1, 0.78, 0.6, 0.45, 0.33],     // harvest-time multiplier by knife tier
@@ -382,6 +427,7 @@ SD.maxSpeed = function (state) {
 
 // Pure: sailing speed px/s for the current Sails of Boreas
 SD.sailSpeed = function (state) {
+  if (state.devMode) return 1700 // the dev wind blows where it is told
   return SD.config.boatSpeed * SD.config.sailMults[state.upgrades.sail]
 }
 
@@ -495,8 +541,25 @@ SD.depthM = function (y) {
 // deep inside the Temple Mountain the air pocket has its own waterline
 SD.surfaceYAt = function (x) {
   var mt = SD.config.world.mountain
-  if (x > mt.shaftX1 && x < mt.pocketX2) return mt.pocketSurfaceY
+  if (x > mt.pocketX1 && x < mt.pocketX2) return mt.pocketSurfaceY
   return 0
+}
+
+// Pure: the mountain's underside at a world x — the cave roof over your
+// head, or -Infinity out in the open sea where the sky is the limit
+SD.ceilingYAt = function (x) {
+  var mt = SD.config.world.mountain
+  if (x <= mt.faceX) return -Infinity
+  var pts = mt.ceilingPoints
+  var m = pts[pts.length - 1].m
+  for (var i = 0; i < pts.length - 1; i++) {
+    if (x <= pts[i + 1].x) {
+      var t = (x - pts[i].x) / (pts[i + 1].x - pts[i].x)
+      m = SD.lerp(pts[i].m, pts[i + 1].m, SD.smoothstep(0, 1, SD.clamp(t, 0, 1)))
+      break
+    }
+  }
+  return m * SD.config.pxPerM
 }
 
 // Pure: the named PLACE at a position — geography first, depth only where
@@ -510,6 +573,8 @@ SD.regionAt = function (x, m) {
   if (Math.abs(x - w.kelpWellX) < 220 && m > 24) return 'The Kelp Well'
   if (Math.abs(x - w.blueHoleX) < 220 && m > 12) return 'The Blue Hole'
   if (Math.abs(x - w.grottoX) < 320 && m > 86) return "The Kraken's Grotto"
+  if (SD.worldFlags.anemoneFell && Math.abs(x - SD.config.giantWreckX - 50) < 300 && m > 82) return "The Anemone's Grave"
+  if (Math.abs(x - SD.config.giantWreckX) < 760 && m > 60) return 'The Wreck of the Anemone'
   if (x > 28000 && x < 33200 && m > 110) return "Poseidon's Plain"
   if (x >= w.kelpX1 && x <= w.kelpX2) return 'The Kelp Forest'
   if (x >= w.seagrass.x1 && x < w.seagrass.x2) return 'The Seagrass Meadows'

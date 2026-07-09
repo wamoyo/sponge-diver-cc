@@ -222,11 +222,20 @@ SD.updateDangers = function (state, dt, interactive) {
       }
     }
 
-    // --- Hephaestus' Vents: columns of rising water off the volcanic shelf ---
+    // --- Hephaestus' Vents: cones of lift, narrow at the throat, wide near
+    // the surface. The strong knife down through them; the weak ride up. ---
+    var ventTopY = SD.config.ventTopM * SD.config.pxPerM
     for (i = 0; i < w.dangers.vents.length; i++) {
       var v = w.dangers.vents[i]
-      if (Math.abs(p.x - v.x) < 46 && p.y < v.y && p.y > v.y - 560) {
-        p.vy -= SD.config.ventsUpdraft * dt // the sea itself throws you upward
+      if (p.y > ventTopY && p.y < v.y - 10) {
+        var rise = (v.y - p.y) / (v.y - ventTopY) // 0 at the throat → 1 up top
+        var halfW = 30 + rise * 165
+        var vdx = Math.abs(p.x - v.x)
+        if (vdx < halfW) {
+          var core = 1 - (vdx / halfW) * 0.55       // fiercest in the middle
+          var fitScale = SD.clamp(1.7 - SD.maxSpeed(state) / 250, 0.3, 1.7)
+          p.vy -= SD.config.ventsUpdraft * core * fitScale * dt
+        }
       }
     }
   }

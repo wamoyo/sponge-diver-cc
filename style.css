@@ -468,9 +468,13 @@ body {
 
 /* Blackout */
 
-#blackout { background: rgba(2, 6, 12, 0); transition: background 1.6s ease; }
+#blackout, #gameover { background: rgba(2, 6, 12, 0); transition: background 1.6s ease; }
 
-#blackout.dark { background: rgba(2, 6, 12, 0.96); }
+#blackout.dark, #gameover.dark { background: rgba(2, 6, 12, 0.97); }
+
+#gameover .gameover-rule { margin-top: 14px; font-size: 13.5px; font-variant: small-caps; letter-spacing: 0.12em; color: #b9a98a; }
+
+#gameover .btn { margin-top: 22px; }
 
 .blackout-text { text-align: center; color: var(--cream); opacity: 0; transition: opacity 1s ease 0.7s; }
 
@@ -525,6 +529,14 @@ body {
   font-size: 17px;
   font-weight: bold;
   letter-spacing: 1px;
+}
+
+#mute-pill {
+  top: 14px;
+  right: 68px;
+  width: 46px;
+  height: 46px;
+  font-size: 19px;
 }
 
 #touch-shop, #touch-temple {

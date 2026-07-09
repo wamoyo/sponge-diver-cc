@@ -93,11 +93,13 @@ function drawSkyline (ctx, t) {
   ctx.restore()
 }
 
-// Side effect: the home village on the left beach — houses, jetty, market
+// Side effect: the home village on the left beach — whitewashed houses with
+// tiled roofs, an olive tree, sponges drying on a line, the jetty market,
+// a gull keeping watch. Somewhere worth swimming home to.
 function drawVillage (ctx, t) {
   ctx.save()
 
-  // sand above the waterline
+  // sand above the waterline, with a wet darker hem where the sea touches it
   ctx.fillStyle = '#e8d5a3'
   ctx.beginPath()
   ctx.moveTo(0, 4)
@@ -107,24 +109,112 @@ function drawVillage (ctx, t) {
   ctx.lineTo(560, 4)
   ctx.closePath()
   ctx.fill()
+  ctx.fillStyle = 'rgba(178, 152, 106, 0.55)'
+  ctx.beginPath()
+  ctx.moveTo(190, 4)
+  for (var wx = 190; wx <= 320; wx += 12) {
+    ctx.lineTo(wx, Math.min(SD.floorYAt(wx), 4) - 1)
+  }
+  ctx.lineTo(320, 4)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255, 252, 240, 0.7)' // a few shells on the sand
+  ctx.beginPath()
+  ctx.arc(150, -6, 1.6, 0, SD.TAU)
+  ctx.arc(215, -1, 1.3, 0, SD.TAU)
+  ctx.arc(96, -16, 1.4, 0, SD.TAU)
+  ctx.fill()
 
-  // whitewashed houses with terracotta roofs
+  // whitewashed houses: tiled roofs, arched doors, shuttered windows,
+  // one shaded wall so the sun means something
   function house (hx, hy, w, h) {
     ctx.fillStyle = '#f2ead6'
     ctx.fillRect(hx, hy - h, w, h)
-    ctx.fillStyle = TERRA
+    ctx.fillStyle = 'rgba(142, 126, 100, 0.35)' // the shaded side
+    ctx.fillRect(hx + w - w * 0.22, hy - h, w * 0.22, h)
+    ctx.fillStyle = TERRA // roof
     ctx.beginPath()
-    ctx.moveTo(hx - 5, hy - h)
-    ctx.lineTo(hx + w / 2, hy - h - w * 0.34)
-    ctx.lineTo(hx + w + 5, hy - h)
+    ctx.moveTo(hx - 6, hy - h)
+    ctx.lineTo(hx + w / 2, hy - h - w * 0.35)
+    ctx.lineTo(hx + w + 6, hy - h)
     ctx.closePath()
     ctx.fill()
-    ctx.fillStyle = '#3a4a58'
-    ctx.fillRect(hx + w * 0.38, hy - h * 0.55, w * 0.24, h * 0.55) // door
+    ctx.strokeStyle = 'rgba(122, 58, 30, 0.6)' // tile courses
+    ctx.lineWidth = 1.2
+    ctx.beginPath()
+    ctx.moveTo(hx - 1, hy - h - w * 0.09)
+    ctx.lineTo(hx + w + 1, hy - h - w * 0.09)
+    ctx.moveTo(hx + 4, hy - h - w * 0.2)
+    ctx.lineTo(hx + w - 4, hy - h - w * 0.2)
+    ctx.stroke()
+    ctx.fillStyle = '#3a5a74' // arched door, painted sea-blue
+    ctx.beginPath()
+    ctx.moveTo(hx + w * 0.36, hy)
+    ctx.lineTo(hx + w * 0.36, hy - h * 0.5)
+    ctx.arc(hx + w * 0.48, hy - h * 0.5, w * 0.12, Math.PI, 0)
+    ctx.lineTo(hx + w * 0.6, hy)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = '#3a5a74' // a small shuttered window
+    ctx.fillRect(hx + w * 0.72, hy - h * 0.72, w * 0.14, h * 0.26)
+    ctx.strokeStyle = '#f2ead6'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(hx + w * 0.79, hy - h * 0.72)
+    ctx.lineTo(hx + w * 0.79, hy - h * 0.46)
+    ctx.stroke()
   }
-  house(30, SD.floorYAt(55) - 2, 62, 44)
+  house(28, SD.floorYAt(55) - 2, 64, 46)
   house(112, SD.floorYAt(135) - 2, 54, 38)
-  house(186, SD.floorYAt(208) - 2, 46, 34)
+  house(188, SD.floorYAt(210) - 2, 46, 34)
+
+  // the olive tree, gnarled and silver-green
+  var ox = 262
+  var oy = SD.floorYAt(262) - 1
+  ctx.strokeStyle = '#6b4a2c'
+  ctx.lineWidth = 4
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(ox, oy)
+  ctx.quadraticCurveTo(ox - 3, oy - 14, ox + 4, oy - 24)
+  ctx.moveTo(ox + 1, oy - 15)
+  ctx.quadraticCurveTo(ox + 8, oy - 20, ox + 12, oy - 27)
+  ctx.stroke()
+  ctx.fillStyle = '#7a8f66'
+  ctx.beginPath()
+  ctx.arc(ox + 2, oy - 30, 10, 0, SD.TAU)
+  ctx.arc(ox + 13, oy - 27, 8, 0, SD.TAU)
+  ctx.arc(ox - 7, oy - 25, 7, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(214, 226, 198, 0.5)'
+  ctx.beginPath()
+  ctx.arc(ox - 1, oy - 33, 4, 0, SD.TAU)
+  ctx.fill()
+
+  // sponges drying on a line between two posts — the trade made visible
+  ctx.strokeStyle = '#6b4a2c'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(120, SD.floorYAt(120) - 2)
+  ctx.lineTo(120, SD.floorYAt(120) - 26)
+  ctx.moveTo(180, SD.floorYAt(180) - 2)
+  ctx.lineTo(180, SD.floorYAt(180) - 28)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(58, 42, 24, 0.8)'
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  ctx.moveTo(120, SD.floorYAt(120) - 25)
+  ctx.quadraticCurveTo(150, SD.floorYAt(150) - 19, 180, SD.floorYAt(180) - 27)
+  ctx.stroke()
+  ctx.fillStyle = '#c99a5e'
+  for (var sp = 0; sp < 4; sp++) {
+    var sx = 128 + sp * 14
+    var sy = SD.floorYAt(sx) - 22 + Math.sin(sp * 2.2) * 1.5 + Math.sin(t * 1.8 + sp) * 0.8
+    ctx.beginPath()
+    ctx.arc(sx, sy, 4.2, 0, SD.TAU)
+    ctx.arc(sx + 3, sy + 2, 3.2, 0, SD.TAU)
+    ctx.fill()
+  }
 
   // the jetty: posts + planking out over the shallows
   ctx.strokeStyle = WOOD
@@ -137,6 +227,14 @@ function drawVillage (ctx, t) {
   }
   ctx.fillStyle = '#6b4a2c'
   ctx.fillRect(250, -18, 330, 8)
+  ctx.strokeStyle = 'rgba(43, 29, 22, 0.5)' // plank seams
+  ctx.lineWidth = 1
+  for (var pk = 270; pk < 580; pk += 24) {
+    ctx.beginPath()
+    ctx.moveTo(pk, -18)
+    ctx.lineTo(pk, -10)
+    ctx.stroke()
+  }
 
   // sponge market stall on the jetty
   ctx.fillStyle = '#8a5a33'
@@ -146,68 +244,144 @@ function drawVillage (ctx, t) {
     ctx.fillStyle = a % 2 === 0 ? '#e3d3ae' : TERRA
     ctx.fillRect(420 + a * 25, -60, 25, 10)
   }
-  // sponges piled for sale + an amphora
-  ctx.fillStyle = '#b9834f'
+  ctx.fillStyle = '#b9834f' // sponges piled for sale
   ctx.beginPath()
   ctx.arc(455, -24, 7, 0, SD.TAU)
   ctx.arc(468, -22, 8, 0, SD.TAU)
   ctx.arc(480, -25, 6, 0, SD.TAU)
   ctx.fill()
-  ctx.fillStyle = TERRA
+  ctx.fillStyle = TERRA // an amphora
   ctx.beginPath()
   ctx.ellipse(510, -27, 6, 10, 0, 0, SD.TAU)
+  ctx.fill()
+
+  // the gull on the last post, judging your catch
+  var gx = 560
+  var gy = -18
+  ctx.fillStyle = '#f4f0e6'
+  ctx.beginPath()
+  ctx.ellipse(gx, gy - 7, 6, 4.2, -0.15, 0, SD.TAU)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(gx + 5, gy - 11, 2.8, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#a8b0b8' // folded wing
+  ctx.beginPath()
+  ctx.ellipse(gx - 1.5, gy - 7.5, 4, 2.4, -0.2, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#d99a2b' // beak
+  ctx.beginPath()
+  ctx.moveTo(gx + 7.5, gy - 11.5)
+  ctx.lineTo(gx + 11, gy - 10.5)
+  ctx.lineTo(gx + 7.5, gy - 9.8)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#241a12'
+  ctx.beginPath()
+  ctx.arc(gx + 5.5, gy - 12, 0.7, 0, SD.TAU)
   ctx.fill()
 
   ctx.restore()
 }
 
-// Side effect: the Temple Mountain — a headland of rock above the water,
-// hollow below: the passage shade, the rising shaft, and the air-pocket
-// chamber with its own waterline, braziers, and the sanctum on a dry ledge
+// Side effect: the Temple Mountain — SOLID terrain, carved. One rock mass
+// from the seafloor to the sky, its underside traced by ceilingPoints: a
+// low passage east from the cliff face, then a giant cavern dome holding
+// trapped air over the natural plateau where the temple stands.
 function drawMountain (ctx, t) {
   var mt = SD.config.world.mountain
   var W = SD.config.world.widthPx
+  var x
+
   ctx.save()
 
-  // the massif above the waterline
+  // — the solid body: crown silhouette above, carved ceiling below —
+  ctx.fillStyle = '#1d3349'
+  ctx.beginPath()
+  ctx.moveTo(mt.faceX, SD.ceilingYAt(mt.faceX + 1))
+  // up the cliff face and over the peaks
+  ctx.lineTo(mt.faceX, -40)
+  ctx.quadraticCurveTo(mt.faceX + 260, -250, mt.faceX + 640, -290)
+  ctx.quadraticCurveTo(41100, -380, 41500, -300)
+  ctx.quadraticCurveTo(41800, -240, W, -150)
+  ctx.lineTo(W, SD.ceilingYAt(W - 1))
+  // back along the carved underside, east to west
+  for (x = W - 20; x >= mt.faceX; x -= 36) {
+    ctx.lineTo(x, SD.ceilingYAt(x + 1))
+  }
+  ctx.closePath()
+  ctx.fill()
+
+  // the dry crown above the waterline, sunlit
   ctx.fillStyle = '#5c5a4e'
   ctx.beginPath()
-  ctx.moveTo(mt.faceX - 20, 8)
-  ctx.quadraticCurveTo(mt.faceX + 300, -240, mt.faceX + 700, -280)
-  ctx.quadraticCurveTo(41400, -360, 41800, -180)
-  ctx.lineTo(W, -120)
-  ctx.lineTo(W, 8)
+  ctx.moveTo(mt.faceX, 6)
+  ctx.lineTo(mt.faceX, -40)
+  ctx.quadraticCurveTo(mt.faceX + 260, -250, mt.faceX + 640, -290)
+  ctx.quadraticCurveTo(41100, -380, 41500, -300)
+  ctx.quadraticCurveTo(41800, -240, W, -150)
+  ctx.lineTo(W, 6)
   ctx.closePath()
   ctx.fill()
   ctx.fillStyle = 'rgba(120, 118, 100, 0.5)' // sunlit crags
   ctx.beginPath()
-  ctx.moveTo(mt.faceX + 240, -120)
-  ctx.quadraticCurveTo(mt.faceX + 480, -250, mt.faceX + 760, -240)
-  ctx.lineTo(mt.faceX + 700, -110)
+  ctx.moveTo(mt.faceX + 240, -140)
+  ctx.quadraticCurveTo(mt.faceX + 520, -280, mt.faceX + 820, -270)
+  ctx.lineTo(mt.faceX + 740, -120)
   ctx.closePath()
   ctx.fill()
-  // a few hardy trees on the crown
-  ctx.fillStyle = 'rgba(60, 92, 60, 0.85)'
+  ctx.fillStyle = 'rgba(60, 92, 60, 0.85)' // hardy trees on the ridge
   for (var tr = 0; tr < 4; tr++) {
-    var tx = mt.faceX + 500 + tr * 320
-    var ty = -240 - Math.sin(tx * 0.01) * 60
+    var tx = mt.faceX + 460 + tr * 360
+    var ty = -260 - Math.sin(tx * 0.01) * 60
     ctx.beginPath()
     ctx.ellipse(tx, ty, 26, 14, 0, 0, SD.TAU)
     ctx.fill()
   }
 
-  // dim the drowned halls — the passage and chamber live in mountain-shadow
-  ctx.fillStyle = 'rgba(6, 12, 20, 0.42)'
-  ctx.fillRect(mt.faceX, 8, W - mt.faceX, 46 * 32)
+  // — the carved ceiling wears a pale crust, like the floor wears sand —
+  ctx.strokeStyle = 'rgba(150, 182, 196, 0.22)'
+  ctx.lineWidth = 3
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  for (x = mt.faceX + 8; x <= W - 20; x += 36) {
+    var cy = SD.ceilingYAt(x)
+    if (x === mt.faceX + 8) ctx.moveTo(x, cy)
+    else ctx.lineTo(x, cy)
+  }
+  ctx.stroke()
+  // stalactites, deterministic so they never dance
+  ctx.fillStyle = '#16293c'
+  for (x = mt.faceX + 60; x < W - 80; x += 130) {
+    var h = Math.abs(Math.sin(x * 0.617)) * 26 + 8
+    var cy2 = SD.ceilingYAt(x)
+    ctx.beginPath()
+    ctx.moveTo(x - 9, cy2 - 1)
+    ctx.lineTo(x, cy2 + h)
+    ctx.lineTo(x + 9, cy2 - 1)
+    ctx.closePath()
+    ctx.fill()
+  }
 
-  // the pocket: air above its own waterline
-  var air = ctx.createLinearGradient(0, mt.pocketCeilY, 0, mt.pocketSurfaceY)
-  air.addColorStop(0, '#1a140e')
+  // — the drowned halls live in mountain-shadow —
+  ctx.fillStyle = 'rgba(6, 12, 20, 0.35)'
+  ctx.fillRect(mt.faceX, 8, W - mt.faceX, 42 * 32)
+
+  // — the air pocket: warm dark air between the dome and its waterline —
+  var air = ctx.createLinearGradient(0, 30, 0, mt.pocketSurfaceY)
+  air.addColorStop(0, '#181009')
   air.addColorStop(1, '#3a2c1c')
   ctx.fillStyle = air
-  ctx.fillRect(mt.pocketX1, mt.pocketCeilY, mt.pocketX2 - mt.pocketX1, mt.pocketSurfaceY - mt.pocketCeilY)
+  ctx.beginPath()
+  ctx.moveTo(mt.pocketX1, mt.pocketSurfaceY)
+  for (x = mt.pocketX1; x <= mt.pocketX2; x += 30) {
+    ctx.lineTo(x, Math.min(SD.ceilingYAt(x) + 2, mt.pocketSurfaceY))
+  }
+  ctx.lineTo(mt.pocketX2, mt.pocketSurfaceY)
+  ctx.closePath()
+  ctx.fill()
 
-  // the pocket waterline, lapping in the dark
+  // the cavern waterline, lapping in the dark
   ctx.strokeStyle = 'rgba(190, 225, 235, 0.5)'
   ctx.lineWidth = 2
   ctx.beginPath()
@@ -218,37 +392,39 @@ function drawMountain (ctx, t) {
   }
   ctx.stroke()
 
-  // the sanctum on the dry ledge, lit by braziers
+  // — the sanctum on the plateau, lit by braziers —
   var lx = mt.ledgeX
-  var ly = mt.ledgeY
-  drawShrine(ctx, { x: lx + 60, y: ly + 6 })
+  var ly = SD.floorYAt(mt.ledgeX) + 2
+  drawShrine(ctx, { x: lx, y: ly })
   for (var b = -1; b <= 1; b += 2) {
-    var bx = lx + 60 + b * 95
+    var bx = lx + b * 100
+    var by = SD.floorYAt(bx) + 1
     var glow = 0.5 + Math.sin(t * 6 + b) * 0.14
     ctx.fillStyle = '#6b5030' // the brazier bowl
-    ctx.fillRect(bx - 4, ly - 16, 8, 18)
+    ctx.fillRect(bx - 4, by - 18, 8, 18)
     ctx.beginPath()
-    ctx.ellipse(bx, ly - 18, 8, 3.4, 0, 0, SD.TAU)
+    ctx.ellipse(bx, by - 20, 8, 3.4, 0, 0, SD.TAU)
     ctx.fill()
-    var fg = ctx.createRadialGradient(bx, ly - 24, 2, bx, ly - 24, 90)
+    var fg = ctx.createRadialGradient(bx, by - 26, 2, bx, by - 26, 95)
     fg.addColorStop(0, 'rgba(255, 190, 90, ' + glow + ')')
     fg.addColorStop(1, 'rgba(255, 190, 90, 0)')
     ctx.fillStyle = fg
     ctx.beginPath()
-    ctx.arc(bx, ly - 24, 90, 0, SD.TAU)
+    ctx.arc(bx, by - 26, 95, 0, SD.TAU)
     ctx.fill()
     ctx.fillStyle = 'rgba(255, 220, 130, 0.9)' // the flame itself
     ctx.beginPath()
-    ctx.ellipse(bx, ly - 24 - Math.sin(t * 9 + b) * 2, 4, 7 + Math.sin(t * 7 + b) * 2, 0, 0, SD.TAU)
+    ctx.ellipse(bx, by - 26 - Math.sin(t * 9 + b) * 2, 4, 7 + Math.sin(t * 7 + b) * 2, 0, 0, SD.TAU)
     ctx.fill()
   }
-
-  // a faint holy shimmer down the shaft, so the way up can be found
-  var sg = ctx.createLinearGradient(0, mt.pocketSurfaceY, 0, 30 * 32)
-  sg.addColorStop(0, 'rgba(255, 214, 130, 0.16)')
-  sg.addColorStop(1, 'rgba(255, 214, 130, 0)')
-  ctx.fillStyle = sg
-  ctx.fillRect(mt.shaftX1 + 30, mt.pocketSurfaceY, mt.shaftX2 - mt.shaftX1 - 60, 30 * 32 - mt.pocketSurfaceY)
+  // a soft godly presence filling the dome above the temple
+  var gg = ctx.createRadialGradient(lx, 120, 20, lx, 120, 340)
+  gg.addColorStop(0, 'rgba(255, 214, 130, 0.1)')
+  gg.addColorStop(1, 'rgba(255, 214, 130, 0)')
+  ctx.fillStyle = gg
+  ctx.beginPath()
+  ctx.arc(lx, 120, 340, 0, SD.TAU)
+  ctx.fill()
 
   ctx.restore()
 }
@@ -339,100 +515,455 @@ function drawSeahorse (ctx, s, t) {
   ctx.restore()
 }
 
-// Side effect: a volcanic vent — dark chimney, shimmering column of rise
-function drawVent (ctx, v, t) {
+// Side effect: a Mediterranean monk seal — the plump, whiskered friend of
+// every Greek fisherman's stories. One fat torpedo of a body, a pale belly,
+// big wet eyes, hind flippers sculling. s.tilt (set by the cruise update)
+// noses it up and down its lap.
+function drawSeal (ctx, s, t) {
+  var scull = Math.sin(t * 3.1 + s.phase)
   ctx.save()
-  // the chimney
-  ctx.fillStyle = '#1c1712'
-  ctx.beginPath()
-  ctx.moveTo(v.x - 26, v.y + 4)
-  ctx.lineTo(v.x - 9, v.y - 34)
-  ctx.lineTo(v.x + 9, v.y - 34)
-  ctx.lineTo(v.x + 26, v.y + 4)
+  ctx.translate(s.x, s.y + Math.sin(t * 1.1 + s.phase) * 3)
+  ctx.scale(s.dir, 1)
+  ctx.rotate((s.tilt || 0) + Math.sin(t * 1.6 + s.phase) * 0.045)
+
+  // hind flippers first, sculling behind the body
+  ctx.fillStyle = '#453f37'
+  ctx.beginPath() // upper paddle
+  ctx.moveTo(-32, -2)
+  ctx.quadraticCurveTo(-45, -8 + scull * 4, -52, -4 + scull * 5.5)
+  ctx.quadraticCurveTo(-44, 1 + scull * 2, -32, 2)
   ctx.closePath()
   ctx.fill()
-  ctx.fillStyle = 'rgba(255, 140, 60, ' + (0.25 + Math.sin(t * 5 + v.phase) * 0.12) + ')'
-  ctx.beginPath()
-  ctx.ellipse(v.x, v.y - 34, 7, 3, 0, 0, SD.TAU)
+  ctx.beginPath() // lower paddle, countering
+  ctx.moveTo(-32, 0)
+  ctx.quadraticCurveTo(-44, 7 - scull * 3, -51, 9 - scull * 4.5)
+  ctx.quadraticCurveTo(-43, 4 - scull, -32, 3)
+  ctx.closePath()
   ctx.fill()
-  // the rising water, sketched in bubbles
-  ctx.strokeStyle = 'rgba(230, 245, 250, 0.35)'
+
+  // the body: one well-fed torpedo, nose to tail
+  ctx.fillStyle = '#57524a'
+  ctx.beginPath()
+  ctx.moveTo(36, -1)
+  ctx.quadraticCurveTo(31, -9, 20, -10.5)   // the round crown
+  ctx.quadraticCurveTo(4, -14, -12, -10.5)  // the fat back
+  ctx.quadraticCurveTo(-27, -7, -34, -1)    // taper to the tail
+  ctx.quadraticCurveTo(-27, 5, -10, 10)     // underside forward
+  ctx.quadraticCurveTo(8, 13, 24, 7)        // the full belly
+  ctx.quadraticCurveTo(33, 3.5, 36, -1)     // chin up to the nose
+  ctx.closePath()
+  ctx.fill()
+
+  // the pale belly patch every monk seal wears
+  ctx.fillStyle = 'rgba(214, 202, 176, 0.8)'
+  ctx.beginPath()
+  ctx.ellipse(3, 7.2, 17, 4.2, -0.06, 0, SD.TAU)
+  ctx.fill()
+  // wet fur catching the light along the back
+  ctx.strokeStyle = 'rgba(190, 205, 210, 0.28)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(26, -7.5)
+  ctx.quadraticCurveTo(6, -12.5, -14, -9)
+  ctx.stroke()
+  // the neck fold of a diver who never misses a meal
+  ctx.strokeStyle = 'rgba(40, 34, 28, 0.3)'
   ctx.lineWidth = 1.4
   ctx.beginPath()
-  for (var i = 0; i < 7; i++) {
-    var frac = ((t * 90 + i * 80 + v.phase * 60) % 540)
-    var by = v.y - 36 - frac
-    var bx = v.x + Math.sin(by * 0.03 + i) * (8 + frac * 0.05)
+  ctx.arc(20, -1, 9, -1.15, 1.05)
+  ctx.stroke()
+
+  // fore flipper, pressed to the flank mid-stroke
+  ctx.fillStyle = '#453f37'
+  ctx.beginPath()
+  ctx.moveTo(11, 5)
+  ctx.quadraticCurveTo(4, 10 + scull, -2, 14 + scull * 1.6)
+  ctx.quadraticCurveTo(4, 12.5, 11, 8)
+  ctx.closePath()
+  ctx.fill()
+
+  // the face: pale muzzle, big wet eye, whiskers
+  ctx.fillStyle = 'rgba(200, 190, 168, 0.35)'
+  ctx.beginPath()
+  ctx.ellipse(30.5, -0.5, 5.5, 4, -0.2, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#17110c'
+  ctx.beginPath() // the eye that begs fish off every boat
+  ctx.arc(25, -4.2, 2.3, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255, 252, 240, 0.8)'
+  ctx.beginPath()
+  ctx.arc(25.8, -5, 0.75, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#241a12'
+  ctx.beginPath() // nose
+  ctx.ellipse(35, -2.6, 1.7, 1.2, -0.35, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(232, 226, 206, 0.5)'
+  ctx.lineWidth = 0.8
+  ctx.beginPath() // whiskers
+  ctx.moveTo(32, -0.6)
+  ctx.quadraticCurveTo(27, 0.2, 22.5, -0.6)
+  ctx.moveTo(32.5, 0.6)
+  ctx.quadraticCurveTo(27.5, 2.4, 23, 2.2)
+  ctx.moveTo(32, 1.8)
+  ctx.quadraticCurveTo(28, 4.4, 24, 4.8)
+  ctx.stroke()
+
+  ctx.restore()
+}
+
+// Side effect: a manta ray soaring on slow wingbeats. The wings are drawn
+// parametrically off the flap so they thin to a blade edge-on mid-beat:
+// far wing shadowed behind the body, near wing crossing in front.
+// m.tilt (set by the cruise update) banks it gently along its lap.
+function drawManta (ctx, m, t) {
+  var flap = Math.sin(t * 1.5 + m.phase)
+  var farFlap = Math.sin(t * 1.5 + m.phase - 0.55)
+  ctx.save()
+  ctx.translate(m.x, m.y + Math.cos(t * 1.5 + m.phase) * 5) // rises on the downstroke
+  ctx.scale(m.dir, 1)
+  ctx.rotate((m.tilt || 0) + Math.sin(t * 0.7 + m.phase) * 0.03)
+
+  // Side effect: one wing — a triangle whose lift comes entirely from f,
+  // so at f = 0 it flattens to the blade you'd truly see edge-on
+  function wing (f, fill) {
+    ctx.fillStyle = fill
+    ctx.beginPath()
+    ctx.moveTo(22, -1.5)
+    ctx.quadraticCurveTo(8, -2 - 20 * f, -8, -2.5 - 36 * f) // leading edge out to the tip
+    ctx.quadraticCurveTo(-15, -1 - 15 * f, -19, 0)          // trailing edge back home
+    ctx.closePath()
+    ctx.fill()
+  }
+
+  wing(farFlap * 0.8, '#243745') // the far wing, in shadow, beating a touch behind
+
+  // the tail whip, streaming aft
+  var sway = Math.sin(t * 1.5 + m.phase - 1.2) * 4
+  ctx.strokeStyle = '#243745'
+  ctx.lineWidth = 1.8
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(-30, -0.5)
+  ctx.quadraticCurveTo(-48, -1.5 + sway * 0.6, -66, 1.5 + sway)
+  ctx.stroke()
+
+  // the body: a flattened lens with a blunt, open mouth
+  ctx.fillStyle = '#31485a'
+  ctx.beginPath()
+  ctx.moveTo(34, -5)                     // brow over the mouth
+  ctx.quadraticCurveTo(14, -8.5, -6, -6) // the smooth back
+  ctx.quadraticCurveTo(-22, -4, -31, -1) // taper to the tail root
+  ctx.quadraticCurveTo(-20, 3.5, -2, 5)  // underside
+  ctx.quadraticCurveTo(20, 6.2, 33, 2.4) // belly to the jaw
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#101b24'
+  ctx.beginPath() // the mouth, open for the plankton it strains all day
+  ctx.moveTo(34, -4.6)
+  ctx.lineTo(36.5, -2.6)
+  ctx.lineTo(36, 0.8)
+  ctx.lineTo(33, 2.2)
+  ctx.closePath()
+  ctx.fill()
+  // cephalic fins, curled forward like horns
+  ctx.strokeStyle = '#243745'
+  ctx.lineWidth = 2.4
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(33.5, -4.4)
+  ctx.quadraticCurveTo(40, -6, 43, -3)
+  ctx.moveTo(33.5, 2)
+  ctx.quadraticCurveTo(40, 3.2, 42.5, 0.8)
+  ctx.stroke()
+
+  // pale belly band + the shoulder patch mantas are known by
+  ctx.fillStyle = 'rgba(201, 214, 216, 0.8)'
+  ctx.beginPath()
+  ctx.ellipse(6, 3.6, 21, 2.3, 0.04, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(190, 205, 210, 0.4)'
+  ctx.beginPath()
+  ctx.moveTo(21, -5.8)
+  ctx.lineTo(11.5, -7.4)
+  ctx.lineTo(17, -4.4)
+  ctx.closePath()
+  ctx.fill()
+  // gill slits under the head
+  ctx.strokeStyle = 'rgba(16, 27, 36, 0.55)'
+  ctx.lineWidth = 1.2
+  for (var g = 0; g < 4; g++) {
+    ctx.beginPath()
+    ctx.arc(22 - g * 3.6, 2.4, 2.6, 0.6, 1.7)
+    ctx.stroke()
+  }
+  // the eye at the mouth's corner
+  ctx.fillStyle = '#0e161e'
+  ctx.beginPath()
+  ctx.arc(30.5, -3, 1.5, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(230, 240, 240, 0.7)'
+  ctx.beginPath()
+  ctx.arc(31, -3.4, 0.5, 0, SD.TAU)
+  ctx.fill()
+
+  wing(flap, '#31485a') // the near wing crosses the body last
+  // wet sheen down the near wing's leading edge
+  ctx.strokeStyle = 'rgba(160, 195, 205, 0.3)'
+  ctx.lineWidth = 1.6
+  ctx.beginPath()
+  ctx.moveTo(21, -2)
+  ctx.quadraticCurveTo(8, -2.4 - 20 * flap, -7.5, -3 - 35 * flap)
+  ctx.stroke()
+
+  ctx.restore()
+}
+
+// Side effect: a volcanic vent — a tall basalt chimney split by ember
+// cracks, breathing a shimmering column of heat and bubbles. Hephaestus
+// is very much at work down here.
+function drawVent (ctx, v, t) {
+  var pulse = 0.5 + Math.sin(t * 5 + v.phase) * 0.5
+  ctx.save()
+
+  // the warm pool of light it throws on the floor
+  var pool = ctx.createRadialGradient(v.x, v.y - 20, 6, v.x, v.y - 20, 110)
+  pool.addColorStop(0, 'rgba(255, 130, 50, ' + (0.16 + pulse * 0.08) + ')')
+  pool.addColorStop(1, 'rgba(255, 130, 50, 0)')
+  ctx.fillStyle = pool
+  ctx.beginPath()
+  ctx.arc(v.x, v.y - 20, 110, 0, SD.TAU)
+  ctx.fill()
+
+  // the chimney, tall and knuckled
+  ctx.fillStyle = '#1c1712'
+  ctx.beginPath()
+  ctx.moveTo(v.x - 38, v.y + 4)
+  ctx.lineTo(v.x - 22, v.y - 26)
+  ctx.lineTo(v.x - 13, v.y - 48)
+  ctx.lineTo(v.x - 8, v.y - 56)
+  ctx.lineTo(v.x + 8, v.y - 56)
+  ctx.lineTo(v.x + 16, v.y - 42)
+  ctx.lineTo(v.x + 24, v.y - 20)
+  ctx.lineTo(v.x + 38, v.y + 4)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(80, 66, 52, 0.5)' // a lit facet up its shoulder
+  ctx.beginPath()
+  ctx.moveTo(v.x - 22, v.y - 26)
+  ctx.lineTo(v.x - 13, v.y - 48)
+  ctx.lineTo(v.x - 6, v.y - 30)
+  ctx.lineTo(v.x - 14, v.y - 4)
+  ctx.closePath()
+  ctx.fill()
+  // ember cracks, breathing
+  ctx.strokeStyle = 'rgba(255, 120, 40, ' + (0.4 + pulse * 0.35) + ')'
+  ctx.lineWidth = 1.8
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(v.x - 4, v.y - 50)
+  ctx.lineTo(v.x - 8, v.y - 34)
+  ctx.lineTo(v.x - 2, v.y - 22)
+  ctx.moveTo(v.x + 8, v.y - 40)
+  ctx.lineTo(v.x + 12, v.y - 26)
+  ctx.stroke()
+  // the throat, glowing
+  ctx.fillStyle = 'rgba(255, 160, 70, ' + (0.5 + pulse * 0.3) + ')'
+  ctx.beginPath()
+  ctx.ellipse(v.x, v.y - 56, 8, 3.4, 0, 0, SD.TAU)
+  ctx.fill()
+
+  // the rising CONE: it widens all the way to ~8 m below the surface —
+  // bubbles spread with it, and faint cone-edges betray its reach
+  var topY = SD.config.ventTopM * SD.config.pxPerM
+  var span = v.y - 58 - topY
+  ctx.strokeStyle = 'rgba(230, 245, 250, 0.3)'
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  for (var i = 0; i < 14; i++) {
+    var frac = ((t * 130 + i * span / 14 + v.phase * 60) % span)
+    var by = v.y - 58 - frac
+    var rise = frac / span
+    var bx = v.x + Math.sin(by * 0.025 + i * 1.7) * (10 + rise * 150)
     var br = 2 + (i % 3)
     ctx.moveTo(bx + br, by)
     ctx.arc(bx, by, br, 0, SD.TAU)
   }
   ctx.stroke()
+  // the edges of the lift, whispered
+  ctx.strokeStyle = 'rgba(255, 190, 120, 0.07)'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(v.x - 30, v.y - 40)
+  ctx.quadraticCurveTo(v.x - 60 - Math.sin(t * 1.2 + v.phase) * 10, v.y - span * 0.55, v.x - 190, topY)
+  ctx.moveTo(v.x + 30, v.y - 40)
+  ctx.quadraticCurveTo(v.x + 60 + Math.sin(t * 1.4 + v.phase) * 10, v.y - span * 0.55, v.x + 190, topY)
+  ctx.stroke()
+  // the heat-shimmer core
+  ctx.strokeStyle = 'rgba(255, 190, 120, 0.12)'
+  ctx.lineWidth = 7
+  ctx.beginPath()
+  ctx.moveTo(v.x - 4, v.y - 58)
+  ctx.quadraticCurveTo(v.x + Math.sin(t * 2 + v.phase) * 16, v.y - span * 0.5, v.x + Math.sin(t * 1.3) * 30, topY + 60)
+  ctx.stroke()
   ctx.restore()
 }
 
-// Side effect: the diver's kaiki — drawn wherever she's anchored, with her cargo
+// Side effect: the diver's kaiki — and she grows with you. Bigger hold
+// tiers stretch the hull and dress her stern; the Sails of Boreas unfurl
+// from a furled rag to a crowned purple wing with a gold meander.
 function drawBoat (ctx, state, t) {
   if (!SD.hasBoat(state)) return
+  var tier = state.upgrades.boat
+  var sail = state.upgrades.sail
+  var L = 1 + (tier - 1) * 0.17 // the hull stretches with the hold
   var x = state.boat.x
   var y = -3 + Math.sin(t * 1.1) * 2.5
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate(Math.sin(t * 0.9) * 0.02)
+
   // hull
   ctx.fillStyle = '#3a2c20'
   ctx.beginPath()
-  ctx.moveTo(-70, -6)
-  ctx.quadraticCurveTo(-78, -20, -62, -24)
-  ctx.lineTo(64, -24)
-  ctx.quadraticCurveTo(84, -20, 72, -4)
-  ctx.quadraticCurveTo(0, 16, -70, -6)
+  ctx.moveTo(-70 * L, -6)
+  ctx.quadraticCurveTo(-78 * L, -20, -62 * L, -24)
+  ctx.lineTo(64 * L, -24)
+  ctx.quadraticCurveTo(84 * L, -20, 72 * L, -4)
+  ctx.quadraticCurveTo(0, 16, -70 * L, -6)
   ctx.fill()
-  // terracotta rail stripe + bow eye, for luck
-  ctx.strokeStyle = TERRA
+  // planking seam
+  ctx.strokeStyle = 'rgba(20, 14, 10, 0.6)'
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  ctx.moveTo(-58 * L, -12)
+  ctx.quadraticCurveTo(0, 2, 62 * L, -11)
+  ctx.stroke()
+  // rail stripe: terracotta, then gold when she's a proper ship
+  ctx.strokeStyle = tier >= 3 ? GOLD : TERRA
   ctx.lineWidth = 3
   ctx.beginPath()
-  ctx.moveTo(-60, -20)
-  ctx.lineTo(62, -20)
+  ctx.moveTo(-60 * L, -20)
+  ctx.lineTo(62 * L, -20)
   ctx.stroke()
+  // the stern curl (aphlaston) once she's tier 2+
+  if (tier >= 2) {
+    ctx.strokeStyle = '#3a2c20'
+    ctx.lineWidth = 5
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    ctx.moveTo(-66 * L, -22)
+    ctx.quadraticCurveTo(-78 * L, -34, -72 * L, -46)
+    ctx.stroke()
+    ctx.strokeStyle = tier >= 3 ? GOLD : TERRA
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(-67 * L, -26)
+    ctx.quadraticCurveTo(-75 * L, -34, -71 * L, -43)
+    ctx.stroke()
+  }
+  // railing posts on the big hulls
+  if (tier >= 2) {
+    ctx.strokeStyle = '#5a4430'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    for (var rp = -44; rp <= 52; rp += 24) {
+      ctx.moveTo(rp * L, -24)
+      ctx.lineTo(rp * L, -31)
+    }
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(-46 * L, -31)
+    ctx.lineTo(54 * L, -31)
+    ctx.stroke()
+  }
+  // the painted bow eye, always watching for luck
   ctx.fillStyle = '#f3e7c9'
   ctx.beginPath()
-  ctx.arc(66, -14, 3, 0, SD.TAU)
+  ctx.arc(66 * L, -14, 3.2, 0, SD.TAU)
   ctx.fill()
-  // mast, furled sail
+  ctx.fillStyle = '#1a2c3c'
+  ctx.beginPath()
+  ctx.arc(67 * L, -14, 1.4, 0, SD.TAU)
+  ctx.fill()
+
+  // mast + rigging
   ctx.strokeStyle = '#3a2c20'
   ctx.lineWidth = 4
   ctx.beginPath()
   ctx.moveTo(4, -24)
-  ctx.lineTo(4, -92)
+  ctx.lineTo(4, -92 - sail * 8)
   ctx.stroke()
-  ctx.fillStyle = '#e7dbbd'
+  ctx.strokeStyle = 'rgba(90, 70, 48, 0.8)'
+  ctx.lineWidth = 1.2
   ctx.beginPath()
-  ctx.moveTo(6, -90)
-  ctx.quadraticCurveTo(40, -70, 8, -34)
+  ctx.moveTo(4, -90 - sail * 8)
+  ctx.lineTo(58 * L, -22)
+  ctx.moveTo(4, -90 - sail * 8)
+  ctx.lineTo(-54 * L, -22)
+  ctx.stroke()
+
+  if (sail === 0) {
+    // furled workaday rag
+    ctx.fillStyle = '#e7dbbd'
+    ctx.beginPath()
+    ctx.moveTo(6, -90)
+    ctx.quadraticCurveTo(40, -70, 8, -34)
+    ctx.closePath()
+    ctx.fill()
+  } else {
+    // the Sails of Boreas, unfurled and drawing
+    var belly = 8 + sail * 6 + Math.sin(t * 1.4) * 2
+    ctx.fillStyle = sail >= 2 ? '#5a3a74' : '#f0e8d2'
+    ctx.beginPath()
+    ctx.moveTo(6, -88 - sail * 8)
+    ctx.quadraticCurveTo(46 + belly, -60 - sail * 4, 40 + belly * 0.5, -30)
+    ctx.lineTo(8, -30)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = sail >= 2 ? GOLD : TERRA // the trim band
+    ctx.lineWidth = sail >= 2 ? 3 : 2
+    ctx.beginPath()
+    ctx.moveTo(7, -86 - sail * 8)
+    ctx.quadraticCurveTo(45 + belly, -58 - sail * 4, 39 + belly * 0.5, -32)
+    ctx.stroke()
+    if (sail >= 2) { // the meander of a wind-blessed ship
+      ctx.strokeStyle = 'rgba(243, 231, 201, 0.75)'
+      ctx.lineWidth = 1.2
+      ctx.beginPath()
+      for (var mq = 0; mq < 4; mq++) {
+        var mx = 14 + mq * 8
+        var my = -46 - mq * 9
+        ctx.moveTo(mx, my)
+        ctx.lineTo(mx + 5, my - 2)
+        ctx.lineTo(mx + 3, my - 6)
+      }
+      ctx.stroke()
+    }
+  }
+  // pennant, longer with finer sails
+  ctx.fillStyle = sail >= 2 ? '#5a3a74' : TERRA
+  ctx.beginPath()
+  ctx.moveTo(4, -92 - sail * 8)
+  ctx.lineTo(24 + sail * 8, -87 - sail * 8 + Math.sin(t * 3) * 2)
+  ctx.lineTo(4, -82 - sail * 8)
   ctx.closePath()
   ctx.fill()
-  // pennant
-  ctx.fillStyle = TERRA
-  ctx.beginPath()
-  ctx.moveTo(4, -92)
-  ctx.lineTo(22, -87)
-  ctx.lineTo(4, -82)
-  ctx.closePath()
-  ctx.fill()
+
   // the catch heaped in the hold
   var wt = SD.holdWeight(state)
   if (wt > 0) {
     var heap = Math.min(1, wt / SD.holdCapacity(state))
     ctx.fillStyle = '#b9834f'
-    for (var i = 0; i < Math.ceil(heap * 6); i++) {
+    for (var i = 0; i < Math.ceil(heap * (4 + tier * 2)); i++) {
       ctx.beginPath()
-      ctx.arc(-40 + i * 12, -26 - (i % 2) * 5 - heap * 4, 6, 0, SD.TAU)
+      ctx.arc(-46 * L + i * 11, -26 - (i % 2) * 5 - heap * 4, 6, 0, SD.TAU)
       ctx.fill()
     }
     ctx.fillStyle = TERRA
     ctx.beginPath()
-    ctx.ellipse(-48, -30 - heap * 4, 4, 7, -0.2, 0, SD.TAU)
+    ctx.ellipse(-52 * L, -30 - heap * 4, 4, 7, -0.2, 0, SD.TAU)
     ctx.fill()
   }
   // the diver at the tiller when aboard
@@ -440,44 +971,90 @@ function drawBoat (ctx, state, t) {
   ctx.restore()
 }
 
-// Side effect: the diver standing on deck, hand on the tiller
+// Side effect: the diver standing braced on deck — one hand on the tiller,
+// the other shading his eyes toward the horizon
 function drawSailor (ctx, state, t) {
   var c = skinTones(SD.fitness(state))
   var f = state.player.facing
+  var sway = Math.sin(t * 1.1) * 1.2
   ctx.save()
-  ctx.translate(24 * f >= 0 ? 24 : -24, -24)
+  ctx.translate(f >= 0 ? 24 : -24, -24)
   ctx.scale(f, 1)
-  ctx.strokeStyle = c.skin
-  ctx.fillStyle = c.skin
+  ctx.rotate(sway * 0.02)
   ctx.lineCap = 'round'
-  ctx.lineWidth = 5
-  ctx.beginPath() // legs
-  ctx.moveTo(0, -14)
-  ctx.lineTo(-3, 0)
-  ctx.moveTo(0, -14)
-  ctx.lineTo(4, 0)
+
+  ctx.strokeStyle = c.skin
+  ctx.lineWidth = 4.6
+  ctx.beginPath() // legs braced apart, sailor-wide
+  ctx.moveTo(0, -13)
+  ctx.lineTo(-6, 0)
+  ctx.moveTo(0, -13)
+  ctx.lineTo(6.5, -1)
   ctx.stroke()
-  ctx.beginPath() // torso
-  ctx.ellipse(0, -20, 5.5, 9, 0, 0, SD.TAU)
+  ctx.fillStyle = '#4a3320'
+  ctx.beginPath() // feet planted on the planks
+  ctx.ellipse(-7, 0.5, 3, 1.4, 0, 0, SD.TAU)
+  ctx.ellipse(7.5, -0.5, 3, 1.4, 0, 0, SD.TAU)
   ctx.fill()
+
+  ctx.fillStyle = c.skin
+  ctx.beginPath() // torso, chest to the wind
+  ctx.ellipse(0.5, -20, 5.2, 8.6, -0.06, 0, SD.TAU)
+  ctx.fill()
+  if (state.relics.hide) { // the wetsuit sails too
+    ctx.fillStyle = 'rgba(56, 70, 82, 0.5)'
+    ctx.beginPath()
+    ctx.ellipse(0.5, -20, 4.9, 7.4, -0.06, 0, SD.TAU)
+    ctx.fill()
+  }
   ctx.fillStyle = TERRA // perizoma
   ctx.beginPath()
-  ctx.ellipse(0, -13, 5, 4, 0, 0, SD.TAU)
+  ctx.ellipse(0, -12.5, 4.8, 3.6, 0, 0, SD.TAU)
   ctx.fill()
+
   ctx.strokeStyle = c.skin
-  ctx.lineWidth = 4
-  ctx.beginPath() // arm back to the tiller
-  ctx.moveTo(2, -24)
-  ctx.lineTo(-9, -18)
+  ctx.lineWidth = 3.8
+  ctx.beginPath() // aft arm down to the tiller
+  ctx.moveTo(-2, -24)
+  ctx.quadraticCurveTo(-8, -20, -12, -14)
   ctx.stroke()
+  ctx.strokeStyle = '#4a3320' // the tiller itself
+  ctx.lineWidth = 2.4
+  ctx.beginPath()
+  ctx.moveTo(-12, -14)
+  ctx.lineTo(-17, -6)
+  ctx.stroke()
+  ctx.strokeStyle = c.skin
+  ctx.lineWidth = 3.8
+  ctx.beginPath() // fore arm up, shading his eyes
+  ctx.moveTo(3, -25)
+  ctx.quadraticCurveTo(8, -28, 9.5, -31.5)
+  ctx.stroke()
+
   ctx.fillStyle = c.skin
-  ctx.beginPath() // head
-  ctx.arc(1, -33, 5.5, 0, SD.TAU)
+  ctx.beginPath() // head, chin up, watching the water
+  ctx.arc(2.5, -33, 5.4, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = c.deep
+  ctx.beginPath() // profile nose
+  ctx.moveTo(7.5, -34.5)
+  ctx.lineTo(9.4, -33)
+  ctx.lineTo(7.3, -32)
+  ctx.closePath()
   ctx.fill()
   ctx.fillStyle = '#241a12'
-  ctx.beginPath() // hair
-  ctx.arc(0, -35.5, 4.6, Math.PI * 0.95, Math.PI * 2.05)
+  ctx.beginPath() // curls
+  ctx.arc(1.5, -35.5, 4.8, Math.PI * 0.9, Math.PI * 2.05)
   ctx.fill()
+  ctx.beginPath()
+  ctx.arc(-2, -32.5, 2, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = TERRA // headband
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(2.5, -33, 5.5, -Math.PI * 0.95, -Math.PI * 0.2)
+  ctx.stroke()
+
   ctx.restore()
 }
 
@@ -518,43 +1095,126 @@ function drawGodrays (ctx, t, cam, view) {
   ctx.restore()
 }
 
-// Side effect: seafloor sand fill following floorDepthAt
+// Side effect: seafloor fill following floorDepthAt — a dark body of ground
+// under a sunlit crust of sand, dressed with pebbles and shell-specks
 function drawFloor (ctx, cam, view) {
   var bottom = cam.y + view.h + 100
   ctx.save()
+  // sample on a fixed WORLD grid, like the pebbles below — a camera-anchored
+  // grid re-cuts the polyline every frame, which makes steep walls (the Blue
+  // Hole, the Kelp Well) visibly warp as the camera moves
+  var step = 24
+  var x0 = Math.floor((cam.x - 60) / step) * step
+  var x1 = cam.x + view.w + 60
+  var x
+
+  // the ground body
   ctx.fillStyle = '#183045'
   ctx.beginPath()
-  var x0 = cam.x - 60
-  var x1 = cam.x + view.w + 60
   ctx.moveTo(x0, bottom)
-  for (var x = x0; x <= x1; x += 40) {
+  for (x = x0; x <= x1; x += step) {
     ctx.lineTo(x, SD.floorYAt(x))
   }
   ctx.lineTo(x1, bottom)
   ctx.closePath()
   ctx.fill()
-  ctx.strokeStyle = 'rgba(214, 190, 140, 0.25)'
-  ctx.lineWidth = 3
+
+  // the sand crust: a bright lip over a softer warm band
+  ctx.lineCap = 'round'
+  ctx.strokeStyle = 'rgba(214, 190, 140, 0.12)'
+  ctx.lineWidth = 13
   ctx.beginPath()
-  for (var xs = x0; xs <= x1; xs += 40) {
-    var fy = SD.floorYAt(xs)
-    if (xs === x0) ctx.moveTo(xs, fy)
-    else ctx.lineTo(xs, fy)
+  for (x = x0; x <= x1; x += step) {
+    var fy2 = SD.floorYAt(x) + 6
+    if (x === x0) ctx.moveTo(x, fy2)
+    else ctx.lineTo(x, fy2)
   }
   ctx.stroke()
+  ctx.strokeStyle = 'rgba(228, 206, 158, 0.3)'
+  ctx.lineWidth = 3.5
+  ctx.beginPath()
+  for (x = x0; x <= x1; x += step) {
+    var fy = SD.floorYAt(x)
+    if (x === x0) ctx.moveTo(x, fy)
+    else ctx.lineTo(x, fy)
+  }
+  ctx.stroke()
+
+  // pebbles + shell specks, deterministic per column so they never shimmer
+  ctx.fillStyle = 'rgba(226, 208, 168, 0.28)'
+  var startCol = Math.floor(x0 / 56) * 56
+  for (x = startCol; x <= x1; x += 56) {
+    var h = Math.abs(Math.sin(x * 0.7317))
+    if (h < 0.25) continue
+    var px = x + (h * 40 - 20)
+    var py = SD.floorYAt(px) + 4 + h * 7
+    ctx.beginPath()
+    ctx.ellipse(px, py, 2.6 + h * 2, 1.4 + h, 0, 0, SD.TAU)
+    ctx.fill()
+  }
   ctx.restore()
 }
 
-// Side effect: one rock blob
+// Side effect: one boulder — an irregular faceted stone, lit from the
+// upper left, seated in its own contact shadow. The shape is deterministic
+// per rock (derived from its position) and cached on the rock itself.
 function drawRock (ctx, r) {
+  if (r.hidden) return // collision-only bones (the Anemone's hull, etc.)
+  if (!r._pts) {
+    var seed = Math.abs(Math.sin(r.x * 12.9898 + r.y * 78.233)) * 43758.5453
+    var n = 9
+    r._pts = []
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * SD.TAU
+      var jag = 0.82 + (Math.sin(seed + i * 2.7) * 0.5 + 0.5) * 0.22
+      r._pts.push({
+        x: Math.cos(a) * r.r * jag,
+        y: Math.sin(a) * r.r * 0.82 * jag
+      })
+    }
+  }
+  var p = r._pts
+  ctx.save()
+  ctx.translate(r.x, r.y)
+
+  // the stone itself
   ctx.fillStyle = '#22384d'
   ctx.beginPath()
-  ctx.ellipse(r.x, r.y, r.r, r.r * 0.82, 0, 0, SD.TAU)
+  ctx.moveTo(p[0].x, p[0].y)
+  for (var v = 1; v < p.length; v++) ctx.lineTo(p[v].x, p[v].y)
+  ctx.closePath()
   ctx.fill()
-  ctx.fillStyle = 'rgba(120, 150, 165, 0.14)'
+
+  // the lit crown: the upper vertices, pulled toward the light
+  ctx.fillStyle = 'rgba(126, 158, 172, 0.2)'
   ctx.beginPath()
-  ctx.ellipse(r.x - r.r * 0.2, r.y - r.r * 0.35, r.r * 0.55, r.r * 0.3, -0.4, 0, SD.TAU)
+  var started = false
+  for (var u = 0; u < p.length; u++) {
+    if (p[u].y > r.r * 0.05) continue
+    var lx = p[u].x * 0.92 - r.r * 0.05
+    var ly = p[u].y * 0.9 - r.r * 0.06
+    if (!started) { ctx.moveTo(lx, ly); started = true } else ctx.lineTo(lx, ly)
+  }
+  ctx.closePath()
   ctx.fill()
+
+  // the shaded underside + contact shadow at its seat
+  ctx.fillStyle = 'rgba(8, 16, 28, 0.32)'
+  ctx.beginPath()
+  ctx.ellipse(r.r * 0.08, r.r * 0.62, r.r * 0.78, r.r * 0.26, 0.05, 0, SD.TAU)
+  ctx.fill()
+
+  // one crack across the face of the larger stones
+  if (r.r > 55) {
+    ctx.strokeStyle = 'rgba(10, 20, 32, 0.4)'
+    ctx.lineWidth = 1.6
+    ctx.beginPath()
+    ctx.moveTo(p[1].x * 0.55, p[1].y * 0.55)
+    ctx.lineTo(p[1].x * 0.2 + r.r * 0.1, p[1].y * 0.1 + r.r * 0.12)
+    ctx.lineTo(p[1].x * 0.05 - r.r * 0.12, r.r * 0.4)
+    ctx.stroke()
+  }
+  ctx.restore()
 }
 
 // Side effect: swaying seagrass tuft
@@ -682,7 +1342,8 @@ function drawColumn (ctx, col) {
   ctx.restore()
 }
 
-// Side effect: the old shipwreck, half swallowed by the sand
+// Side effect: the old shipwreck, half swallowed by the sand — dark bones
+// with a pale rim of light along the hull where the water remembers the sun
 function drawWreck (ctx, w) {
   ctx.save()
   ctx.translate(w.x, w.y + 14)
@@ -697,6 +1358,16 @@ function drawWreck (ctx, w) {
   ctx.quadraticCurveTo(-70, -40, -104, 2)
   ctx.closePath()
   ctx.fill()
+  // rim light along the gunwale
+  ctx.strokeStyle = 'rgba(168, 190, 200, 0.28)'
+  ctx.lineWidth = 2.4
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(-112, -4)
+  ctx.quadraticCurveTo(-88, -55, 0, -61)
+  ctx.quadraticCurveTo(90, -55, 118, -10)
+  ctx.stroke()
+  // ribs, with gaps where the planking rotted away
   ctx.strokeStyle = '#31251b'
   ctx.lineWidth = 5
   for (var i = 0; i < 4; i++) {
@@ -705,12 +1376,164 @@ function drawWreck (ctx, w) {
     ctx.lineTo(-64 + i * 42, -4)
     ctx.stroke()
   }
+  ctx.strokeStyle = 'rgba(168, 190, 200, 0.16)'
+  ctx.lineWidth = 1.4
+  for (var rl = 0; rl < 4; rl++) {
+    ctx.beginPath()
+    ctx.moveTo(-58 + rl * 42, -46)
+    ctx.lineTo(-62 + rl * 42, -6)
+    ctx.stroke()
+  }
+  // the leaning mast, a stay-rope still clinging to the bow
+  ctx.strokeStyle = '#31251b'
   ctx.lineWidth = 6
   ctx.beginPath()
   ctx.moveTo(10, -60)
   ctx.lineTo(52, -128)
   ctx.stroke()
+  ctx.strokeStyle = 'rgba(120, 104, 80, 0.5)'
+  ctx.lineWidth = 1.3
+  ctx.beginPath()
+  ctx.moveTo(52, -126)
+  ctx.quadraticCurveTo(-20, -92, -96, -12)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(168, 190, 200, 0.25)'
+  ctx.lineWidth = 1.6
+  ctx.beginPath()
+  ctx.moveTo(12, -60)
+  ctx.lineTo(50, -124)
+  ctx.stroke()
   ctx.restore()
+}
+
+// Side effect: the Anemone — a giant merchant wreck you can swim inside.
+// Her upper planking is torn open amidships; ribs, cargo and the dark of
+// the hold show through the breach. Timber, not stone.
+function drawGiantWreck (ctx, w, t) {
+  var x = w.x
+  var y = w.y
+  if (w.fallen) {
+    // stern-first in the crevasse she opened — the bow points at the sun
+    ctx.save()
+    ctx.translate(x, y - 40)
+    ctx.rotate(-1.02)
+    ctx.scale((w.scale || 1) * 0.96, (w.scale || 1) * 0.96)
+    drawGiantWreckHull(ctx, t)
+    ctx.restore()
+    return
+  }
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.scale(w.scale || 1, w.scale || 1)
+  drawGiantWreckHull(ctx, t)
+  ctx.restore()
+}
+
+// Side effect: the Anemone's hull in local space (shared by both poses)
+function drawGiantWreckHull (ctx, t) {
+
+  // the dark of the hold, showing through the breach
+  ctx.fillStyle = '#100c08'
+  ctx.beginPath()
+  ctx.moveTo(-250, -10)
+  ctx.quadraticCurveTo(-230, -120, -110, -148)
+  ctx.lineTo(210, -142)
+  ctx.quadraticCurveTo(280, -110, 300, -16)
+  ctx.quadraticCurveTo(20, 8, -250, -10)
+  ctx.closePath()
+  ctx.fill()
+
+  // the hull itself: keel sweep from ram bow to high curled stern
+  ctx.fillStyle = '#2e2318'
+  ctx.beginPath()
+  ctx.moveTo(-330, -6)               // the ram at the bow
+  ctx.quadraticCurveTo(-300, -30, -258, -34)
+  ctx.lineTo(-250, -8)
+  ctx.quadraticCurveTo(-40, 22, 290, -12) // the keel line along the sand
+  ctx.lineTo(300, -40)
+  ctx.quadraticCurveTo(320, -90, 296, -150) // stern rising
+  ctx.quadraticCurveTo(322, -160, 330, -196) // the aphlaston curl
+  ctx.quadraticCurveTo(300, -186, 286, -160)
+  ctx.lineTo(268, -120)
+  ctx.quadraticCurveTo(240, -136, 214, -140) // aft gunwale
+  ctx.lineTo(150, -136)
+  // — the breach: torn planks amidships —
+  ctx.lineTo(138, -112)
+  ctx.lineTo(112, -128)
+  ctx.lineTo(84, -96)
+  ctx.lineTo(52, -122)
+  ctx.lineTo(30, -92)
+  ctx.lineTo(-2, -118)
+  ctx.lineTo(-30, -96)
+  ctx.lineTo(-44, -124)
+  // fore gunwale up to the bow
+  ctx.lineTo(-110, -140)
+  ctx.quadraticCurveTo(-210, -124, -252, -70)
+  ctx.lineTo(-258, -34)
+  ctx.lineTo(-330, -6)
+  ctx.closePath()
+  ctx.fill()
+
+  // ribs standing in the open hold
+  ctx.strokeStyle = '#241a10'
+  ctx.lineWidth = 7
+  ctx.lineCap = 'round'
+  for (var rb = 0; rb < 4; rb++) {
+    var rx = -20 + rb * 44
+    ctx.beginPath()
+    ctx.moveTo(rx, -6 + rb * 2)
+    ctx.quadraticCurveTo(rx - 6, -60, rx - 2, -96 - (rb % 2) * 16)
+    ctx.stroke()
+  }
+  // rim light along her surviving lines
+  ctx.strokeStyle = 'rgba(168, 190, 200, 0.3)'
+  ctx.lineWidth = 2.4
+  ctx.beginPath()
+  ctx.moveTo(-252, -68)
+  ctx.quadraticCurveTo(-210, -122, -112, -138)
+  ctx.moveTo(152, -134)
+  ctx.quadraticCurveTo(240, -134, 268, -118)
+  ctx.moveTo(298, -150)
+  ctx.quadraticCurveTo(320, -160, 328, -192)
+  ctx.stroke()
+  // planking seams down the hull flank
+  ctx.strokeStyle = 'rgba(10, 8, 6, 0.55)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(-244, -28)
+  ctx.quadraticCurveTo(0, 0, 282, -30)
+  ctx.moveTo(-236, -52)
+  ctx.quadraticCurveTo(-40, -24, 274, -62)
+  ctx.stroke()
+
+  // the fallen mainmast, leaning out of the breach
+  ctx.strokeStyle = '#241a10'
+  ctx.lineWidth = 9
+  ctx.beginPath()
+  ctx.moveTo(40, -80)
+  ctx.lineTo(-118, -226)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(168, 190, 200, 0.2)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(38, -82)
+  ctx.lineTo(-116, -224)
+  ctx.stroke()
+  // a rag of sail still hanging off it
+  ctx.fillStyle = 'rgba(196, 186, 160, 0.28)'
+  ctx.beginPath()
+  ctx.moveTo(-40, -152)
+  ctx.quadraticCurveTo(-14, -132 + Math.sin(t * 1.4) * 5, -46, -104)
+  ctx.quadraticCurveTo(-62, -130, -40, -152)
+  ctx.closePath()
+  ctx.fill()
+
+  // spilled cargo shadows inside the hold
+  ctx.fillStyle = 'rgba(74, 48, 26, 0.85)'
+  ctx.beginPath()
+  ctx.ellipse(-90, -14, 26, 12, -0.1, 0, SD.TAU)
+  ctx.ellipse(120, -12, 30, 13, 0.1, 0, SD.TAU)
+  ctx.fill()
 }
 
 // Side effect: Poseidon's shrine in the vault — pedestal, columns, pediment
@@ -1002,6 +1825,114 @@ var lootSketch = {
     ctx.moveTo(3, -1)
     ctx.lineTo(3, -5)
     ctx.stroke()
+  },
+
+  // volcanic glass from Hephaestus' shelf — black, sharp, faintly warm
+  obsidian: function (ctx, t) {
+    var glow = 0.2 + Math.sin(t * 3.2) * 0.1
+    ctx.fillStyle = '#141017'
+    ctx.beginPath() // a knapped, faceted shard
+    ctx.moveTo(-9, 8)
+    ctx.lineTo(-11, -2)
+    ctx.lineTo(-3, -11)
+    ctx.lineTo(7, -7)
+    ctx.lineTo(11, 3)
+    ctx.lineTo(2, 10)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(126, 200, 227, 0.6)' // glassy edge light
+    ctx.lineWidth = 1.4
+    ctx.beginPath()
+    ctx.moveTo(-3, -11)
+    ctx.lineTo(-6, 2)
+    ctx.lineTo(2, 10)
+    ctx.moveTo(-3, -11)
+    ctx.lineTo(4, -1)
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(255, 140, 60, ' + glow + ')' // the vent's warmth remembered
+    ctx.beginPath()
+    ctx.arc(2, 2, 3, 0, SD.TAU)
+    ctx.fill()
+  },
+
+  // the Fin of Karcharias — a trophy taller than your torso
+  sharkFin: function (ctx, t) {
+    ctx.fillStyle = '#66727e'
+    ctx.beginPath()
+    ctx.moveTo(-12, 12)
+    ctx.quadraticCurveTo(-8, -10, 4, -14)
+    ctx.quadraticCurveTo(4, -2, 12, 12)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = '#e8e4da'
+    ctx.beginPath()
+    ctx.moveTo(-9, 12)
+    ctx.quadraticCurveTo(-4, 0, 2, -6)
+    ctx.quadraticCurveTo(1, 4, 8, 12)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(200, 60, 50, 0.7)' // the old harpoon nicks
+    ctx.lineWidth = 1.4
+    ctx.beginPath()
+    ctx.moveTo(-2, -8)
+    ctx.lineTo(2, -4)
+    ctx.moveTo(1, -11)
+    ctx.lineTo(5, -8)
+    ctx.stroke()
+  },
+
+  // the Kraken's beak — black, hooked, and heavier than it looks
+  krakenBeak: function (ctx, t) {
+    ctx.fillStyle = '#241626'
+    ctx.beginPath() // upper mandible, hooked like a parrot's grudge
+    ctx.moveTo(-10, -2)
+    ctx.quadraticCurveTo(-2, -14, 9, -8)
+    ctx.quadraticCurveTo(13, -5, 9, 1)
+    ctx.quadraticCurveTo(3, -6, -6, -2)
+    ctx.closePath()
+    ctx.fill()
+    ctx.beginPath() // lower
+    ctx.moveTo(-9, 2)
+    ctx.quadraticCurveTo(0, 12, 8, 5)
+    ctx.quadraticCurveTo(2, 6, -5, 2)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(190, 120, 210, 0.55)' // that oil-slick sheen
+    ctx.lineWidth = 1.4
+    ctx.beginPath()
+    ctx.moveTo(-6, -5)
+    ctx.quadraticCurveTo(1, -10, 8, -6)
+    ctx.stroke()
+  },
+
+  // the Horn of the Ketos — a spiraled lance of the old sea
+  ketosHorn: function (ctx, t) {
+    var glow = 0.18 + Math.sin(t * 2) * 0.08
+    var grad = ctx.createRadialGradient(0, 0, 3, 0, 0, 30)
+    grad.addColorStop(0, 'rgba(126, 228, 255, ' + glow + ')')
+    grad.addColorStop(1, 'rgba(126, 228, 255, 0)')
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.arc(0, 0, 30, 0, SD.TAU)
+    ctx.fill()
+    ctx.save()
+    ctx.rotate(-0.6)
+    ctx.fillStyle = '#3a6a74'
+    ctx.beginPath() // the tapering lance
+    ctx.moveTo(-14, 6)
+    ctx.lineTo(15, -1)
+    ctx.lineTo(-13, -7)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = '#c9a227' // the spiral ridges
+    ctx.lineWidth = 1.3
+    for (var s = 0; s < 4; s++) {
+      ctx.beginPath()
+      ctx.moveTo(-12 + s * 7, 5 - s * 1.4)
+      ctx.quadraticCurveTo(-9 + s * 7, 0, -12 + s * 7, -5 + s * 1.4)
+      ctx.stroke()
+    }
+    ctx.restore()
   },
 
   // the great chest of the vault
@@ -1459,103 +2390,202 @@ function drawKarcharias (ctx, f, t) {
   drawBossHp(ctx, f, f.y - 70)
 }
 
-// Side effect: THE KRAKEN — lord of its grotto, all arm and appetite
+// Side effect: THE KRAKEN — lord of its grotto: a hooded, leaning mantle,
+// heavy tapering arms studded with suckers, and one lamp of an eye
 function drawKraken (ctx, f, t) {
   ctx.save()
   ctx.translate(f.x, f.y)
   if (f.hurtT > 0) ctx.globalAlpha = 0.65
   var breathe = Math.sin(t * 1.2 + f.phase) * 3
-  // arms first, writhing
-  ctx.strokeStyle = '#5a2a4e'
+
+  // arms first: thick at the crown, whip-thin at the tips
   ctx.lineCap = 'round'
-  for (var i = 0; i < 7; i++) {
-    var a = -0.65 + i * 0.42
-    var wl = 85 + Math.sin(t * 1.6 + i * 1.7) * 18
-    var grab = f.mode === 'grab' && i === 3 ? 26 : 0
-    ctx.lineWidth = 10 - i * 0.6
+  for (var i = 0; i < 8; i++) {
+    var a = -0.85 + i * 0.34
+    var wl = 95 + Math.sin(t * 1.6 + i * 1.7) * 20
+    var grab = f.mode === 'grab' && (i === 3 || i === 5) ? 34 : 0
+    var midX = Math.cos(a) * (wl * 0.55)
+    var midY = 26 + Math.sin(t * 2 + i) * 10
+    var tipX = Math.cos(a) * wl
+    var tipY = 44 + Math.sin(t * 1.3 + i * 2) * 16 - grab
+    // heavy root segment
+    ctx.strokeStyle = '#5a2a4e'
+    ctx.lineWidth = 13 - i * 0.5
     ctx.beginPath()
-    ctx.moveTo(Math.cos(a) * 18, 14)
-    ctx.quadraticCurveTo(
-      Math.cos(a) * (wl * 0.6), 30 + Math.sin(t * 2 + i) * 10,
-      Math.cos(a) * wl, 40 + Math.sin(t * 1.3 + i * 2) * 14 - grab
-    )
+    ctx.moveTo(Math.cos(a) * 14, 10)
+    ctx.quadraticCurveTo(Math.cos(a) * 30, 22, midX, midY)
     ctx.stroke()
+    // tapering whip
+    ctx.lineWidth = 5.5 - i * 0.3
+    ctx.beginPath()
+    ctx.moveTo(midX, midY)
+    ctx.quadraticCurveTo((midX + tipX) / 2, midY + 14, tipX, tipY)
+    ctx.stroke()
+    // the curled tip
+    ctx.lineWidth = 2.6
+    ctx.beginPath()
+    ctx.arc(tipX, tipY, 5, a, a + Math.PI * 1.2)
+    ctx.stroke()
+    // suckers down the inner root
+    ctx.fillStyle = 'rgba(230, 190, 215, 0.55)'
+    for (var sk = 1; sk <= 3; sk++) {
+      var sf = sk / 3.5
+      ctx.beginPath()
+      ctx.arc(SD.lerp(Math.cos(a) * 14, midX, sf), SD.lerp(10, midY, sf) + 3, 1.7, 0, SD.TAU)
+      ctx.fill()
+    }
   }
-  // mantle
+
+  // the mantle: broad, hooded, leaning toward you
   ctx.fillStyle = '#6e3860'
   ctx.beginPath()
-  ctx.ellipse(0, -8, 34 + breathe, 42, 0, 0, SD.TAU)
+  ctx.moveTo(-38 - breathe, 6)
+  ctx.quadraticCurveTo(-46 - breathe, -34, -18, -50)
+  ctx.quadraticCurveTo(6, -62, 26, -46)
+  ctx.quadraticCurveTo(44 + breathe, -30, 36 + breathe, 2)
+  ctx.quadraticCurveTo(20, 18, 0, 16)
+  ctx.quadraticCurveTo(-22, 18, -38 - breathe, 6)
+  ctx.closePath()
   ctx.fill()
-  ctx.fillStyle = '#7e4870'
+  // mottled hide
+  ctx.fillStyle = 'rgba(90, 42, 78, 0.7)'
   ctx.beginPath()
-  ctx.ellipse(-8, -20, 18, 22, -0.2, 0, SD.TAU)
+  ctx.arc(-18, -28, 6, 0, SD.TAU)
+  ctx.arc(4, -44, 4.5, 0, SD.TAU)
+  ctx.arc(-30, -6, 4, 0, SD.TAU)
+  ctx.arc(22, -22, 5, 0, SD.TAU)
   ctx.fill()
-  // the great eye, tracking you
+  // the scowling hood over the eye
+  ctx.fillStyle = '#54284a'
+  ctx.beginPath()
+  ctx.moveTo(2, -26)
+  ctx.quadraticCurveTo(22, -34, 38, -22)
+  ctx.quadraticCurveTo(24, -22, 6, -18)
+  ctx.closePath()
+  ctx.fill()
+  // the great lamp of an eye, tracking you
   ctx.fillStyle = '#e8c86a'
   ctx.beginPath()
-  ctx.arc(10, -6, 10, 0, SD.TAU)
+  ctx.ellipse(20, -12, 11, 9.5, -0.15, 0, SD.TAU)
   ctx.fill()
   ctx.fillStyle = '#180c20'
   ctx.beginPath()
-  ctx.ellipse(12, -6, 4, 6.5, 0, 0, SD.TAU)
+  ctx.ellipse(23, -12, 4, 7.5, 0, 0, SD.TAU)
   ctx.fill()
+  ctx.fillStyle = 'rgba(255, 245, 220, 0.7)'
+  ctx.beginPath()
+  ctx.arc(17, -16, 2, 0, SD.TAU)
+  ctx.fill()
+
   ctx.restore()
-  drawBossHp(ctx, f, f.y - 78)
+  drawBossHp(ctx, f, f.y - 84)
 }
 
-// Side effect: KETOS — the roaming leviathan, drawn as a wake of coils
+// Side effect: KETOS — the roaming leviathan: one unbroken serpent body
+// undulating behind a horned, long-jawed head. Pottery monsters, done right.
 function drawKetos (ctx, f, t) {
   var dir = f.vx >= 0 ? 1 : -1
   ctx.save()
   if (f.hurtT > 0) ctx.globalAlpha = 0.65
-  ctx.fillStyle = '#22424e'
-  // trailing coils
-  for (var s = 1; s <= 4; s++) {
-    var sx = f.x - dir * s * 58
-    var sy = f.y + Math.sin(f.phase * 2 - s * 1.2) * 22
+
+  // the body: a single thick undulating spine, nose to tail
+  var segs = 16
+  var px = []
+  var py = []
+  for (var s = 0; s <= segs; s++) {
+    px.push(f.x - dir * s * 17)
+    py.push(f.y + Math.sin(f.phase * 2.2 - s * 0.55) * (10 + s * 1.1))
+  }
+  ctx.strokeStyle = '#22424e'
+  ctx.lineCap = 'round'
+  for (var seg = 0; seg < segs; seg++) {
+    ctx.lineWidth = 34 - seg * 1.9 // thick behind the skull, whip at the tail
     ctx.beginPath()
-    ctx.ellipse(sx, sy, 30 - s * 4, 20 - s * 2.6, Math.sin(f.phase - s) * 0.2, 0, SD.TAU)
+    ctx.moveTo(px[seg], py[seg])
+    ctx.lineTo(px[seg + 1], py[seg + 1])
+    ctx.stroke()
+  }
+  // the pale keel along the belly
+  ctx.strokeStyle = 'rgba(140, 176, 178, 0.4)'
+  ctx.lineWidth = 6
+  ctx.beginPath()
+  ctx.moveTo(px[1], py[1] + 10)
+  for (var k = 2; k < segs - 2; k++) {
+    ctx.lineTo(px[k], py[k] + (12 - k * 0.5))
+  }
+  ctx.stroke()
+  // dorsal ridge fins down the whole back
+  ctx.fillStyle = '#16303a'
+  for (var d = 1; d < segs - 3; d += 2) {
+    var fh = 16 - d * 0.7
+    ctx.beginPath()
+    ctx.moveTo(px[d], py[d] - (15 - d * 0.8))
+    ctx.lineTo(px[d] - dir * 7, py[d] - (15 - d * 0.8) - fh)
+    ctx.lineTo(px[d] - dir * 13, py[d] - (13 - d * 0.8))
+    ctx.closePath()
     ctx.fill()
   }
-  // head
+  // tail flukes
+  ctx.fillStyle = '#1c3944'
+  ctx.beginPath()
+  ctx.moveTo(px[segs], py[segs])
+  ctx.lineTo(px[segs] - dir * 20, py[segs] - 16)
+  ctx.lineTo(px[segs] - dir * 12, py[segs])
+  ctx.lineTo(px[segs] - dir * 20, py[segs] + 16)
+  ctx.closePath()
+  ctx.fill()
+
+  // the head, long-jawed and horned
   ctx.save()
   ctx.translate(f.x, f.y)
   ctx.scale(dir, 1)
+  ctx.rotate(Math.sin(f.phase * 2.2) * 0.08)
   ctx.fillStyle = '#2a5260'
-  ctx.beginPath()
-  ctx.moveTo(52, 0)
-  ctx.quadraticCurveTo(30, -26, -10, -20)
-  ctx.quadraticCurveTo(-26, 0, -10, 20)
-  ctx.quadraticCurveTo(30, 24, 52, 0)
+  ctx.beginPath() // skull + long snout
+  ctx.moveTo(58, 2)
+  ctx.quadraticCurveTo(46, -10, 26, -16)
+  ctx.quadraticCurveTo(2, -22, -14, -14)
+  ctx.quadraticCurveTo(-22, 0, -12, 14)
+  ctx.quadraticCurveTo(8, 22, 32, 16)
+  ctx.quadraticCurveTo(48, 12, 58, 2)
   ctx.closePath()
   ctx.fill()
-  ctx.strokeStyle = '#1a3640' // ridge fins
-  ctx.lineWidth = 3
+  ctx.fillStyle = '#22424e'
+  ctx.beginPath() // the underjaw, slightly open
+  ctx.moveTo(54, 8)
+  ctx.quadraticCurveTo(38, 20, 16, 20)
+  ctx.quadraticCurveTo(34, 24, 50, 15)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = '#e8e4d6' // the teeth
+  ctx.lineWidth = 1.8
   ctx.beginPath()
-  ctx.moveTo(-6, -20)
-  ctx.lineTo(2, -34)
-  ctx.moveTo(10, -18)
-  ctx.lineTo(18, -30)
+  for (var th = 0; th < 6; th++) {
+    ctx.moveTo(28 + th * 4.6, 14 - th * 0.7)
+    ctx.lineTo(30 + th * 4.6, 19 - th * 0.7)
+  }
   ctx.stroke()
-  ctx.fillStyle = '#c9a227' // lamp of an eye
+  ctx.strokeStyle = '#16303a' // the swept horns
+  ctx.lineWidth = 4.5
+  ctx.lineCap = 'round'
   ctx.beginPath()
-  ctx.arc(28, -6, 5, 0, SD.TAU)
+  ctx.moveTo(6, -18)
+  ctx.quadraticCurveTo(-6, -34, -22, -38)
+  ctx.moveTo(18, -15)
+  ctx.quadraticCurveTo(10, -28, -2, -33)
+  ctx.stroke()
+  ctx.fillStyle = '#c9a227' // the lamp of an eye
+  ctx.beginPath()
+  ctx.arc(30, -7, 6, 0, SD.TAU)
   ctx.fill()
   ctx.fillStyle = '#0e0a08'
   ctx.beginPath()
-  ctx.arc(29.5, -6, 2.2, 0, SD.TAU)
+  ctx.ellipse(32, -7, 2, 4, 0, 0, SD.TAU)
   ctx.fill()
-  ctx.strokeStyle = '#e8e4d6' // a mouthful of trouble
-  ctx.lineWidth = 1.6
-  ctx.beginPath()
-  for (var th = 0; th < 5; th++) {
-    ctx.moveTo(34 + th * 3.4, 6)
-    ctx.lineTo(36 + th * 3.4, 11)
-  }
-  ctx.stroke()
   ctx.restore()
+
   ctx.restore()
-  drawBossHp(ctx, f, f.y - 64)
+  drawBossHp(ctx, f, f.y - 70)
 }
 
 // Side effect: one catchable fish — mullet, bream, or grouper — or a boss
@@ -1884,15 +2914,22 @@ function drawPoseidonTrident (ctx, h, t) {
 
 // ---------- The diver ----------
 
-// Side effect: the sponge diver — flesh, muscle, and training made visible.
-// Fitness (0..1) broadens the shoulders, narrows the waist, thickens the
-// legs, and browns the skin. Gear is worn, not implied.
+// Side effect: the sponge diver, rebuilt as ONE body — a streamlined
+// freediver in true side profile. The torso, hips and glutes are a single
+// silhouette; the flutter kick drives from the hip with long, nearly
+// straight legs; the far arm and far leg sit in shadow so the figure reads
+// with depth. Fitness broadens the shoulders, narrows the waist, thickens
+// the legs and browns the skin. Karcharias' hide is worn as a second skin.
 function drawDiver (ctx, state, t) {
   var p = state.player
   if (p.invuln > 0 && Math.floor(t * 12) % 2 === 0) return // hurt blink
 
   var fit = SD.fitness(state)
   var c = skinTones(fit)
+  // the wetsuit recolors the body; head and hands stay bare skin
+  var body = state.relics.hide
+    ? { skin: '#4e5e6c', deep: '#37444f' }
+    : c
   var speed = SD.dist(0, 0, p.vx, p.vy)
   var targetA = speed > 36 ? Math.atan2(p.vy, p.vx) : (p.facing === 1 ? 0 : Math.PI)
   if (p._ang === undefined) p._ang = targetA
@@ -1901,354 +2938,382 @@ function drawDiver (ctx, state, t) {
   p._angT = t
 
   // body metrics from fitness
-  var shoulder = 6.4 + fit * 3.2      // torso half-height at the shoulders
-  var waist = 6.0 - fit * 1.9        // torso half-height at the hips
-  var thigh = 4.6 + fit * 3.0
-  var calf = 3.2 + fit * 1.3
-  var armUpper = 3.6 + fit * 2.0
-  var armFore = 3.0 + fit * 0.7
-  var defA = Math.max(0, (fit - 0.25) / 0.75) * 0.4 // muscle-line opacity
+  var sh = 6.4 + fit * 2.6        // half-depth at the shoulders
+  var wa = 5.4 - fit * 1.2        // half-depth at the pelvis
+  var thigh = 5.4 + fit * 2.6
+  var calf = 3.8 + fit * 1.1
+  var armUp = 3.5 + fit * 1.5
+  var armLo = 2.8 + fit * 0.6
+  var defA = Math.max(0, (fit - 0.25) / 0.75) * 0.38
 
   ctx.save()
   ctx.translate(p.x, p.y)
   ctx.rotate(p._ang)
   if (Math.cos(p._ang) < 0) ctx.scale(1, -1) // keep the back up when swimming left
 
-  var kick = Math.sin(p.swimPhase * 2.4) * (speed > 25 ? 1 : 0.3)
+  var kick = Math.sin(p.swimPhase * 2.4) * (speed > 25 ? 1 : 0.35)
+  var stone = p.holdingStone
+  var striking = p.spearFlash > 0
   ctx.lineCap = 'round'
 
-  // --- legs: thigh into calf, scissor kick ---
-  function leg (side) {
-    var k = kick * side
-    ctx.strokeStyle = c.skin
+  // Side effect: one leg from the hip — long, nearly straight, hip-driven,
+  // ankle whipping, toes pointed (or finned)
+  function leg (k, tone, shadeAlpha) {
+    var kneeY = 2.6 + k * 4
+    var ankleY = 3.2 + k * 9.5
+    ctx.globalAlpha = shadeAlpha
+    ctx.strokeStyle = tone.skin
     ctx.lineWidth = thigh
     ctx.beginPath()
-    ctx.moveTo(-9, 0)
-    ctx.quadraticCurveTo(-15, k * 4, -19.5, k * 5.5)
+    ctx.moveTo(-14, 1)
+    ctx.quadraticCurveTo(-21, 1.6 + k * 2.2, -27.5, kneeY)
     ctx.stroke()
     ctx.lineWidth = calf
     ctx.beginPath()
-    ctx.moveTo(-19, k * 5.2)
-    ctx.quadraticCurveTo(-24, k * 7, -28.5, k * 8.5)
+    ctx.moveTo(-27, kneeY)
+    ctx.quadraticCurveTo(-34, kneeY + (ankleY - kneeY) * 0.6, -40.5, ankleY)
     ctx.stroke()
-    // foot or fin
-    var fx = -30
-    var fy = k * 9
     if (state.upgrades.fins > 0) {
-      var fl = 9 + state.upgrades.fins * 2.4
-      ctx.fillStyle = state.upgrades.fins >= 5 ? '#0e8a7a' : '#1a4f5e'
-      ctx.beginPath()
-      ctx.moveTo(fx + 2, fy)
-      ctx.quadraticCurveTo(fx - fl * 0.4, fy - 4.5, fx - fl, fy - 1.4)
-      ctx.lineTo(fx - fl * 0.85, fy)
-      ctx.lineTo(fx - fl, fy + 1.4)
-      ctx.quadraticCurveTo(fx - fl * 0.4, fy + 4.5, fx + 2, fy)
+      var fl = 11 + state.upgrades.fins * 2.6
+      ctx.fillStyle = state.upgrades.fins >= 4 ? '#0e7a6e' : '#1a4f5e'
+      ctx.beginPath() // the blade, trailing the ankle
+      ctx.moveTo(-39.5, ankleY)
+      ctx.quadraticCurveTo(-42 - fl * 0.4, ankleY - 3 + k * 1.2, -41 - fl, ankleY - 0.6 + k * 2.4)
+      ctx.lineTo(-40.5 - fl * 0.85, ankleY + 1.2 + k * 2)
+      ctx.quadraticCurveTo(-42 - fl * 0.3, ankleY + 3, -39.5, ankleY + 1.8)
       ctx.closePath()
       ctx.fill()
-      if (state.upgrades.fins >= 6) { // god-tier: bronze wings of Hermes
-        ctx.fillStyle = GOLD
-        ctx.beginPath()
-        ctx.ellipse(fx - 2, fy - 4, 4, 1.6, -0.5, 0, SD.TAU)
-        ctx.fill()
-      }
-      ctx.fillStyle = '#241a12' // strap
+      ctx.fillStyle = '#241a12' // foot pocket
       ctx.beginPath()
-      ctx.ellipse(fx + 1.5, fy, 3, 2.4, 0, 0, SD.TAU)
+      ctx.ellipse(-41, ankleY + 0.4, 3.4, 2.3, k * 0.12, 0, SD.TAU)
       ctx.fill()
     } else {
-      ctx.fillStyle = c.skin
+      ctx.fillStyle = tone.skin // pointed bare foot, streamlined
       ctx.beginPath()
-      ctx.ellipse(fx - 1, fy, 4, 2.4, k * 0.25, 0, SD.TAU)
+      ctx.moveTo(-39.5, ankleY - 2)
+      ctx.quadraticCurveTo(-45.5, ankleY - 1 + k * 1.6, -48, ankleY + 0.6 + k * 2)
+      ctx.quadraticCurveTo(-44.5, ankleY + 2.4, -39.5, ankleY + 2.2)
+      ctx.closePath()
       ctx.fill()
     }
-    // quad line on trained legs
-    if (defA > 0.05) {
-      ctx.strokeStyle = c.deep
-      ctx.globalAlpha = defA
-      ctx.lineWidth = 1.4
-      ctx.beginPath()
-      ctx.moveTo(-10, side * 1.2)
-      ctx.quadraticCurveTo(-14, k * 3 + side, -18, k * 4.6)
-      ctx.stroke()
-      ctx.globalAlpha = 1
-    }
-  }
-  leg(1)
-  leg(-1)
-
-  // the kamaki rides slung across the back until it's needed
-  // (the Trident of Poseidon, once claimed, rides there instead)
-  if ((state.upgrades.kamaki > 0 || state.tridentClaimed) && !(p.spearFlash > 0)) {
-    ctx.strokeStyle = state.tridentClaimed ? '#8a6d1c' : '#6b4a26'
-    ctx.lineWidth = state.tridentClaimed ? 2.8 : 2.2
-    ctx.beginPath()
-    ctx.moveTo(-21, -4)
-    ctx.lineTo(17, -11)
-    ctx.stroke()
-    ctx.strokeStyle = state.tridentClaimed ? GOLD : '#c9c2b4'
-    ctx.lineWidth = state.tridentClaimed ? 1.8 : 1.4
-    ctx.beginPath()
-    ctx.moveTo(17, -11)
-    ctx.lineTo(21.5, -12.5)
-    ctx.moveTo(17, -11)
-    ctx.lineTo(22, -10.8)
-    ctx.moveTo(17, -11)
-    ctx.lineTo(21, -9.2)
-    ctx.stroke()
-  }
-
-  // --- torso: V-taper grows with fitness ---
-  ctx.fillStyle = c.skin
-  ctx.beginPath()
-  ctx.moveTo(-11, -waist)
-  ctx.bezierCurveTo(-2, -shoulder * 0.9, 5, -shoulder, 9, -shoulder * 0.85)
-  ctx.quadraticCurveTo(11.5, 0, 9, shoulder * 0.85)
-  ctx.bezierCurveTo(5, shoulder, -2, shoulder * 0.9, -11, waist)
-  ctx.quadraticCurveTo(-13.5, 0, -11, -waist)
-  ctx.closePath()
-  ctx.fill()
-
-  // soft belly when green, cut abs when carved
-  if (fit < 0.4) {
-    ctx.fillStyle = c.deep
-    ctx.globalAlpha = 0.25 * (0.4 - fit) / 0.4
-    ctx.beginPath()
-    ctx.ellipse(-3, 1.5, 6, 3.4, 0, 0, SD.TAU)
-    ctx.fill()
-    ctx.globalAlpha = 1
-  }
-  if (defA > 0.05) {
-    ctx.strokeStyle = c.deep
-    ctx.globalAlpha = defA
-    ctx.lineWidth = 1.2
-    ctx.beginPath() // pec line
-    ctx.moveTo(7.5, -shoulder * 0.55)
-    ctx.quadraticCurveTo(9, 0, 7.5, shoulder * 0.55)
-    ctx.stroke()
-    if (fit > 0.5) { // abs
-      for (var ai = 0; ai < 3; ai++) {
-        ctx.beginPath()
-        ctx.moveTo(1 - ai * 3.4, -2.6)
-        ctx.lineTo(1 - ai * 3.4, 2.6)
-        ctx.stroke()
-      }
-    }
     ctx.globalAlpha = 1
   }
 
-  // Karcharias' hide, worn as a wetsuit across the torso
-  if (state.relics.hide) {
-    ctx.fillStyle = 'rgba(56, 70, 82, 0.5)'
+  // --- the FAR side first, in shadow: arm, then leg ---
+  ctx.strokeStyle = body.deep
+  ctx.lineWidth = armUp - 0.4
+  if (stone) {
+    ctx.beginPath() // far arm reaching to the stone
+    ctx.moveTo(13, 0)
+    ctx.quadraticCurveTo(21, 2.6, 28.5, 4.6)
+    ctx.stroke()
+  } else if (!striking) {
+    ctx.beginPath() // far arm gliding along the flank
+    ctx.moveTo(13, -0.5)
+    ctx.quadraticCurveTo(2, 5.4, -9.5, 7)
+    ctx.stroke()
+    ctx.fillStyle = body.deep
     ctx.beginPath()
-    ctx.ellipse(-1, 0, 10.5, shoulder * 0.78, 0, 0, SD.TAU)
+    ctx.ellipse(-10.5, 7.2, 2.1, 1.6, 0.3, 0, SD.TAU)
     ctx.fill()
+  } else {
+    ctx.beginPath() // far arm braced back during the strike
+    ctx.moveTo(13, -0.5)
+    ctx.quadraticCurveTo(3, 4.6, -6.5, 5.4)
+    ctx.stroke()
   }
+  leg(-kick, { skin: body.deep }, 1)
 
-  // terracotta perizoma at the hips
-  ctx.fillStyle = TERRA
-  ctx.beginPath()
-  ctx.ellipse(-10.5, 0, 4.4, waist + 0.8, 0, 0, SD.TAU)
-  ctx.fill()
-  ctx.fillStyle = 'rgba(243, 231, 201, 0.35)'
-  ctx.beginPath()
-  ctx.ellipse(-9.5, -1, 2.2, waist * 0.5, 0, 0, SD.TAU)
-  ctx.fill()
-
-  // --- the net bag, slung at the lower back, bulging with the catch ---
+  // --- the net bag, slung at the small of the back ---
   var wt = SD.bagWeight(p.bag)
   if (wt > 0) {
-    var br = 4.5 + Math.min(10, wt) * 0.8
-    ctx.fillStyle = 'rgba(58, 42, 24, 0.9)'
+    var br = 4.2 + Math.min(10, wt) * 0.75
+    var bagY = 6.5 + br * 0.5
+    ctx.fillStyle = 'rgba(52, 38, 22, 0.92)'
     ctx.beginPath()
-    ctx.ellipse(-15, 6 + br * 0.3, br, br * 0.8, 0.5, 0, SD.TAU)
+    ctx.ellipse(-19, bagY, br, br * 0.72, 0.35, 0, SD.TAU)
     ctx.fill()
-    ctx.strokeStyle = 'rgba(210, 190, 150, 0.4)' // netting
+    ctx.strokeStyle = 'rgba(58, 42, 24, 0.9)' // its draw-cord up to the hip
+    ctx.lineWidth = 1.2
+    ctx.beginPath()
+    ctx.moveTo(-14, 3)
+    ctx.lineTo(-17.5, bagY - br * 0.5)
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(210, 190, 150, 0.38)'
     ctx.lineWidth = 0.9
     for (var n = -1; n <= 1; n++) {
       ctx.beginPath()
-      ctx.moveTo(-15 - br * 0.7, 4 + br * 0.3 + n * 2.4)
-      ctx.quadraticCurveTo(-15, 8 + br * 0.5 + n * 2, -15 + br * 0.7, 4 + br * 0.3 + n * 2.4)
+      ctx.moveTo(-19 - br * 0.62, bagY - 1 + n * 2.4)
+      ctx.quadraticCurveTo(-19, bagY + 2 + n * 2, -19 + br * 0.62, bagY - 1 + n * 2.4)
       ctx.stroke()
     }
   }
 
-  // --- arms ---
-  var harvesting = state.harvestTarget && state.harvestTarget.progress > 0
-  var knifeOut = state.upgrades.knife > 0 && (p.knifeFlash > 0 || harvesting)
-  if (p.holdingStone) {
-    ctx.strokeStyle = c.skin
-    ctx.lineWidth = armUpper
+  // the slung kamaki (golden trident, once claimed) rides the back
+  if ((state.upgrades.kamaki > 0 || state.tridentClaimed) && !striking) {
+    ctx.strokeStyle = state.tridentClaimed ? '#8a6d1c' : '#6b4a26'
+    ctx.lineWidth = state.tridentClaimed ? 2.6 : 2
     ctx.beginPath()
-    ctx.moveTo(8, -2)
-    ctx.lineTo(24, 2)
+    ctx.moveTo(-26, -2)
+    ctx.lineTo(18, -9.5)
     ctx.stroke()
-    ctx.lineWidth = armFore
+    ctx.strokeStyle = state.tridentClaimed ? GOLD : '#c9c2b4'
+    ctx.lineWidth = 1.5
     ctx.beginPath()
-    ctx.moveTo(8, 2)
-    ctx.lineTo(24, 5)
+    ctx.moveTo(18, -9.5)
+    ctx.lineTo(22.5, -11)
+    ctx.moveTo(18, -9.5)
+    ctx.lineTo(23, -9.3)
+    ctx.moveTo(18, -9.5)
+    ctx.lineTo(22, -7.8)
     ctx.stroke()
-    ctx.fillStyle = '#7e8790'             // the skandalopetra itself
-    ctx.beginPath()
-    ctx.ellipse(28, 4, 7, 5, 0.4, 0, SD.TAU)
-    ctx.fill()
-  } else {
-    var reachWobble = Math.sin(p.swimPhase * 2.4 + 1.2) * 3
-    ctx.strokeStyle = c.skin
-    ctx.lineWidth = armUpper
-    ctx.beginPath()
-    ctx.moveTo(8, -2.5)
-    ctx.quadraticCurveTo(15, -4.5, 20, -3.5)
+  }
+
+  // --- the body: torso, hips and glutes as ONE silhouette ---
+  ctx.fillStyle = body.skin
+  ctx.beginPath()
+  ctx.moveTo(16.5, -sh + 0.6)                                  // trapezius
+  ctx.quadraticCurveTo(4, -sh - 1.4, -7, -wa - 2.2)            // the long back
+  ctx.bezierCurveTo(-14.5, -wa - 1.4, -20.5, -wa * 0.25 - 1, -19.5, 2.4) // hip + glute
+  ctx.quadraticCurveTo(-18.6, wa + 1.8, -11.5, wa + 1.9)       // under the pelvis
+  var belly = fit < 0.4 ? (0.4 - fit) * 5 : 0
+  ctx.quadraticCurveTo(0, wa + 2.6 + belly, 9, sh * 0.62 + 1.6) // the belly line
+  ctx.quadraticCurveTo(15.5, sh * 0.5, 17.6, 1.6)              // chest into the shoulder
+  ctx.quadraticCurveTo(19.4, -1.4, 18.2, -3.8)                 // the neck
+  ctx.quadraticCurveTo(17.8, -sh + 0.2, 16.5, -sh + 0.6)
+  ctx.closePath()
+  ctx.fill()
+
+  // musculature, earned: lat line, pec edge, abs
+  if (defA > 0.05) {
+    ctx.strokeStyle = body.deep
+    ctx.globalAlpha = defA
+    ctx.lineWidth = 1.1
+    ctx.beginPath() // the lat sweep
+    ctx.moveTo(12, -sh * 0.55)
+    ctx.quadraticCurveTo(-2, -wa * 0.4, -12, -wa * 0.5)
     ctx.stroke()
-    ctx.lineWidth = armFore
-    ctx.beginPath()
-    ctx.moveTo(19.5, -3.6)
-    ctx.quadraticCurveTo(23, -3.8, 26, -3 + reachWobble * 0.4)
+    ctx.beginPath() // pec
+    ctx.moveTo(14.5, 1)
+    ctx.quadraticCurveTo(11.5, 3.4, 8.5, sh * 0.5 + 1)
     ctx.stroke()
-    ctx.lineWidth = armUpper - 0.6
-    ctx.beginPath()
-    ctx.moveTo(8, 2.5)
-    ctx.quadraticCurveTo(14, 5.5, 19, 5)
-    ctx.stroke()
-    ctx.lineWidth = armFore
-    ctx.beginPath()
-    ctx.moveTo(18.5, 5)
-    ctx.quadraticCurveTo(22, 5.4, 24, 5 - reachWobble * 0.4)
-    ctx.stroke()
-    // hands
-    ctx.fillStyle = c.skin
-    ctx.beginPath()
-    ctx.ellipse(26.5, -3 + reachWobble * 0.4, 2.4, 1.8, 0, 0, SD.TAU)
-    ctx.ellipse(24.5, 5 - reachWobble * 0.4, 2.4, 1.8, 0, 0, SD.TAU)
-    ctx.fill()
-    // the knife, out when cutting
-    if (knifeOut) {
-      var kx = 26.5
-      var ky = -3 + reachWobble * 0.4
-      ctx.fillStyle = '#5a3a1c'
-      ctx.fillRect(kx - 1, ky - 1.4, 4, 2.8)
-      ctx.fillStyle = '#e8d49a'
-      ctx.beginPath()
-      ctx.moveTo(kx + 3, ky - 1.6)
-      ctx.lineTo(kx + 12, ky)
-      ctx.lineTo(kx + 3, ky + 1.6)
-      ctx.closePath()
-      ctx.fill()
-    }
-    // the kamaki, driven forward on a strike — golden, once the Trident is yours
-    if (p.spearFlash > 0) {
-      var sx = 26.5
-      var sy = -3 + reachWobble * 0.4
-      var ext = 30 + (0.35 - p.spearFlash) * 40
-      ctx.strokeStyle = state.tridentClaimed ? '#8a6d1c' : '#6b4a26'
-      ctx.lineWidth = state.tridentClaimed ? 3 : 2.4
-      ctx.beginPath()
-      ctx.moveTo(sx - 10, sy + 2)
-      ctx.lineTo(sx + ext, sy)
-      ctx.stroke()
-      ctx.strokeStyle = state.tridentClaimed ? GOLD : '#e8e2d4'
-      ctx.lineWidth = 1.8
-      ctx.beginPath()
-      ctx.moveTo(sx + ext, sy)
-      ctx.lineTo(sx + ext + 7, sy - 3)
-      ctx.moveTo(sx + ext, sy)
-      ctx.lineTo(sx + ext + 8.5, sy)
-      ctx.moveTo(sx + ext, sy)
-      ctx.lineTo(sx + ext + 7, sy + 3)
-      ctx.stroke()
-      if (state.tridentClaimed) { // the god's own crackle
-        ctx.strokeStyle = 'rgba(126, 228, 255, ' + (p.spearFlash * 1.6).toFixed(2) + ')'
-        ctx.lineWidth = 5
+    if (fit > 0.5) {
+      for (var ai = 0; ai < 3; ai++) {
         ctx.beginPath()
-        ctx.moveTo(sx, sy)
-        ctx.lineTo(sx + ext + 6, sy)
+        ctx.moveTo(4.5 - ai * 3.6, wa * 0.2)
+        ctx.lineTo(4.2 - ai * 3.6, wa * 0.8 + 1)
         ctx.stroke()
       }
     }
-  }
-
-  // bicep swell on trained arms
-  if (defA > 0.08) {
-    ctx.fillStyle = c.deep
-    ctx.globalAlpha = defA * 0.6
+    ctx.globalAlpha = 1
+  } else if (belly > 0) {
+    ctx.fillStyle = body.deep
+    ctx.globalAlpha = 0.2
     ctx.beginPath()
-    ctx.ellipse(13, -3.4, 2.6 + fit, 1.6 + fit * 0.5, -0.2, 0, SD.TAU)
+    ctx.ellipse(-1, wa * 0.6 + 1, 6.5, 2.6, 0.08, 0, SD.TAU)
     ctx.fill()
     ctx.globalAlpha = 1
   }
-
-  // --- head ---
-  ctx.fillStyle = c.skin
-  ctx.beginPath()
-  ctx.arc(19, -2, 6.5, 0, SD.TAU)
-  ctx.fill()
-  ctx.beginPath() // nose, in profile
-  ctx.moveTo(25, -3.4)
-  ctx.lineTo(27.2, -1.6)
-  ctx.lineTo(24.8, -0.6)
-  ctx.closePath()
-  ctx.fill()
-  // jaw shadow on the carved
-  if (fit > 0.4) {
-    ctx.strokeStyle = c.deep
-    ctx.globalAlpha = 0.35
+  // the wetsuit ends at the neck — a seam where hide meets skin
+  if (state.relics.hide) {
+    ctx.strokeStyle = 'rgba(228, 236, 240, 0.45)'
     ctx.lineWidth = 1.2
     ctx.beginPath()
-    ctx.moveTo(21, 2.6)
-    ctx.quadraticCurveTo(23.5, 2.2, 24.6, 0.6)
+    ctx.moveTo(18.4, -4.2)
+    ctx.quadraticCurveTo(19.2, -1, 17.8, 1.8)
+    ctx.stroke()
+  }
+
+  // --- the near leg, full tone ---
+  leg(kick, body, 1)
+
+  // --- the perizoma, wrapped over the hips (over the suit, as divers did) ---
+  ctx.strokeStyle = TERRA
+  ctx.lineWidth = 6
+  ctx.beginPath()
+  ctx.moveTo(-9, -wa - 0.6)
+  ctx.quadraticCurveTo(-12.2, 0.4, -9.8, wa + 1.2)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(243, 231, 201, 0.3)' // a fold catching light
+  ctx.lineWidth = 1.3
+  ctx.beginPath()
+  ctx.moveTo(-10.2, -wa + 0.8)
+  ctx.quadraticCurveTo(-11.8, 0.6, -10.4, wa - 0.4)
+  ctx.stroke()
+  ctx.fillStyle = '#c47048' // the knot at the small of the back
+  ctx.beginPath()
+  ctx.arc(-13.2, -wa - 0.8, 1.8, 0, SD.TAU)
+  ctx.fill()
+  var flut = Math.sin(p.swimPhase * 2.4 + 1.1) * 2.6
+  ctx.strokeStyle = TERRA // one short tail streaming aft
+  ctx.lineWidth = 2.2
+  ctx.beginPath()
+  ctx.moveTo(-13.2, -wa - 0.8)
+  ctx.quadraticCurveTo(-18, -wa - 1.4 + flut * 0.6, -22.5, -wa - 0.6 + flut)
+  ctx.stroke()
+
+  // --- the near arm: steady, no flapping ---
+  var handX
+  var handY
+  if (stone) {
+    handX = 31
+    handY = 5.5
+    ctx.strokeStyle = body.skin
+    ctx.lineWidth = armUp
+    ctx.beginPath()
+    ctx.moveTo(15, 1.5)
+    ctx.quadraticCurveTo(23, 3.6, handX, handY)
+    ctx.stroke()
+    ctx.fillStyle = '#7e8790' // the skandalopetra itself
+    ctx.beginPath()
+    ctx.ellipse(34.5, 6.4, 6.6, 4.8, 0.35, 0, SD.TAU)
+    ctx.fill()
+  } else if (striking) {
+    handX = 36
+    handY = 1.5
+    ctx.strokeStyle = body.skin
+    ctx.lineWidth = armUp
+    ctx.beginPath()
+    ctx.moveTo(15, 0.5)
+    ctx.quadraticCurveTo(26, 1.2, handX, handY)
+    ctx.stroke()
+  } else {
+    handX = 33
+    handY = 5.2
+    ctx.strokeStyle = body.skin
+    ctx.lineWidth = armUp
+    ctx.beginPath() // upper arm
+    ctx.moveTo(15, 1.5)
+    ctx.quadraticCurveTo(20.5, 3.8, 24.5, 4.8)
+    ctx.stroke()
+    ctx.lineWidth = armLo
+    ctx.beginPath() // forearm, reaching calm and level
+    ctx.moveTo(24, 4.8)
+    ctx.quadraticCurveTo(29, 5.4, handX, handY)
+    ctx.stroke()
+  }
+  ctx.fillStyle = c.skin // the hand is always bare
+  ctx.beginPath()
+  ctx.ellipse(handX + 0.8, handY, 2.3, 1.7, 0.2, 0, SD.TAU)
+  ctx.fill()
+
+  // the knife, out when cutting
+  var harvesting = state.harvestTarget && state.harvestTarget.progress > 0
+  var knifeOut = state.upgrades.knife > 0 && (p.knifeFlash > 0 || harvesting) && !striking && !stone
+  if (knifeOut) {
+    ctx.fillStyle = '#5a3a1c'
+    ctx.fillRect(handX - 0.5, handY - 1.3, 3.8, 2.6)
+    ctx.fillStyle = '#e8d49a'
+    ctx.beginPath()
+    ctx.moveTo(handX + 3.2, handY - 1.5)
+    ctx.lineTo(handX + 11.5, handY)
+    ctx.lineTo(handX + 3.2, handY + 1.5)
+    ctx.closePath()
+    ctx.fill()
+  }
+  // the kamaki, driven forward on a strike — golden once the Trident is yours
+  if (striking) {
+    var ext = 26 + (0.35 - p.spearFlash) * 40
+    ctx.strokeStyle = state.tridentClaimed ? '#8a6d1c' : '#6b4a26'
+    ctx.lineWidth = state.tridentClaimed ? 3 : 2.4
+    ctx.beginPath()
+    ctx.moveTo(handX - 12, handY + 1.6)
+    ctx.lineTo(handX + ext, handY)
+    ctx.stroke()
+    ctx.strokeStyle = state.tridentClaimed ? GOLD : '#e8e2d4'
+    ctx.lineWidth = 1.8
+    ctx.beginPath()
+    ctx.moveTo(handX + ext, handY)
+    ctx.lineTo(handX + ext + 7, handY - 3)
+    ctx.moveTo(handX + ext, handY)
+    ctx.lineTo(handX + ext + 8.5, handY)
+    ctx.moveTo(handX + ext, handY)
+    ctx.lineTo(handX + ext + 7, handY + 3)
+    ctx.stroke()
+    if (state.tridentClaimed) {
+      ctx.strokeStyle = 'rgba(126, 228, 255, ' + (p.spearFlash * 1.6).toFixed(2) + ')'
+      ctx.lineWidth = 5
+      ctx.beginPath()
+      ctx.moveTo(handX, handY)
+      ctx.lineTo(handX + ext + 6, handY)
+      ctx.stroke()
+    }
+  }
+
+  // --- the head: a clean profile, bare of wreaths ---
+  ctx.fillStyle = c.skin
+  ctx.beginPath()
+  ctx.arc(26.5, -4.5, 6.2, 0, SD.TAU) // the skull
+  ctx.fill()
+  ctx.beginPath() // brow, nose, lips, chin, jaw — one face
+  ctx.moveTo(31.4, -7.4)
+  ctx.quadraticCurveTo(32.6, -5.8, 32.4, -4.6)
+  ctx.lineTo(34.3, -2.9)   // the nose
+  ctx.lineTo(31.9, -2.2)
+  ctx.lineTo(32.3, -1.1)   // lips
+  ctx.lineTo(31.3, -0.6)
+  ctx.quadraticCurveTo(31.6, 1, 29.6, 1.6) // chin
+  ctx.quadraticCurveTo(26, 2.6, 22.5, 1.2) // jaw back to the neck
+  ctx.lineTo(21, -2)
+  ctx.closePath()
+  ctx.fill()
+  if (fit > 0.4) { // a jawline you could moor a boat to
+    ctx.strokeStyle = c.deep
+    ctx.globalAlpha = 0.3
+    ctx.lineWidth = 1.1
+    ctx.beginPath()
+    ctx.moveTo(23.5, 1.4)
+    ctx.quadraticCurveTo(27.5, 2.2, 29.8, 0.8)
     ctx.stroke()
     ctx.globalAlpha = 1
   }
-  // dark curls
+
+  // short dark curls, cropped like a working diver's
   ctx.fillStyle = '#241a12'
-  ctx.beginPath()
-  ctx.arc(17.5, -5.5, 5.8, Math.PI * 0.85, Math.PI * 1.98)
-  ctx.quadraticCurveTo(23, -8.5, 24, -5.5)
-  ctx.quadraticCurveTo(21, -6.8, 19, -5)
+  ctx.beginPath() // a tight working crop, hugging the skull
+  ctx.arc(26.3, -5.2, 6.4, Math.PI * 0.82, Math.PI * 1.88)
+  ctx.quadraticCurveTo(31, -9.2, 31.2, -7)
+  ctx.quadraticCurveTo(27.5, -7.8, 24.5, -5.6)
   ctx.closePath()
   ctx.fill()
   ctx.beginPath()
-  ctx.arc(14.2, -3.5, 2.6, 0, SD.TAU)
-  ctx.arc(16.5, -7.6, 2.4, 0, SD.TAU)
-  ctx.arc(20.5, -8, 2.2, 0, SD.TAU)
+  ctx.arc(21.6, -4.6, 1.9, 0, SD.TAU)  // nape curl
+  ctx.arc(24.2, -9.6, 1.7, 0, SD.TAU)  // crown curls
+  ctx.arc(28.2, -9.6, 1.5, 0, SD.TAU)
   ctx.fill()
 
   if (state.upgrades.light > 0) {
-    // olive-oil goggles: strap + glass
+    // olive-oil goggles: one bronze-rimmed lens, a slim strap into the hair
     ctx.strokeStyle = '#241a12'
-    ctx.lineWidth = 1.8
-    ctx.beginPath()
-    ctx.moveTo(13.5, -3.5)
-    ctx.quadraticCurveTo(16, -1.2, 13.8, 0.6)
-    ctx.stroke()
-    ctx.fillStyle = 'rgba(154, 212, 232, 0.7)'
-    ctx.beginPath()
-    ctx.ellipse(22.6, -2.4, 3.1, 2.5, 0, 0, SD.TAU)
-    ctx.fill()
-    ctx.strokeStyle = '#2a323c'
     ctx.lineWidth = 1.2
-    ctx.stroke()
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
     ctx.beginPath()
-    ctx.arc(21.6, -3.2, 0.8, 0, SD.TAU)
+    ctx.moveTo(22, -6.4)
+    ctx.quadraticCurveTo(26, -7.6, 29.2, -6.6)
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(154, 212, 232, 0.78)'
+    ctx.beginPath()
+    ctx.ellipse(30.3, -4.7, 2.3, 1.9, 0.1, 0, SD.TAU)
+    ctx.fill()
+    ctx.strokeStyle = '#8f7135'
+    ctx.lineWidth = 1
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)'
+    ctx.beginPath()
+    ctx.arc(29.6, -5.3, 0.65, 0, SD.TAU)
     ctx.fill()
   } else {
-    // bare eye
-    ctx.fillStyle = '#fdf8ee'
+    // the bare eye, forward and hunting
+    ctx.fillStyle = '#241a12'
     ctx.beginPath()
-    ctx.ellipse(22.3, -2.6, 1.7, 1.3, 0, 0, SD.TAU)
+    ctx.ellipse(30, -4.7, 1.15, 0.85, 0.1, 0, SD.TAU)
     ctx.fill()
-    ctx.fillStyle = '#1c140e'
+    ctx.strokeStyle = '#241a12' // brow
+    ctx.lineWidth = 0.9
     ctx.beginPath()
-    ctx.arc(22.8, -2.6, 0.8, 0, SD.TAU)
-    ctx.fill()
+    ctx.moveTo(28.6, -6.4)
+    ctx.lineTo(31.4, -5.9)
+    ctx.stroke()
   }
-
-  // terracotta headband, always
-  ctx.strokeStyle = TERRA
-  ctx.lineWidth = 2.5
-  ctx.beginPath()
-  ctx.arc(19, -2, 6.6, -Math.PI * 0.95, -Math.PI * 0.15)
-  ctx.stroke()
 
   ctx.restore()
 }
@@ -2362,15 +3427,25 @@ function drawDarkness (ctx, state, view, cam, zoom) {
   for (var hM = 0; hM < hoard.length; hM++) {
     punch(hoard[hM].x, hoard[hM].y - hoard[hM].h, 60, 0.4)
   }
-  // the braziers of the mountain sanctum, and the glow down its shaft
+  // the braziers of the mountain sanctum, and a breath of light at the throat
   var mt = SD.config.world.mountain
-  punch(mt.ledgeX + 60, mt.ledgeY - 30, 240, 0.85)
-  punch((mt.shaftX1 + mt.shaftX2) / 2, 20 * 32, 130, 0.5)
-  // the vents glow faintly from below
+  punch(mt.ledgeX, SD.floorYAt(mt.ledgeX) - 40, 280, 0.85)
+  punch(mt.pocketX1 - 100, 22 * 32, 170, 0.4)
+  // the vents burn through the dark
   var vents = state.world.dangers.vents
   for (var vI = 0; vI < vents.length; vI++) {
-    punch(vents[vI].x, vents[vI].y - 30, 90, 0.5)
+    punch(vents[vI].x, vents[vI].y - 40, 230, 0.78)
   }
+  // the boss cast carries its own terrible presence
+  var fauna = state.world.fauna
+  for (var bI = 0; bI < fauna.length; bI++) {
+    if (fauna[bI].boss && !fauna[bI].taken) {
+      punch(fauna[bI].x, fauna[bI].y, 220, 0.72)
+    }
+  }
+  // the Anemone's bones catch what light there is
+  var gwk = state.world.decor.giantWreck
+  if (gwk) punch(gwk.x, gwk.y - 160, 520, 0.5)
 
   ctx.drawImage(darkCanvas, 0, 0)
 }
@@ -2408,6 +3483,9 @@ SD.render = function (state, ctx, view, zoom) {
     var wr = decor.wrecks[i]
     if (wr.x < cam.x - 300 || wr.x > cam.x + wv.w + 300) continue
     drawWreck(ctx, wr)
+  }
+  if (decor.giantWreck && decor.giantWreck.x > cam.x - 500 && decor.giantWreck.x < cam.x + wv.w + 500) {
+    drawGiantWreck(ctx, decor.giantWreck, t)
   }
   drawQuarry(ctx, decor)
   for (i = 0; i < decor.fans.length; i++) {
@@ -2459,11 +3537,21 @@ SD.render = function (state, ctx, view, zoom) {
   }
   drawHarvestRing(ctx, state)
 
+  for (i = 0; i < decor.mantas.length; i++) {
+    var mr = decor.mantas[i]
+    if (mr.x < cam.x - 160 || mr.x > cam.x + wv.w + 160) continue
+    drawManta(ctx, mr, t)
+  }
   for (i = 0; i < w.fishSchools.length; i++) drawFishSchool(ctx, w.fishSchools[i], t)
   for (i = 0; i < w.fauna.length; i++) {
     var fa = w.fauna[i]
     if (fa.x < cam.x - 80 || fa.x > cam.x + wv.w + 80) continue
     drawFauna(ctx, fa, t)
+  }
+  for (i = 0; i < decor.seals.length; i++) {
+    var seal = decor.seals[i]
+    if (seal.x < cam.x - 120 || seal.x > cam.x + wv.w + 120) continue
+    drawSeal(ctx, seal, t)
   }
   for (i = 0; i < w.dangers.urchins.length; i++) drawUrchin(ctx, w.dangers.urchins[i])
   for (i = 0; i < w.dangers.eels.length; i++) drawEel(ctx, w.dangers.eels[i], t)
@@ -2479,6 +3567,8 @@ SD.render = function (state, ctx, view, zoom) {
   }
 
   if (cam.x + wv.w > SD.config.world.mountain.faceX - 600) drawMountain(ctx, t)
+  drawStoryDecor(ctx, decor, cam, wv, t)
+  if (state.buddy && state.mode !== 'gameover') drawBuddy(ctx, state, t)
   if (state.mode !== 'blackout' && !state.player.aboard) drawDiver(ctx, state, t)
   drawBubbles(ctx, state.effects.bubbles)
   drawWaterline(ctx, t, cam, wv)
@@ -2489,4 +3579,363 @@ SD.render = function (state, ctx, view, zoom) {
 
   drawMurk(ctx, state, view, cam, z)
   drawDarkness(ctx, state, view, cam, z)
+}
+
+// ---------- The story layer: relic sketches, bones, and the buddy ----------
+// (appended as registrations so parallel work on the sketch table merges clean)
+
+// the Captain's Strongbox — iron-bound, heavier than guilt
+lootSketch.strongbox = function (ctx, t) {
+  ctx.fillStyle = '#3a2a16'
+  ctx.fillRect(-14, -8, 28, 18)
+  ctx.fillStyle = '#503a20'
+  ctx.beginPath()
+  ctx.moveTo(-14, -8)
+  ctx.quadraticCurveTo(0, -17, 14, -8)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = '#6e7a84' // iron straps
+  ctx.lineWidth = 2.4
+  ctx.beginPath()
+  ctx.moveTo(-8, -14)
+  ctx.lineTo(-8, 10)
+  ctx.moveTo(8, -14)
+  ctx.lineTo(8, 10)
+  ctx.stroke()
+  ctx.fillStyle = '#8a959e' // the lock plate
+  ctx.fillRect(-2.6, -2, 5.2, 6)
+  ctx.fillStyle = '#241a12'
+  ctx.beginPath()
+  ctx.arc(0, 0.6, 1.1, 0, SD.TAU)
+  ctx.fill()
+}
+
+// the Great Pearl — a moon in an open shell
+lootSketch.greatPearl = function (ctx, t) {
+  var glow = 0.3 + Math.sin(t * 1.8) * 0.12
+  var grad = ctx.createRadialGradient(0, -4, 3, 0, -4, 40)
+  grad.addColorStop(0, 'rgba(240, 244, 255, ' + glow + ')')
+  grad.addColorStop(1, 'rgba(240, 244, 255, 0)')
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.arc(0, -4, 40, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#7d8a94' // the shell, agape
+  ctx.beginPath()
+  ctx.arc(0, 4, 16, Math.PI, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(0, -2, 16, Math.PI * 1.08, -Math.PI * 0.08)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#f2f2ec' // the pearl itself
+  ctx.beginPath()
+  ctx.arc(0, -2, 8.5, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+  ctx.beginPath()
+  ctx.arc(-2.8, -4.6, 2.4, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(190, 205, 230, 0.5)'
+  ctx.beginPath()
+  ctx.arc(2.6, 0.4, 2.6, 0, SD.TAU)
+  ctx.fill()
+}
+
+// the kelp-choked opening at the Well's floor
+lootSketch.blockage = function (ctx, t) {
+  ctx.fillStyle = 'rgba(6, 14, 22, 0.85)' // the dark behind it
+  ctx.beginPath()
+  ctx.ellipse(4, 0, 13, 17, 0.2, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(30, 110, 72, 0.95)'
+  ctx.lineWidth = 3
+  ctx.lineCap = 'round'
+  for (var i = -2; i <= 2; i++) {
+    var sway = Math.sin(t * 1.2 + i) * 2.5
+    ctx.beginPath()
+    ctx.moveTo(i * 4, 16)
+    ctx.quadraticCurveTo(i * 4 + sway, 0, i * 3 + sway * 1.5, -16)
+    ctx.stroke()
+  }
+}
+
+// the sealed marble slab in the quarry
+lootSketch.slab = function (ctx, t) {
+  ctx.fillStyle = '#cfc9bd'
+  ctx.save()
+  ctx.rotate(0.06)
+  ctx.fillRect(-13, -18, 26, 36)
+  ctx.strokeStyle = 'rgba(43, 29, 22, 0.4)'
+  ctx.lineWidth = 1.5
+  ctx.strokeRect(-13, -18, 26, 36)
+  ctx.beginPath() // the mason's mark
+  ctx.moveTo(-6, -6)
+  ctx.lineTo(0, -12)
+  ctx.lineTo(6, -6)
+  ctx.moveTo(0, -12)
+  ctx.lineTo(0, 8)
+  ctx.stroke()
+  ctx.restore()
+}
+
+// the Bronze Fins of Hermes, at the statue's feet
+lootSketch.hermesFins = function (ctx, t) {
+  var glow = 0.22 + Math.sin(t * 2.2) * 0.1
+  var grad = ctx.createRadialGradient(0, 0, 3, 0, 0, 30)
+  grad.addColorStop(0, 'rgba(255, 224, 130, ' + glow + ')')
+  grad.addColorStop(1, 'rgba(255, 224, 130, 0)')
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.arc(0, 0, 30, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#8f7135'
+  for (var s = -1; s <= 1; s += 2) {
+    ctx.beginPath() // two bronze blades, crossed
+    ctx.moveTo(s * 2, 6)
+    ctx.quadraticCurveTo(s * 8, 2 - s * 2, s * 16, -6 + s * 2)
+    ctx.lineTo(s * 13, -8 + s * 2)
+    ctx.quadraticCurveTo(s * 6, -2, s * 1, 4)
+    ctx.closePath()
+    ctx.fill()
+  }
+  ctx.fillStyle = '#c9a227'
+  ctx.beginPath()
+  ctx.arc(0, 5, 2.2, 0, SD.TAU)
+  ctx.fill()
+}
+
+// the pearl-trader's kit — a satchel with the goggles still bright
+lootSketch.pearlKit = function (ctx, t) {
+  ctx.fillStyle = '#5a4630'
+  ctx.beginPath()
+  ctx.moveTo(-12, 8)
+  ctx.quadraticCurveTo(-13, -6, -4, -8)
+  ctx.lineTo(8, -8)
+  ctx.quadraticCurveTo(13, -4, 12, 8)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = '#3a2c1c'
+  ctx.lineWidth = 1.6
+  ctx.beginPath()
+  ctx.moveTo(-12, -1)
+  ctx.lineTo(12, -1)
+  ctx.stroke()
+  ctx.fillStyle = 'rgba(154, 212, 232, 0.85)' // the lens, catching light
+  ctx.beginPath()
+  ctx.ellipse(1, -11, 4, 3, 0.1, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = '#8f7135'
+  ctx.lineWidth = 1.2
+  ctx.stroke()
+}
+
+// the old kamaki, standing in what it last struck
+lootSketch.grouperKamaki = function (ctx, t) {
+  ctx.strokeStyle = '#6b4a26'
+  ctx.lineWidth = 2.6
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(-8, 14)
+  ctx.lineTo(10, -14)
+  ctx.stroke()
+  ctx.strokeStyle = '#c9c2b4'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(10, -14)
+  ctx.lineTo(14, -18)
+  ctx.moveTo(10, -14)
+  ctx.lineTo(15, -14.5)
+  ctx.moveTo(10, -14)
+  ctx.lineTo(13.5, -10.5)
+  ctx.stroke()
+}
+
+// Side effect: old bones on the sand — a diver who never surfaced
+function drawBones (ctx, x, y, t) {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.fillStyle = '#ded6c2'
+  ctx.beginPath() // the skull, half in the sand
+  ctx.arc(0, -5, 5.2, Math.PI * 0.95, Math.PI * 2.25)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#1c140e'
+  ctx.beginPath() // the socket that watches you
+  ctx.arc(1.8, -6, 1.5, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = '#ded6c2' // ribs breaking the sand
+  ctx.lineWidth = 1.8
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  for (var r = 0; r < 3; r++) {
+    ctx.moveTo(9 + r * 6, 0)
+    ctx.quadraticCurveTo(11 + r * 6, -7 + r, 14 + r * 6, -6 + r)
+  }
+  ctx.moveTo(30, 0)
+  ctx.lineTo(37, -3) // one reaching arm bone
+  ctx.stroke()
+  ctx.restore()
+}
+
+// Side effect: the barnacled Statue of Hermes in its alcove
+function drawHermes (ctx, s, t) {
+  ctx.save()
+  ctx.translate(s.x, s.y)
+  ctx.fillStyle = '#b9b2a2'
+  ctx.fillRect(-16, -8, 32, 8) // the plinth
+  ctx.fillStyle = '#c6c0b0'
+  ctx.beginPath() // robed figure, arm extended in the old gesture of giving
+  ctx.moveTo(-8, -8)
+  ctx.lineTo(-6, -46)
+  ctx.quadraticCurveTo(0, -52, 6, -46)
+  ctx.lineTo(8, -8)
+  ctx.closePath()
+  ctx.fill()
+  ctx.beginPath() // the offered arm
+  ctx.moveTo(4, -40)
+  ctx.quadraticCurveTo(14, -38, 19, -33)
+  ctx.lineTo(17, -29)
+  ctx.quadraticCurveTo(11, -34, 3, -35)
+  ctx.closePath()
+  ctx.fill()
+  ctx.beginPath() // the head, with the winged cap
+  ctx.arc(0, -52, 6, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#a8a294'
+  ctx.beginPath()
+  ctx.ellipse(-6.5, -55, 3.6, 1.6, -0.5, 0, SD.TAU)
+  ctx.ellipse(6.5, -55, 3.6, 1.6, 0.5, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(95, 122, 95, 0.55)' // the sea's slow beard
+  ctx.beginPath()
+  ctx.arc(-4, -30, 3, 0, SD.TAU)
+  ctx.arc(5, -16, 2.4, 0, SD.TAU)
+  ctx.arc(2, -44, 2, 0, SD.TAU)
+  ctx.fill()
+  ctx.restore()
+}
+
+// Side effect: the great grouper's carcass in the meadows, picked clean
+function drawCarcass (ctx, c, t) {
+  ctx.save()
+  ctx.translate(c.x, c.y)
+  ctx.strokeStyle = '#d6cec0'
+  ctx.lineWidth = 2.4
+  ctx.lineCap = 'round'
+  ctx.beginPath() // the spine
+  ctx.moveTo(-26, -8)
+  ctx.quadraticCurveTo(0, -14, 24, -9)
+  ctx.stroke()
+  for (var r = 0; r < 5; r++) { // the ribs
+    ctx.beginPath()
+    ctx.moveTo(-18 + r * 9, -10)
+    ctx.quadraticCurveTo(-20 + r * 9, -2, -16 + r * 9, 0)
+    ctx.stroke()
+  }
+  ctx.fillStyle = '#d6cec0' // the great skull
+  ctx.beginPath()
+  ctx.moveTo(24, -9)
+  ctx.quadraticCurveTo(36, -12, 40, -4)
+  ctx.quadraticCurveTo(34, 2, 25, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#1c140e'
+  ctx.beginPath()
+  ctx.arc(32, -6, 1.8, 0, SD.TAU)
+  ctx.fill()
+  ctx.restore()
+}
+
+// Side effect: the story's set dressing, culled to the camera
+function drawStoryDecor (ctx, decor, cam, wv, t) {
+  function near (x, pad) {
+    return x > cam.x - pad && x < cam.x + wv.w + pad
+  }
+  if (decor.hermes && near(decor.hermes.x, 120)) drawHermes(ctx, decor.hermes, t)
+  if (decor.carcass && near(decor.carcass.x, 120)) drawCarcass(ctx, decor.carcass, t)
+  if (decor.pearlKit && near(decor.pearlKit.x, 100)) drawBones(ctx, decor.pearlKit.x - 20, decor.pearlKit.y - 4, t)
+  if (decor.nikandros && near(decor.nikandros.x, 100)) drawBones(ctx, decor.nikandros.x, decor.nikandros.y - 4, t)
+  if (decor.skeletons) {
+    for (var i = 0; i < decor.skeletons.length; i++) {
+      if (near(decor.skeletons[i].x, 100)) drawBones(ctx, decor.skeletons[i].x, decor.skeletons[i].y - 4, t)
+    }
+  }
+}
+
+// Side effect: Yiannis, your safety buddy — always above, always just left,
+// with a snorkel and a rescue line coiled at his hip. The first rule, kept.
+function drawBuddy (ctx, state, t) {
+  var b = state.buddy
+  var p = state.player
+  var c = skinTones(0.55)
+  var dir = p.x >= b.x ? 1 : -1
+  ctx.save()
+  ctx.translate(b.x, b.y)
+  ctx.scale(dir, 1)
+  ctx.rotate(Math.sin(b.phase * 0.8) * 0.06 + 0.12)
+  ctx.lineCap = 'round'
+
+  var kick = Math.sin(b.phase * 2) * 0.7
+  ctx.strokeStyle = c.deep // far leg
+  ctx.lineWidth = 4.2
+  ctx.beginPath()
+  ctx.moveTo(-10, 1)
+  ctx.quadraticCurveTo(-18, 1 - kick * 3, -26, 2 - kick * 6)
+  ctx.stroke()
+  ctx.strokeStyle = c.skin // near leg
+  ctx.beginPath()
+  ctx.moveTo(-10, 1)
+  ctx.quadraticCurveTo(-18, 1 + kick * 3, -26, 2 + kick * 6)
+  ctx.stroke()
+
+  ctx.fillStyle = c.skin // torso
+  ctx.beginPath()
+  ctx.moveTo(-11, -4)
+  ctx.quadraticCurveTo(0, -7, 11, -5.5)
+  ctx.quadraticCurveTo(13.5, 0, 11, 4.5)
+  ctx.quadraticCurveTo(0, 6.5, -11, 4.5)
+  ctx.quadraticCurveTo(-13, 0, -11, -4)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = '#3a5a74' // his blue perizoma — so you never mistake him
+  ctx.lineWidth = 5
+  ctx.beginPath()
+  ctx.moveTo(-7.5, -4.5)
+  ctx.quadraticCurveTo(-10, 0, -8, 5)
+  ctx.stroke()
+  ctx.strokeStyle = '#8a6d4a' // the rescue line, coiled at his hip
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  ctx.arc(-4, 4, 3.4, 0, SD.TAU)
+  ctx.arc(-4, 4, 1.8, 0, SD.TAU)
+  ctx.stroke()
+
+  ctx.strokeStyle = c.skin // arms folded forward, watching
+  ctx.lineWidth = 3.6
+  ctx.beginPath()
+  ctx.moveTo(9, 0)
+  ctx.quadraticCurveTo(15, 3, 20, 3.6)
+  ctx.stroke()
+
+  ctx.fillStyle = c.skin // head, looking DOWN at you
+  ctx.beginPath()
+  ctx.arc(16, -3, 5.2, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#241a12' // short hair
+  ctx.beginPath()
+  ctx.arc(15, -5.5, 4.6, Math.PI * 0.85, Math.PI * 1.95)
+  ctx.fill()
+  ctx.strokeStyle = '#c9c2b4' // the snorkel — he never leaves the surface watch
+  ctx.lineWidth = 1.8
+  ctx.beginPath()
+  ctx.moveTo(13, -6)
+  ctx.quadraticCurveTo(11, -11, 13.5, -14)
+  ctx.stroke()
+  ctx.fillStyle = '#241a12' // his eye, on you
+  ctx.beginPath()
+  ctx.arc(18.6, -2.4, 1, 0, SD.TAU)
+  ctx.fill()
+  ctx.restore()
 }

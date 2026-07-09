@@ -30,6 +30,7 @@ function slayBoss (state, f, cfg) {
     })
   }
 
+  state.slain[f.kind] = true
   if (f.kind === 'karcharias') {
     state.relics.hide = true
     SD.hud.toast('🦈 KARCHARIAS FALLS — you wear his hide: stings hurt half as much, forever', 'big')

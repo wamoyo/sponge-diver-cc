@@ -18,8 +18,10 @@ SD.saveGame = function (state) {
     training: state.training,
     upgrades: state.upgrades,
     relics: state.relics,
+    slain: state.slain,
+    bottlesRead: state.bottlesRead,
+    worldFlags: SD.worldFlags,
     tridentClaimed: state.tridentClaimed,
-    bottleRead: state.bottleRead,
     stats: state.stats,
     muted: state.muted,
     boat: { x: state.boat.x, hold: state.boat.hold }
@@ -93,7 +95,22 @@ SD.applySave = function (state, data) {
     }
   }
   if (data.tridentClaimed) state.tridentClaimed = true
-  if (data.bottleRead) state.bottleRead = true
+  if (data.bottlesRead) state.bottlesRead = data.bottlesRead
+  if (data.bottleRead) state.bottlesRead[0] = true // the old single-bottle saves
+  if (data.slain) {
+    for (var sl in state.slain) {
+      if (typeof data.slain[sl] === 'boolean') state.slain[sl] = data.slain[sl]
+    }
+  }
+  if (data.worldFlags) {
+    for (var wf in SD.worldFlags) {
+      if (typeof data.worldFlags[wf] === 'boolean') SD.worldFlags[wf] = data.worldFlags[wf]
+    }
+  }
+  // grandfather clause: gear already owned counts as found
+  if (state.upgrades.fins > 0) state.relics.fins = true
+  if (state.upgrades.light > 0) state.relics.sight = true
+  if (state.upgrades.kamaki > 0) state.relics.hunt = true
   if (data.stats) {
     for (var s in state.stats) {
       if (typeof data.stats[s] === 'number') state.stats[s] = data.stats[s]

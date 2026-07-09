@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Art Lab — Σφουγγαράς</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+  <style>
+    /* The Art Lab wears the game's pottery palette. Self-contained on purpose —
+       the game's style.css stays untouched. */
+    :root {
+      --cream: #f3e7c9; --cream-dim: #e5d5ae; --ink: #2b1d16;
+      --terra: #b0603a; --terra-dark: #8a4527; --gold: #d4af37; --sea: #0a2338;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: var(--sea);
+      color: var(--cream);
+      padding: 22px 26px 60px;
+    }
+    header { text-align: center; margin-bottom: 18px; }
+    header h1 { font-variant: small-caps; letter-spacing: 0.2em; color: var(--cream); font-size: 30px; }
+    header p { font-style: italic; font-size: 13.5px; color: var(--cream-dim); }
+    header a { color: var(--gold); }
+    .lab-note {
+      max-width: 900px; margin: 8px auto 0; font-size: 12.5px; color: #9db4c0; text-align: center;
+    }
+    h2 {
+      font-variant: small-caps; letter-spacing: 0.15em; color: var(--gold);
+      border-bottom: 2px solid rgba(212, 175, 55, 0.35);
+      margin: 30px 0 12px; padding-bottom: 4px; font-size: 20px;
+    }
+    .grid { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+    .tile {
+      background: #0e2c44;
+      border: 2px solid rgba(243, 231, 201, 0.25);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .tile canvas { display: block; }
+    .tile .cap {
+      font-size: 12px; text-align: center; padding: 4px 8px 5px;
+      background: rgba(43, 29, 22, 0.75); color: var(--cream);
+      font-variant: small-caps; letter-spacing: 0.06em;
+      display: flex; justify-content: center; gap: 6px; flex-wrap: wrap;
+    }
+    .cap button {
+      font-family: inherit; font-size: 10.5px; padding: 1px 8px;
+      background: var(--terra); color: var(--cream);
+      border: 1px solid var(--ink); border-radius: 3px; cursor: pointer;
+    }
+    .cap button.on { background: var(--gold); color: var(--ink); font-weight: bold; }
+    .controls {
+      background: rgba(243, 231, 201, 0.08);
+      border: 1px solid rgba(243, 231, 201, 0.2);
+      border-radius: 6px; padding: 10px 14px; margin-bottom: 12px;
+      display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; font-size: 13px;
+    }
+    .controls label { display: flex; align-items: center; gap: 7px; }
+    .controls input[type="range"] { width: 110px; }
+    .controls select { font-family: inherit; }
+    .toolbar {
+      position: fixed; top: 12px; right: 14px; z-index: 5;
+      display: flex; gap: 8px;
+    }
+    .toolbar button {
+      font-family: inherit; font-size: 13px; padding: 6px 14px;
+      background: var(--cream); color: var(--ink);
+      border: 2px solid var(--ink); border-radius: 4px; cursor: pointer;
+      box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <button id="pause-btn" title="Space also toggles">⏸ Freeze</button>
+    <button id="dark-btn" title="Preview everything against the deep">🌑 Deep</button>
+  </div>
+
+  <header>
+    <h1>🎨 The Art Lab</h1>
+    <p>Every living sprite in Σφουγγαράς, drawn by the game's own hand — change the code, refresh, judge.</p>
+    <p class="lab-note">This page calls the exact draw functions in <b>js/render.js</b>, so anything improved here
+      is improved in the game. <a href="index.html">← back to the game</a></p>
+  </header>
+
+  <h2>Scenes — the world itself, rendered by the game</h2>
+  <div class="grid" id="sec-scenes"></div>
+
+  <h2>The Diver</h2>
+  <div class="controls" id="diver-controls"></div>
+  <div class="grid" id="sec-diver"></div>
+
+  <h2>Poseidon</h2>
+  <div class="grid" id="sec-poseidon"></div>
+
+  <h2>The Boss Cast</h2>
+  <div class="grid" id="sec-bosses"></div>
+
+  <h2>Fauna — the tribute &amp; the gentle company</h2>
+  <div class="grid" id="sec-fauna"></div>
+
+  <h2>Dangers</h2>
+  <div class="grid" id="sec-dangers"></div>
+
+  <h2>Loot — every type in the game</h2>
+  <div class="grid" id="sec-loot"></div>
+
+  <h2>World Pieces</h2>
+  <div class="grid" id="sec-world"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/boat.js"></script>
+  <script src="js/render.js"></script>
+  <script src="art-lab.js"></script>
+</body>
+</html>
