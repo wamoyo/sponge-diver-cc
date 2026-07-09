@@ -1,7 +1,8 @@
 // Σφουγγαράς — Sponge Diver
-// Touch controls: a floating virtual joystick. Touch anywhere on the water
-// and drag — the drag vector is the swim vector (analog, so a long drag
-// down engages the skandalopetra just like holding ↓).
+// Pointer controls: a floating virtual joystick that works for finger AND
+// mouse. Press anywhere on the water and drag — the drag vector is the swim
+// vector (analog, so a long drag down engages the skandalopetra just like
+// holding ↓). Release to glide.
 
 var SD = window.SD || {}
 window.SD = SD
@@ -10,7 +11,7 @@ SD.touch = (function () {
 
   var RADIUS = 55        // px of drag for full speed
   var active = false
-  var touchId = null
+  var pointerId = null
   var anchorX = 0
   var anchorY = 0
   var vecX = 0
@@ -31,7 +32,7 @@ SD.touch = (function () {
     knobEl.style.top = (anchorY + vecY * RADIUS - 24) + 'px'
   }
 
-  // Side effect: updates the drag vector from a touch point
+  // Side effect: updates the drag vector from a pointer position
   function drag (x, y) {
     var dx = x - anchorX
     var dy = y - anchorY
@@ -42,52 +43,51 @@ SD.touch = (function () {
     place()
   }
 
-  // Side effect: finds our tracked touch in a TouchList, or null
-  function findTouch (list) {
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].identifier === touchId) return list[i]
-    }
-    return null
+  // Side effect: releases the stick
+  function release () {
+    active = false
+    pointerId = null
+    vecX = 0
+    vecY = 0
+    baseEl.classList.add('hidden')
+    knobEl.classList.add('hidden')
   }
 
-  // Side effect: binds touch listeners to the canvas + shows joystick DOM
+  // Side effect: binds pointer listeners (mouse + touch alike) to the canvas
   function init (canvas) {
     baseEl = document.getElementById('joy-base')
     knobEl = document.getElementById('joy-knob')
 
-    canvas.addEventListener('touchstart', function (ev) {
+    canvas.addEventListener('pointerdown', function (ev) {
+      if (active || (ev.pointerType === 'mouse' && ev.button !== 0)) return
       ev.preventDefault()
-      if (active) return
-      var t = ev.changedTouches[0]
       active = true
-      touchId = t.identifier
-      anchorX = t.clientX
-      anchorY = t.clientY
+      pointerId = ev.pointerId
+      anchorX = ev.clientX
+      anchorY = ev.clientY
       vecX = 0
       vecY = 0
+      if (canvas.setPointerCapture) {
+        try { canvas.setPointerCapture(ev.pointerId) } catch (e) { /* fine */ }
+      }
       baseEl.classList.remove('hidden')
       knobEl.classList.remove('hidden')
       place()
-    }, { passive: false })
+    })
 
-    canvas.addEventListener('touchmove', function (ev) {
+    canvas.addEventListener('pointermove', function (ev) {
+      if (!active || ev.pointerId !== pointerId) return
       ev.preventDefault()
-      var t = findTouch(ev.changedTouches)
-      if (t) drag(t.clientX, t.clientY)
-    }, { passive: false })
+      drag(ev.clientX, ev.clientY)
+    })
 
     var end = function (ev) {
+      if (!active || ev.pointerId !== pointerId) return
       ev.preventDefault()
-      if (!findTouch(ev.changedTouches)) return
-      active = false
-      touchId = null
-      vecX = 0
-      vecY = 0
-      baseEl.classList.add('hidden')
-      knobEl.classList.add('hidden')
+      release()
     }
-    canvas.addEventListener('touchend', end, { passive: false })
-    canvas.addEventListener('touchcancel', end, { passive: false })
+    canvas.addEventListener('pointerup', end)
+    canvas.addEventListener('pointercancel', end)
   }
 
   // Pure: current swim vector, each axis in -1..1 (0,0 when idle)

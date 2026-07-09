@@ -80,7 +80,12 @@ SD.shop = (function () {
     state.drachmae -= cost
     state.upgrades[id] += 1
     SD.audio.buy()
-    SD.hud.toast(entry.name + ' — ' + entry.levels[state.upgrades[id]])
+    if (id === 'boat' && state.upgrades.boat === 1) {
+      state.boat.x = SD.config.world.boatStartX
+      SD.hud.toast('⛵ The kaiki is yours — she waits off the jetty', 'big')
+    } else {
+      SD.hud.toast(entry.name + ' — ' + entry.levels[state.upgrades[id]])
+    }
     SD.saveGame(state)
     rebuild(state)
   }

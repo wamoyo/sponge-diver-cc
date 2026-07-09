@@ -90,7 +90,33 @@ body {
 
 #hud-money { color: var(--terracotta-dark); font-weight: bold; }
 
+/* level + experience */
+
+.xp-row { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+
+#hud-level { min-width: 34px; }
+
+.xp-bar {
+  flex: 1;
+  height: 7px;
+  background: var(--cream-dim);
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#xp-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #b98a2c, var(--gold));
+  transition: width 0.25s ease;
+}
+
 .bag-panel { min-width: 0; }
+
+#bag-weight { font-style: normal; font-size: 11.5px; color: var(--ink); opacity: 0.75; margin-left: 6px; }
+
+.hud-hold { display: block; margin-top: 6px; font-size: 13px; color: var(--terracotta-dark); font-weight: bold; }
 
 #bag-pips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; max-width: 210px; }
 
@@ -370,6 +396,51 @@ body {
 
 .shop-card .btn { font-size: 13.5px; padding: 4px 12px; box-shadow: 0 2px 0 var(--ink); }
 
+/* Temple */
+
+.temple-stats {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 14px;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--terracotta-dark);
+  margin-top: 4px;
+}
+
+#temple-cards { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+
+.temple-hint { font-size: 13px; font-style: italic; color: #5d4a3a; text-align: center; margin-top: 4px; }
+
+/* Parchment — the message in the bottle */
+
+.parchment-panel {
+  width: 480px;
+  text-align: center;
+  background: #efdfb3;
+  border-color: #6a4a24;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.45), inset 0 0 60px rgba(150, 110, 50, 0.25);
+}
+
+.parchment-eyebrow {
+  font-variant: small-caps;
+  letter-spacing: 0.2em;
+  font-size: 13px;
+  color: var(--terracotta-dark);
+  margin-bottom: 10px;
+}
+
+.parchment-text {
+  font-style: italic;
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: #3d2a16;
+  margin-bottom: 8px;
+}
+
+.parchment-sign { font-size: 15px; color: #3d2a16; margin-bottom: 16px; }
+
 /* Pause */
 
 .pause-panel { text-align: center; min-width: 420px; }
@@ -389,7 +460,11 @@ body {
 
 .pause-stats span:nth-child(even) { text-align: left; }
 
-.pause-buttons { display: flex; gap: 10px; justify-content: center; }
+.pause-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+.pause-note { margin-top: 12px; font-size: 12.5px; font-style: italic; color: #5d4a3a; }
+
+#dev-btn.dev-on { background: var(--gold); color: var(--ink); font-weight: bold; }
 
 /* Blackout */
 
@@ -407,7 +482,7 @@ body {
 
 /* ---------- Touch layer ---------- */
 
-body:not(.touch) .touch-btn { display: none; }
+/* all pills work by mouse or finger — the pause pill is the visible pause button */
 
 #joy-base, #joy-knob {
   position: fixed;
@@ -452,7 +527,7 @@ body:not(.touch) .touch-btn { display: none; }
   letter-spacing: 1px;
 }
 
-#touch-shop {
+#touch-shop, #touch-temple {
   bottom: 64px;
   left: 50%;
   transform: translateX(-50%);
@@ -460,7 +535,15 @@ body:not(.touch) .touch-btn { display: none; }
   padding: 12px 26px;
 }
 
-body.touch #toasts { top: 70px; }
+#touch-boat {
+  bottom: 122px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 17px;
+  padding: 12px 26px;
+}
+
+#toasts { top: 70px; } /* clear of the pause pill */
 
 /* ---------- Small screens ---------- */
 

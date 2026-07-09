@@ -39,6 +39,29 @@ SD.pick = function (arr) {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
+// Pure: returns a deterministic random generator (mulberry32) for a seed.
+// The same seed always yields the same sea — the world is a place, not a shuffle.
+SD.makeRng = function (seed) {
+  var s = seed >>> 0
+  return function () {
+    s = (s + 0x6D2B79F5) >>> 0
+    var t = s
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+// Pure: random float in [lo, hi) from a supplied rng
+SD.rngRange = function (rng, lo, hi) {
+  return lo + rng() * (hi - lo)
+}
+
+// Pure: random pick from an array using a supplied rng
+SD.rngPick = function (rng, arr) {
+  return arr[Math.floor(rng() * arr.length)]
+}
+
 // Pure: format drachmae with the drachma sign, e.g. "₯ 1,240"
 SD.fmtDr = function (n) {
   return '₯ ' + Math.round(n).toLocaleString('en-US')

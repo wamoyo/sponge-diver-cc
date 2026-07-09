@@ -29,6 +29,7 @@ SD.audio = (function () {
   // Side effect: schedules one enveloped oscillator note
   function tone (freq, dur, type, gain, delay, slideTo) {
     if (!ctx || muted) return
+    if (ctx.state === 'suspended') ctx.resume()
     var t0 = ctx.currentTime + (delay || 0)
     var osc = ctx.createOscillator()
     var g = ctx.createGain()
@@ -47,6 +48,7 @@ SD.audio = (function () {
   // Side effect: short burst of filtered noise (splashes, stings)
   function noise (dur, gain, delay, filterFreq) {
     if (!ctx || muted) return
+    if (ctx.state === 'suspended') ctx.resume()
     var t0 = ctx.currentTime + (delay || 0)
     var len = Math.floor(ctx.sampleRate * dur)
     var buf = ctx.createBuffer(1, len, ctx.sampleRate)
@@ -67,13 +69,53 @@ SD.audio = (function () {
     src.start(t0)
   }
 
-  var pentatonic = [523, 587, 659, 784, 880] // C major pentatonic, lyre-ish
+  // E Phrygian dominant — the "ancient Aegean" scale. Everything melodic
+  // in the game is plucked out of this, like a bored lyre player on deck.
+  var phrygian = [329.6, 349.2, 415.3, 440, 493.9, 523.3, 587.3, 659.3]
 
-  // Side effect: pluck for picking up loot
+  // Side effect: lyre pluck for picking up loot — two strings, slightly rolled
   function pickup () {
-    var f = SD.pick(pentatonic)
-    tone(f, 0.22, 'triangle', 0.09)
-    tone(f * 2, 0.16, 'sine', 0.04, 0.02)
+    var i = Math.floor(Math.random() * 5)
+    tone(phrygian[i], 0.26, 'triangle', 0.09)
+    tone(phrygian[i + 2], 0.22, 'triangle', 0.05, 0.04)
+    tone(phrygian[i] * 2, 0.14, 'sine', 0.03, 0.02)
+  }
+
+  // Side effect: the kamaki strikes — a whoosh of water and a soft thunk
+  function spear () {
+    noise(0.09, 0.1, 0, 2600)
+    tone(180, 0.08, 'triangle', 0.08, 0.05, 90)
+    tone(phrygian[4], 0.18, 'triangle', 0.05, 0.09)
+  }
+
+  // Side effect: temple gong + rising lyre — the god accepts the offering
+  function offering () {
+    tone(110, 1.4, 'sine', 0.12, 0, 108)
+    tone(220, 1.1, 'sine', 0.05, 0.02)
+    tone(phrygian[0], 0.3, 'triangle', 0.06, 0.35)
+    tone(phrygian[3], 0.3, 'triangle', 0.06, 0.5)
+    tone(phrygian[5], 0.45, 'triangle', 0.07, 0.65)
+  }
+
+  // Side effect: a conch-horn swell over deep rumble — something immense woke up
+  function conch () {
+    tone(98, 1.6, 'sawtooth', 0.05, 0, 147)
+    tone(147, 1.4, 'triangle', 0.09, 0.15, 196)
+    noise(1.2, 0.06, 0, 240)
+  }
+
+  // Side effect: dry papyrus rustle + a small chime — a message unrolled
+  function parchment () {
+    noise(0.28, 0.07, 0, 3400)
+    noise(0.2, 0.05, 0.18, 2800)
+    tone(1047, 0.5, 'sine', 0.045, 0.3)
+  }
+
+  // Side effect: bare feet on deck planks
+  function board () {
+    tone(95, 0.09, 'sine', 0.12, 0, 60)
+    noise(0.06, 0.08, 0, 600)
+    tone(120, 0.08, 'sine', 0.09, 0.11, 70)
   }
 
   // Side effect: coin arpeggio for selling the catch
@@ -112,13 +154,16 @@ SD.audio = (function () {
     noise(0.5, 0.06, 0.15, 500)
   }
 
-  // Side effect: small fanfare for legendary finds
+  // Side effect: aulos flourish for level-ups and legendary finds — two
+  // reedy voices in parallel, the way the double-pipe actually played
   function fanfare () {
-    var notes = [523, 659, 784, 1047]
-    for (var i = 0; i < notes.length; i++) {
-      tone(notes[i], 0.3, 'triangle', 0.09, i * 0.11)
+    var run = [0, 2, 4, 5, 7]
+    for (var i = 0; i < run.length; i++) {
+      var f = phrygian[run[i] % phrygian.length] * (run[i] >= phrygian.length ? 2 : 1)
+      tone(f, 0.26, 'sawtooth', 0.035, i * 0.1)
+      tone(f * 1.335, 0.26, 'sawtooth', 0.028, i * 0.1) // the second pipe, a fourth up
     }
-    tone(1319, 0.7, 'sine', 0.07, 0.48)
+    tone(phrygian[0] * 2, 0.8, 'triangle', 0.07, 0.52)
   }
 
   // Side effect: paces a double-thump heartbeat while breath is low.
@@ -138,6 +183,11 @@ SD.audio = (function () {
     init: init,
     setMuted: setMuted,
     pickup: pickup,
+    spear: spear,
+    offering: offering,
+    conch: conch,
+    parchment: parchment,
+    board: board,
     coins: coins,
     buy: buy,
     denied: denied,
