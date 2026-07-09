@@ -19,6 +19,12 @@ SD.shop = (function () {
     document.getElementById('shop-close').addEventListener('click', function () {
       close(state)
     })
+    document.getElementById('shop-x').addEventListener('click', function () {
+      close(state)
+    })
+    shopEl.addEventListener('click', function (ev) {
+      if (ev.target === shopEl) close(state) // a tap on the water closes the shop
+    })
     cardsEl.addEventListener('click', function (ev) {
       var btn = ev.target.closest('button[data-upgrade]')
       if (btn) buy(state, btn.getAttribute('data-upgrade'))

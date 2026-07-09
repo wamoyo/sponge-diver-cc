@@ -83,7 +83,7 @@ function updateBubbles (state, dt) {
     b.y += b.vy * dt
     b.x += Math.sin(b.y * 0.05) * 12 * dt
     b.life -= dt
-    if (b.life <= 0 || b.y < 2) list.splice(i, 1)
+    if (b.life <= 0 || b.y < 2 || b.y < SD.overheadYAt(b.x, b.y) + 6) list.splice(i, 1)
   }
   if (list.length > 220) list.splice(0, list.length - 220)
 }
@@ -224,6 +224,26 @@ function closePause () {
   document.getElementById('reset-btn').textContent = 'Reset Save'
 }
 
+// Side effect: closes whichever window is actually on screen — DOM truth,
+// immune to mode desync, topmost first. Returns true if one was open.
+// (The title, blackout, and game-over screens are not windows: the first
+// wants Dive In, the others resolve themselves.)
+function closeTopWindow () {
+  function visible (id) {
+    return !document.getElementById(id).classList.contains('hidden')
+  }
+  if (visible('parchment')) {
+    SD.hud.hideParchment()
+    state.mode = 'playing'
+    return true
+  }
+  if (visible('shop')) { SD.shop.close(state); return true }
+  if (visible('temple')) { SD.temple.close(state); return true }
+  if (visible('forge')) { SD.forge.close(state); return true }
+  if (visible('pause')) { closePause(); return true }
+  return false
+}
+
 // Side effect: flips mute on the audio engine + save. The visible pill is
 // also the user gesture desktop browsers demand before they allow audio.
 function toggleMute () {
@@ -243,7 +263,7 @@ var resetBtnArmed = false
 // (surfaced relative to the LOCAL waterline — the pocket counts)
 function inZone (zone) {
   var p = state.player
-  var surfaced = p.y < SD.surfaceYAt(p.x) + SD.config.pxPerM * 0.4
+  var surfaced = p.y < SD.surfaceYAt(p.x, p.y) + SD.config.pxPerM * 0.4
   return surfaced && Math.abs(p.x - zone.x) < zone.radius
 }
 
@@ -288,6 +308,11 @@ function bindInput () {
       if (state.mode === 'playing' && inZone(SD.config.world.temple)) SD.temple.open(state)
       else if (state.mode === 'temple') SD.temple.close(state)
     }
+    if (ev.code === 'KeyF') {
+      // the depth guard keeps F at the open sea surface (124 m above) honest
+      if (state.mode === 'playing' && state.player.y > 80 * SD.config.pxPerM && inZone(SD.config.world.forge)) SD.forge.open(state)
+      else if (state.mode === 'forge') SD.forge.close(state)
+    }
     if (ev.code === 'KeyE' && state.mode === 'playing') {
       SD.toggleBoard(state)
     }
@@ -297,19 +322,8 @@ function bindInput () {
     if (ev.code === 'Digit0') state.zoomTarget = 1
     if (ev.code === 'Escape' || (ev.code === 'Enter' && state.mode === 'parchment')) {
       ev.preventDefault()
-      // close whatever is actually on screen — DOM truth, immune to mode desync
-      if (!document.getElementById('shop').classList.contains('hidden')) {
-        SD.shop.close(state)
-      } else if (!document.getElementById('temple').classList.contains('hidden')) {
-        SD.temple.close(state)
-      } else if (!document.getElementById('parchment').classList.contains('hidden')) {
-        SD.hud.hideParchment()
-        state.mode = 'playing'
-      } else if (state.mode === 'paused') {
-        closePause()
-      } else if (state.mode === 'playing') {
-        openPause()
-      }
+      // Esc closes whatever window is open; with none open, it pauses
+      if (!closeTopWindow() && state.mode === 'playing') openPause()
     }
   })
 
@@ -331,9 +345,21 @@ function bindInput () {
 
   document.getElementById('start-btn').addEventListener('click', startGame)
   document.getElementById('resume-btn').addEventListener('click', closePause)
+  document.getElementById('pause-x').addEventListener('click', closePause)
   document.getElementById('mute-btn').addEventListener('click', toggleMute)
   document.getElementById('mute-pill').addEventListener('click', toggleMute)
   document.getElementById('dev-btn').addEventListener('click', toggleDev)
+
+  // a tap on the water behind a menu closes it, like everywhere else
+  document.getElementById('pause').addEventListener('click', function (ev) {
+    if (ev.target.id === 'pause') closePause()
+  })
+  document.getElementById('parchment').addEventListener('click', function (ev) {
+    if (ev.target.id === 'parchment') {
+      SD.hud.hideParchment()
+      state.mode = 'playing'
+    }
+  })
 
   // the contextual pills work by mouse on any device
   document.getElementById('touch-shop').addEventListener('click', function () {
@@ -341,6 +367,9 @@ function bindInput () {
   })
   document.getElementById('touch-temple').addEventListener('click', function () {
     if (state.mode === 'playing') SD.temple.open(state)
+  })
+  document.getElementById('touch-forge').addEventListener('click', function () {
+    if (state.mode === 'playing') SD.forge.open(state)
   })
   document.getElementById('touch-boat').addEventListener('click', function () {
     if (state.mode === 'playing') SD.toggleBoard(state)
@@ -375,7 +404,7 @@ function bindTouch () {
     '<span><b>Drag anywhere</b></span><span>swim that way</span>' +
     '<span><b>Drag far down</b></span><span>drop with the stone</span>' +
     '<span><b>Hover close</b></span><span>gather loot</span>' +
-    '<span><b>The pills</b></span><span>shop, temple, boat</span>'
+    '<span><b>The pills</b></span><span>shop, temple, forge, boat</span>'
 }
 
 // ---------- Loop ----------
@@ -442,6 +471,7 @@ function boot () {
   SD.hud.init()
   SD.shop.init(state)
   SD.temple.init(state)
+  SD.forge.init(state)
   document.getElementById('mute-pill').textContent = state.muted ? '🔇' : '🔊'
   bindInput()
   SD.touch.init(canvas) // pointer joystick — mouse and finger alike

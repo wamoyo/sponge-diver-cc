@@ -97,6 +97,15 @@ SD.audio = (function () {
     tone(phrygian[5], 0.45, 'triangle', 0.07, 0.65)
   }
 
+  // Side effect: the anvil rings — a bright bronze strike over a low thump.
+  // Hephaestus accepts the offering.
+  function forge () {
+    tone(1180, 0.5, 'triangle', 0.1)
+    tone(1774, 0.32, 'sine', 0.045, 0.004) // the overtone of true bronze
+    tone(88, 0.12, 'sine', 0.14, 0, 50)
+    noise(0.05, 0.05, 0, 4200)
+  }
+
   // Side effect: a conch-horn swell over deep rumble — something immense woke up
   function conch () {
     tone(98, 1.6, 'sawtooth', 0.05, 0, 147)
@@ -154,6 +163,13 @@ SD.audio = (function () {
     noise(0.5, 0.06, 0.15, 500)
   }
 
+  // Side effect: thunder rolling over the god's waters — a long low rumble
+  function rumble () {
+    noise(1.8, 0.09, 0, 160)
+    noise(1.1, 0.05, 0.5, 110)
+    tone(44, 1.6, 'sine', 0.07, 0.05, 30)
+  }
+
   // Side effect: aulos flourish for level-ups and legendary finds — two
   // reedy voices in parallel, the way the double-pipe actually played
   function fanfare () {
@@ -185,6 +201,7 @@ SD.audio = (function () {
     pickup: pickup,
     spear: spear,
     offering: offering,
+    forge: forge,
     conch: conch,
     parchment: parchment,
     board: board,
@@ -194,6 +211,7 @@ SD.audio = (function () {
     sting: sting,
     splash: splash,
     blackout: blackout,
+    rumble: rumble,
     fanfare: fanfare,
     heartbeat: heartbeat
   }

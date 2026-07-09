@@ -22,6 +22,12 @@ SD.temple = (function () {
     document.getElementById('temple-close').addEventListener('click', function () {
       close(state)
     })
+    document.getElementById('temple-x').addEventListener('click', function () {
+      close(state)
+    })
+    templeEl.addEventListener('click', function (ev) {
+      if (ev.target === templeEl) close(state) // a tap on the water closes the temple
+    })
     cardsEl.addEventListener('click', function (ev) {
       var btn = ev.target.closest('button[data-train]')
       if (btn) train(state, btn.getAttribute('data-train'))

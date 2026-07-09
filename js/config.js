@@ -53,7 +53,10 @@ SD.config = {
       { x: 22500, m: 80 }, { x: 23300, m: 84 }, { x: 23900, m: 88 },
       // — Hephaestus' Vents —
       { x: 24400, m: 76 }, { x: 25000, m: 72 }, { x: 25700, m: 80 },
-      { x: 26400, m: 74 }, { x: 26900, m: 82 },
+      { x: 26400, m: 74 }, { x: 26690, m: 78 },
+      // the Smith's Throat: the worst vent's shaft, straight down into the
+      // Caves of Hephaestus (the cut-out under this whole shelf)
+      { x: 26770, m: 96.5 }, { x: 26870, m: 96.5 }, { x: 26940, m: 82 },
       // — down to Poseidon's Plain: wide, flat, 135 m —
       { x: 27600, m: 100 }, { x: 28200, m: 120 }, { x: 28600, m: 133 },
       { x: 29000, m: 135 }, { x: 30000, m: 135 }, { x: 31000, m: 135 },
@@ -89,6 +92,51 @@ SD.config = {
     quarry: { x1: 17000, x2: 20000 },
     graveyard: { x1: 20000, x2: 24000 },
     ventsZone: { x1: 24000, x2: 27000 },
+    // the Caves of Hephaestus: a true CUT-OUT under the vents shelf. The
+    // slab between the shelf floor and roofPoints is solid rock; under it
+    // the tube runs west from the Smith's Throat to the forge. Both faces
+    // are carved terrain in their own right — like the mountain's belly,
+    // pointed down. No wobble: the god cut clean.
+    hephCaves: {
+      x1: 24500, x2: 26840,
+      roofPoints: [
+        { x: 24500, m: 96 },                                   // sealed west wall
+        { x: 24560, m: 86 }, { x: 24700, m: 84 },              // the temple dome
+        { x: 24880, m: 85.5 }, { x: 24960, m: 94.5 },          // the door lintel — deeper than the sanctum's waterline, or the air would slip out under it
+        { x: 25050, m: 88.8 }, { x: 25150, m: 88.5 },          // dome III
+        { x: 25250, m: 89 }, { x: 25400, m: 93 },              // a choke
+        { x: 25550, m: 90 }, { x: 25780, m: 88 },              // dome II
+        { x: 25880, m: 88.6 }, { x: 26020, m: 93.5 },          // a choke
+        { x: 26180, m: 90 }, { x: 26480, m: 87.5 },            // dome I
+        { x: 26580, m: 88 }, { x: 26700, m: 89.5 }, { x: 26840, m: 86 }
+      ],
+      floorPoints: [
+        { x: 24500, m: 96 },                                   // roof meets floor: sealed
+        { x: 24580, m: 105 }, { x: 24700, m: 108 },            // the temple pool
+        { x: 24770, m: 92.8 }, { x: 24890, m: 92.6 },          // the LEDGE — the smith's dry platform
+        { x: 24950, m: 107 }, { x: 25060, m: 99 },             // the door sill
+        { x: 25150, m: 101 }, { x: 25250, m: 100 },
+        { x: 25400, m: 98.5 },                                 // choke floor rises
+        { x: 25550, m: 103 }, { x: 25780, m: 100.5 },
+        { x: 25900, m: 104 }, { x: 26020, m: 98.8 },           // choke
+        { x: 26180, m: 105 }, { x: 26480, m: 100 },
+        { x: 26620, m: 99 }, { x: 26720, m: 97.6 }, { x: 26840, m: 97.8 }
+      ]
+    },
+    forge: { x: 24830, radius: 240 },    // the smith's ledge under the second vent — F to offer
+    // trapped air against the slab's underside. Air obeys the rock: each
+    // pocket's extent (x1/x2/topY) is DERIVED from the carved roof at load —
+    // see the derivation at the end of this file — so the air fills every
+    // curve of its dome above the spill line and ends exactly where the
+    // roof dips to the waterline. surfaceY (the trapped waterline, and the
+    // LOCAL surface for SD.surfaceYAt) must sit above both flanking lips,
+    // or the dome could not hold its air.
+    airPockets: [
+      { crownX: 26480, surfaceY: 89.2 * 32 },  // dome I, near the Throat
+      { crownX: 25780, surfaceY: 90.5 * 32 },  // dome II
+      { crownX: 25150, surfaceY: 91 * 32 },    // dome III, at the temple door
+      { crownX: 24700, surfaceY: 93.6 * 32 }   // the Forge sanctum
+    ],
     lagoon: { x1: 37500, x2: 39650 },
     // the Temple Mountain: SOLID rock, carved. Its underside is terrain in
     // its own right — ceilingPoints mirror floorPoints. You descend the
@@ -134,6 +182,16 @@ SD.config = {
   },
   offeringGrowth: 2, // extra offering points per rank already held
 
+  // --- the Forge of Hephaestus: one god-forged tier past the chandlery's
+  // best, paid in obsidian carried down to the anvil. Each entry keys into
+  // the upgrades catalog; line = what the smith says over the work. ---
+  blessings: {
+    knife: { cost: 4, line: 'He squints at his own clearance work, sighs, and does it properly.' },
+    light: { cost: 4, line: "Lenses reground on the wheel that made Achilles' shield." },
+    fins: { cost: 5, line: "Hermes' wings, reworked. Hermes will hear about this." },
+    kamaki: { cost: 6, line: 'A head of god-bronze. The fish were not consulted.' }
+  },
+
   // --- fauna: the animals of the sea. Speared with the kamaki, offered to the god. ---
   fauna: {
     mullet: { name: 'Striped Mullet', count: 40, minM: 3, maxM: 25, offering: 1, xp: 4, weight: 1, cruise: 55, fleeSpeed: 250, fleeRadius: 110, r: 9, respawn: 90 },
@@ -159,8 +217,8 @@ SD.config = {
       minM: 60, maxM: 120, x1: 15000, x2: 36000 // it roams the whole deep, unannounced
     }
   },
-  kamakiReach: [0, 55, 75, 95],        // strike distance px by kamaki tier
-  kamakiCooldown: [0, 1.1, 0.8, 0.55], // seconds between thrusts by tier
+  kamakiReach: [0, 55, 75, 95, 115],        // strike distance px by kamaki tier (last: god-forged)
+  kamakiCooldown: [0, 1.1, 0.8, 0.55, 0.4], // seconds between thrusts by tier
   // Hephaestus' vents: cones of lift from each throat, widening as they
   // rise, reaching to within ~8 m of the surface. Weak swimmers cannot
   // force their way down through the core — train first, or go around.
@@ -172,7 +230,7 @@ SD.config = {
   pearlKitX: 14350,                    // the pearl-trader's bones, and his goggles
   grouperX: 8750,                      // the carcass in the meadows, kamaki still in it
   greatPearlX: 15650,                  // ringed by jellyfish, openable only by a legend edge
-  wellMouthA: { x: 11830, y: 78 * 32 },   // the kelp-choked opening at the Well's floor
+  wellMouthA: { x: 11795, y: 76 * 32 },   // the kelp-choked opening where the east wall meets the Well's floor
   wellMouthB: { x: 14180, y: 27 * 32 },   // ...and where its current spits you out
   quarrySlabX: 18620,                  // the sealed alcove among the terraces
 
@@ -205,7 +263,7 @@ SD.config = {
   // water murk: things blur away past the clarity radius. Bare human eyes
   // are nearly useless underwater — tier 0 sees an arm's length. The first
   // pair of goggles changes your life.
-  clarityByTier: [70, 260, 380, 520, 700, 900],
+  clarityByTier: [70, 260, 380, 520, 700, 900, 1150], // the last is Hephaestus' work
   inkClarity: 60,    // clarity radius while squid-inked
   inkTime: 3.5,
 
@@ -289,7 +347,7 @@ SD.config = {
       flavor: 'Bronze-winged. Hermes takes 2% royalties.',
       what: 'Swim speed',
       tiers: [40, 110, 260, 560, 1100, 2100],
-      levels: ['steady', 'brisk', 'quick', 'swift', 'darting', 'winged', 'god-tier']
+      levels: ['steady', 'brisk', 'quick', 'swift', 'darting', 'winged', 'god-tier', 'god-forged']
     },
     {
       id: 'stone', icon: '🪨', name: 'Skandalopetra',
@@ -303,7 +361,7 @@ SD.config = {
       flavor: 'Lens tech of the ancients. Extra virgin, obviously. Without them, the sea is a blur.',
       what: 'Clear sight & light below',
       tiers: [60, 170, 420, 950, 1900],
-      levels: ['blurry', 'clear', 'keen', 'sharp', 'bright', 'radiant']
+      levels: ['blurry', 'clear', 'keen', 'sharp', 'bright', 'radiant', 'god-lit']
     },
     {
       id: 'net', icon: '🧺', name: 'Woven Net Bag',
@@ -317,14 +375,14 @@ SD.config = {
       flavor: "From Hephaestus' clearance sale. Barely forge-damaged. Pries octopus too.",
       what: 'Cut faster, cut kelp, fend off eels',
       tiers: [50, 160, 420, 1000],
-      levels: ['bare hands', 'bronze', 'iron', 'steel', 'legend']
+      levels: ['bare hands', 'bronze', 'iron', 'steel', 'legend', 'god-forged']
     },
     {
       id: 'kamaki', icon: '🎣', name: 'The Kamaki',
       flavor: 'A fishing spear. The god does not take drachmae — he takes tribute.',
       what: 'Spear fish for the temple',
       tiers: [90, 320, 900],
-      levels: ['bare hands', 'ash shaft', 'bronze barbs', "hunter's arm"]
+      levels: ['bare hands', 'ash shaft', 'bronze barbs', "hunter's arm", "the god's arm"]
     },
     {
       id: 'charm', icon: '🧿', name: "Nereid's Charm",
@@ -363,7 +421,7 @@ SD.config = {
   sailMults: [1, 1.8, 3],                     // sailing multiplier by sail tier — full sails FLY
   boatBoardRadius: 95,                        // close enough to board (E) — anywhere along the hull
   boatTransferRadius: 110,                    // surfacing this close auto-loads the hold
-  knifeMults: [1, 0.78, 0.6, 0.45, 0.33],     // harvest-time multiplier by knife tier
+  knifeMults: [1, 0.78, 0.6, 0.45, 0.33, 0.24], // harvest-time multiplier by knife tier (last: god-forged)
   stoneMults: [1, 1.5, 2.0, 2.5, 3.0],        // descent-speed multiplier by stone tier
   charmResist: [0, 0.2, 0.38, 0.55],          // sting reduction by charm tier
   weightSlow: 0.032                           // speed mult = 1 / (1 + carried * this)
@@ -537,11 +595,19 @@ SD.depthM = function (y) {
   return Math.max(0, y / SD.config.pxPerM)
 }
 
-// Pure: the local water surface y at a world x — 0 in the open sea, but
-// deep inside the Temple Mountain the air pocket has its own waterline
-SD.surfaceYAt = function (x) {
+// Pure: the local water surface y at a position — 0 in the open sea, the
+// mountain's own waterline inside the mountain, and a cave pocket's
+// waterline when you are up inside its chamber. The y check keeps open
+// water ABOVE the caves on sea-level rules; pass y wherever a body swims.
+SD.surfaceYAt = function (x, y) {
   var mt = SD.config.world.mountain
   if (x > mt.pocketX1 && x < mt.pocketX2) return mt.pocketSurfaceY
+  if (y !== undefined) {
+    var pks = SD.config.world.airPockets
+    for (var i = 0; i < pks.length; i++) {
+      if (x > pks[i].x1 && x < pks[i].x2 && y > pks[i].topY) return pks[i].surfaceY
+    }
+  }
   return 0
 }
 
@@ -562,6 +628,54 @@ SD.ceilingYAt = function (x) {
   return m * SD.config.pxPerM
 }
 
+// Pure: m-interpolation over {x, m} control points — smoothstep, no wobble
+// (carved surfaces are cut clean, like the mountain's ceiling)
+function interpPoints (pts, x) {
+  var m = pts[pts.length - 1].m
+  for (var i = 0; i < pts.length - 1; i++) {
+    if (x <= pts[i + 1].x) {
+      var t = (x - pts[i].x) / (pts[i + 1].x - pts[i].x)
+      m = SD.lerp(pts[i].m, pts[i + 1].m, SD.smoothstep(0, 1, SD.clamp(t, 0, 1)))
+      break
+    }
+  }
+  return m
+}
+
+// Pure: the cave tube's roof y (the slab's underside) at x.
+// Only meaningful inside the hephCaves band.
+SD.caveRoofYAt = function (x) {
+  return interpPoints(SD.config.world.hephCaves.roofPoints, x) * SD.config.pxPerM
+}
+
+// Pure: the cave tube's floor y at x
+SD.caveFloorYAt = function (x) {
+  return interpPoints(SD.config.world.hephCaves.floorPoints, x) * SD.config.pxPerM
+}
+
+// Pure: true when a swimmer at (x, y) is inside the cave tube — below the
+// midline between the main terrain and the slab's underside. Taking the
+// DEEPER of roof and main floor lets the mouth pierce the shaft wall.
+SD.inHephCaves = function (x, y) {
+  var hz = SD.config.world.hephCaves
+  if (x < hz.x1 || x > hz.x2) return false
+  var top = Math.max(SD.caveRoofYAt(x), SD.floorYAt(x))
+  return y > (SD.floorYAt(x) + top) / 2
+}
+
+// Pure: the ground beneath a swimmer at (x, y) — the sea floor everywhere,
+// the cave floor for anyone inside the tube
+SD.groundYAt = function (x, y) {
+  return SD.inHephCaves(x, y) ? SD.caveFloorYAt(x) : SD.floorYAt(x)
+}
+
+// Pure: the rock overhead at (x, y) — the mountain's belly, the slab's
+// underside inside the tube, or -Infinity under open sky
+SD.overheadYAt = function (x, y) {
+  if (SD.inHephCaves(x, y)) return Math.max(SD.caveRoofYAt(x), SD.floorYAt(x))
+  return SD.ceilingYAt(x)
+}
+
 // Pure: the named PLACE at a position — geography first, depth only where
 // depth is the geography. First match wins.
 SD.regionAt = function (x, m) {
@@ -575,6 +689,8 @@ SD.regionAt = function (x, m) {
   if (Math.abs(x - w.grottoX) < 320 && m > 86) return "The Kraken's Grotto"
   if (SD.worldFlags.anemoneFell && Math.abs(x - SD.config.giantWreckX - 50) < 300 && m > 82) return "The Anemone's Grave"
   if (Math.abs(x - SD.config.giantWreckX) < 760 && m > 60) return 'The Wreck of the Anemone'
+  if (Math.abs(x - w.forge.x) < 320 && m > 86) return 'The Forge of Hephaestus'
+  if (x >= w.hephCaves.x1 && x < 26940 && m > 84) return 'The Caves of Hephaestus'
   if (x > 28000 && x < 33200 && m > 110) return "Poseidon's Plain"
   if (x >= w.kelpX1 && x <= w.kelpX2) return 'The Kelp Forest'
   if (x >= w.seagrass.x1 && x < w.seagrass.x2) return 'The Seagrass Meadows'
@@ -589,3 +705,57 @@ SD.regionAt = function (x, m) {
   if (x < w.seagrass.x1) return 'The Sponge Grounds'
   return 'The Open Blue'
 }
+
+// Pure: how angry the god's sea is at world x — a standing storm over
+// POSEIDON'S PLAIN and nowhere else. It gathers on the descent from the
+// Deep Approaches, rages over the god, and breaks before the Eastern Rise.
+SD.stormAt = function (x) {
+  var rise = SD.smoothstep(27200, 28800, x)
+  var fall = 1 - SD.smoothstep(32600, 34400, x)
+  return Math.min(rise, fall)
+}
+
+// Side effect on SD.config.world.airPockets: derives each pocket's true
+// extent from the carved roof, once at load. Walking out from the crown,
+// the air ends exactly where the roof dips to the waterline — so physics,
+// drawing, and geology can never disagree about where the air is.
+// config.js loads BEFORE utils.js, so this walk carries its own smoothstep
+// interpolation — SD.caveRoofYAt (which leans on utils) cannot run yet.
+;(function () {
+  function roofY (x) {
+    var pts = SD.config.world.hephCaves.roofPoints
+    var m = pts[pts.length - 1].m
+    for (var i = 0; i < pts.length - 1; i++) {
+      if (x <= pts[i + 1].x) {
+        var t = (x - pts[i].x) / (pts[i + 1].x - pts[i].x)
+        t = t < 0 ? 0 : t > 1 ? 1 : t
+        m = pts[i].m + (pts[i + 1].m - pts[i].m) * t * t * (3 - 2 * t)
+        break
+      }
+    }
+    return m * SD.config.pxPerM
+  }
+  var pks = SD.config.world.airPockets
+  var hz = SD.config.world.hephCaves
+  for (var i = 0; i < pks.length; i++) {
+    var pk = pks[i]
+    var x = pk.crownX
+    while (x > hz.x1 && roofY(x - 4) < pk.surfaceY) x -= 4
+    pk.x1 = x
+    x = pk.crownX
+    while (x < hz.x2 && roofY(x + 4) < pk.surfaceY) x += 4
+    pk.x2 = x
+    var crown = Infinity
+    for (x = pk.x1; x <= pk.x2; x += 4) crown = Math.min(crown, roofY(x))
+    pk.topY = crown - 8
+    // the smith keeps his caves lit: a torch socketed into each dome's
+    // flank wherever there is head-room for a flame above the waterline
+    pk.torches = []
+    var fr = [0.24, 0.76]
+    for (var f = 0; f < fr.length; f++) {
+      var tx = Math.round(pk.x1 + (pk.x2 - pk.x1) * fr[f])
+      var roofHere = roofY(tx)
+      if (pk.surfaceY - roofHere > 30) pk.torches.push({ x: tx, y: roofHere })
+    }
+  }
+})()

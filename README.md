@@ -5,7 +5,9 @@ fixed, learnable sea ~1.3 km across — a real geography, west to east: the
 Village Shallows · the rolling Sponge Grounds and the winding Divers' Cave ·
 the Seagrass Meadows · the great Kelp Forest and the 80 m Kelp Well beneath
 it · the Pearl Banks · the Sunken Marble Quarry · the Graveyard of Ships
-(Karcharias hunts here) · Hephaestus' Vents · POSEIDON'S PLAIN, a flat
+(Karcharias hunts here) · Hephaestus' Vents, with the CAVES OF HEPHAESTUS
+cut into the rock beneath them — air pockets, and the smith's own forge ·
+POSEIDON'S PLAIN, a flat
 135 m arena where the god guards his hoard · the Kraken's Grotto · the
 Eastern Rise · Aphrodite's Lagoon and its Blue Hole · and the hollow Temple
 Mountain, whose sanctum sits beside an air pocket you surface into from an
@@ -28,6 +30,7 @@ any static server).
 | Gather loot | hover close (progress ring) | hover close |
 | Chandlery | **B** at the dock, or click the pill | tap the pill |
 | Temple | **T** at its jetty, or click the pill | tap the pill |
+| Forge | **F** at the smith's ledge in the caves | tap the pill |
 | Board / leave boat | **E**, or click the pill · **A/D** sail · **S** dive off | tap the pill |
 | Pause / mute | Esc or the II pill / M | II pill |
 | Zoom | mouse wheel, or **−** / **=** / **0** to reset | — |
@@ -42,8 +45,14 @@ and veterans find their kaiki already tied up at the dock).
 - **Breath is the only currency underwater.** It drains 1 s/s, faster with
   depth (pressure), and faster still when it's nearly gone (panic — cured
   completely by Breath Discipline training). Stings cost whole seconds.
-  Black out and the sea keeps whatever you carry — but never the trident,
-  never the hold, and Poseidon's Favor protects the rest.
+- **NEVER DIVE ALONE.** Cousin Yiannis is always in the water above you —
+  but he needs his own air to save you, so he floats on the surface watching
+  your clock: when your remaining breath gets thin against the climb home,
+  he gulps air and drops to meet you on his line. Black out within his reach
+  (10 m, trained to 20 m, then 30 m at the chandlery) and he hauls you —
+  *and everything you carry* — back to the village. Black out beyond his
+  reach and that is the end: ΘΑΝΑΤΟΣ, one life, the save returns to the sea.
+  When you sail, he rides the kaiki with you, feet over the gunwale.
 - **Two economies.** Treasure sells at the village dock for drachmae (gear
   money). Fish and octopus are *tribute* — the fishmonger won't touch them;
   only the temple takes them, in exchange for training that grows your body:
@@ -87,6 +96,17 @@ and veterans find their kaiki already tied up at the dock).
   come back stronger. At the bottom the throats are narrow, with calm
   water between them for looting obsidian. Then step into a column and
   ride it home.
+- **The Caves of Hephaestus** are cut into the rock BENEATH the vents shelf
+  — a carved tube with the shelf itself for a roof and its own sanded floor.
+  The only way in is the Smith's Throat at the eastern drop-off: a shaft
+  owned by the **worst vent of them all**, whose column you must force your
+  way down. Then the tube works west under the shelf — caves, a dome of
+  **trapped air to breathe in**, more caves, more air — past moray recesses
+  and obsidian seams, until the roof lifts into a vaulted temple under the
+  second vent. There, on a dry stone platform, Hephaestus works his anvil:
+  bring him **obsidian** and gear already at the chandlery's best, and he
+  forges it one god-tier further (fins, goggles, knife, kamaki — **F** to
+  offer).
 - **The Wreck of the Anemone:** a giant merchant ship lies breached in the
   Graveyard. Swim in through the torn planking amidships and rob the hold —
   amphorae, a helmet, gold — while a moray watches from the dark and
@@ -95,10 +115,34 @@ and veterans find their kaiki already tied up at the dock).
   (olive-oil goggles extend it; ink shrinks it) and past ~18 m the water
   goes properly dark (goggles light that too). Region captions name the
   places as you cross into them — geography, not depth bands.
+- **Poseidon's waters are stormy — always.** A standing storm hangs over
+  POSEIDON'S PLAIN and nowhere else: it gathers on the descent from the Deep
+  Approaches, rages directly above the god, and breaks before the Eastern
+  Rise. Under it the sky goes bronze-dark, the water bruises, rain drives
+  into a heavy swell, lightning walks the Plain, thunder rolls, the chop
+  shoves surfaced swimmers back west, and the kaiki fights an eastward bow.
+  Either side of it — and in the lagoon, and inside the mountain — the sea
+  is glass. When the weather turns filthy overhead, you're above the hoard.
+- **The best gear is found, not bought.** The chandlery won't sell fins,
+  goggles, or the kamaki until you've recovered their originals: the Fins
+  of Hermes in a western alcove, a pearl-trader's goggles among the Banks,
+  an old kamaki rusting in a carcass in the meadows. The elder at the dock
+  points you at the next secret — the dock has voices, one line per visit.
+- **Nikandros' trail.** Six messages in bottles, each left where its warning
+  matters, lead from the shallows to the bones of the diver who wrote them —
+  beside the hoard he never carried home. The pause menu keeps a journal:
+  secrets uncovered, bottles read, monsters slain, rescues owed to Yiannis.
+- **The world scars.** Take the strongbox from the Anemone's stern and she
+  rolls off her ledge, tearing open a crevasse — the Anemone's Grave — with
+  new depths to rob. Cut the blockage in the Kelp Well and a freed current
+  flings you between the Well and the Pearl Banks forever after. Pry the
+  quarrymen's slab and their sealed cache stays open. All of it persists.
+- **The Great Pearl** waits in a ring of jellyfish off the Banks — worth a
+  boat on its own, and only a Legend-tier edge can pry the shell.
 - **It sounds like the Aegean.** Lyre plucks in the Phrygian mode for the
   catch, an aulos flourish for level-ups, a temple gong for offerings, a
-  conch-and-rumble when something immense wakes, papyrus rustle for the
-  message. All synthesized live, no audio files.
+  conch-and-rumble when something immense wakes, thunder over the god's
+  waters, papyrus rustle for the message. All synthesized live, no audio files.
 
 ## The Art Lab
 
@@ -132,11 +176,11 @@ world seed.
 - `js/hud.js` — DOM HUD, XP bar, weight, hold, toasts, captions, tally, parchment
 - `js/shop.js` — the dockside chandlery
 - `js/temple.js` — tribute-based training
+- `js/forge.js` — Hephaestus' blessings: obsidian for god-forged gear
 - `js/main.js` — boot, input, game loop, camera
 
 ## Ideas for later
 
-- Poseidon's temple hidden in an underwater cavern instead of the far beach
-- Waves/weather affecting surface rest, day counter + daily sponge prices
+- A new top-tier chandlery item (Poseidon's Favor was retired — undecided)
 - Sirens (pull you toward them), NPC rival divers, agora contracts
-- A character-lab page with a fitness slider for admiring the diver
+- Day counter + daily sponge prices at the dock

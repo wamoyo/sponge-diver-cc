@@ -64,7 +64,7 @@ function updateKarcharias (state, f, dt, interactive) {
   var p = state.player
   var cfg = SD.config.bosses.karcharias
   var toPlayer = SD.dist(f.x, f.y, p.x, p.y)
-  var under = p.y > SD.surfaceYAt(p.x) + 12
+  var under = p.y > SD.surfaceYAt(p.x, p.y) + 12
   f.modeT -= dt
 
   if (f.mode === 'patrol') {
@@ -161,7 +161,7 @@ function updateKetos (state, f, dt, interactive) {
   var p = state.player
   var cfg = SD.config.bosses.ketos
   var toPlayer = SD.dist(f.x, f.y, p.x, p.y)
-  var under = p.y > SD.surfaceYAt(p.x) + 12
+  var under = p.y > SD.surfaceYAt(p.x, p.y) + 12
   var deepPlayer = SD.depthM(p.y) > 45
 
   if (f.mode === 'roam') {
@@ -251,7 +251,7 @@ SD.updateFauna = function (state, dt, interactive) {
     // --- ordinary fish ---
     var cfg = SD.config.fauna[f.kind]
     var toPlayer = SD.dist(f.x, f.y, p.x, p.y)
-    var under = p.y > SD.surfaceYAt(p.x) + SD.config.pxPerM * 0.4
+    var under = p.y > SD.surfaceYAt(p.x, p.y) + SD.config.pxPerM * 0.4
 
     if (interactive && under && toPlayer < cfg.fleeRadius && f.mode !== 'flee') {
       f.mode = 'flee'

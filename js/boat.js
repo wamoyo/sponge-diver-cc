@@ -59,7 +59,9 @@ SD.updateBoat = function (state, input, dt) {
 
   if (p.aboard) {
     var ix = SD.clamp(input.x, -1, 1)
-    boat.x += ix * SD.sailSpeed(state) * dt
+    // in the god's storm the swell fights an eastward bow and hurries a west one
+    var storm = SD.stormAt(boat.x)
+    boat.x += ix * SD.sailSpeed(state) * (ix > 0 ? 1 - storm * 0.3 : 1 + storm * 0.15) * dt
     if (Math.abs(ix) > 0.15) p.facing = ix > 0 ? 1 : -1
     // keep her in honest water — beach at neither shore, stop at the mountain
     boat.x = SD.clamp(boat.x, 320, SD.config.world.boatMaxX)
@@ -90,6 +92,7 @@ SD.updateBoatTransfer = function (state, dt) {
   var p = state.player
   var boat = state.boat
   if (p.aboard || !p.bag.length) return
+  if (SD.surfaceYAt(p.x, p.y) > 0) return // surfaced in a pocket — the kaiki is a sea's width away
   if (Math.abs(p.x - boat.x) > SD.config.boatTransferRadius) return
 
   state.transferAcc = (state.transferAcc || 0) + dt

@@ -48,6 +48,7 @@
   <button id="touch-shop" class="touch-btn hidden">🏺 Chandlery</button>
   <button id="touch-temple" class="touch-btn hidden">🏛️ Temple</button>
   <button id="touch-boat" class="touch-btn hidden">⛵ Board</button>
+  <button id="touch-forge" class="touch-btn hidden">🔥 Forge</button>
 
   <!-- Catch sold tally -->
   <div id="tally" class="hidden meander-top"></div>
@@ -55,27 +56,49 @@
   <!-- Shop overlay -->
   <div id="shop" class="overlay hidden">
     <div class="panel shop-panel meander-top">
+      <button class="panel-x" id="shop-x" aria-label="Back to the water">×</button>
       <div class="shop-head">
         <h2>The Dockside Chandlery</h2>
         <p class="shop-sub">Fine diving equipment &amp; questionable blessings</p>
         <div class="shop-money" id="shop-money">₯ 0</div>
       </div>
-      <div id="shop-cards"></div>
-      <button class="btn" id="shop-close">Back to the water &nbsp;(B)</button>
+      <div id="shop-cards" class="panel-scroll"></div>
+      <div class="panel-foot">
+        <button class="btn" id="shop-close">Back to the water&nbsp;<span class="key-hint">(B)</span></button>
+      </div>
     </div>
   </div>
 
   <!-- Temple overlay -->
   <div id="temple" class="overlay hidden">
     <div class="panel shop-panel meander-top">
+      <button class="panel-x" id="temple-x" aria-label="Back to the water">×</button>
       <div class="shop-head">
         <h2>The Temple of Poseidon</h2>
         <p class="shop-sub">The god teaches those who cross the deep water</p>
         <div class="temple-stats" id="temple-stats"></div>
         <div class="shop-money" id="temple-money">₯ 0</div>
       </div>
-      <div id="temple-cards"></div>
-      <button class="btn" id="temple-close">Back to the water &nbsp;(T)</button>
+      <div id="temple-cards" class="panel-scroll"></div>
+      <div class="panel-foot">
+        <button class="btn" id="temple-close">Back to the water&nbsp;<span class="key-hint">(T)</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forge overlay -->
+  <div id="forge" class="overlay hidden">
+    <div class="panel shop-panel meander-top">
+      <button class="panel-x" id="forge-x" aria-label="Back to the water">×</button>
+      <div class="shop-head">
+        <h2>The Forge of Hephaestus</h2>
+        <p class="shop-sub">The smith of the gods. He works for obsidian, not praise</p>
+        <div class="shop-money" id="forge-obsidian">🌋 0</div>
+      </div>
+      <div id="forge-cards" class="panel-scroll"></div>
+      <div class="panel-foot">
+        <button class="btn" id="forge-close">Back to the water&nbsp;<span class="key-hint">(F)</span></button>
+      </div>
     </div>
   </div>
 
@@ -83,9 +106,13 @@
   <div id="parchment" class="overlay hidden">
     <div class="panel parchment-panel">
       <p class="parchment-eyebrow">A message, sealed with wax</p>
-      <p class="parchment-text" id="parchment-text"></p>
-      <p class="parchment-sign">— Νίκανδρος</p>
-      <button class="btn" id="parchment-close">Fold it away</button>
+      <div class="panel-scroll">
+        <p class="parchment-text" id="parchment-text"></p>
+        <p class="parchment-sign">— Νίκανδρος</p>
+      </div>
+      <div class="panel-foot">
+        <button class="btn" id="parchment-close">Fold it away</button>
+      </div>
     </div>
   </div>
 
@@ -95,38 +122,45 @@
       <p class="title-eyebrow">Kalymnos, Ancient Greece — more or less</p>
       <h1>ΣΦΟΥΓΓΑΡΑΣ</h1>
       <p class="title-sub">The Sponge Diver</p>
-      <p class="title-blurb">
-        Wade out from the village, gather sponges off the rocks, and sell them
-        at the dock. Earn, level up, buy gear — and a boat — and go deeper.
-        The old divers talk, when the wine goes around: of gold in the deep
-        water, and of the one who counts it. <em>The sea keeps its secrets.
-        Go find them.</em>
-      </p>
-      <div class="controls-grid">
-        <span><b>WASD / Arrows</b></span><span>swim</span>
-        <span><b>Hover close</b></span><span>gather loot</span>
-        <span><b>B</b></span><span>chandlery, at the dock</span>
-        <span><b>E</b></span><span>board your kaiki</span>
-        <span><b>Esc</b></span><span>pause</span>
-        <span><b>M</b></span><span>mute</span>
+      <div class="panel-scroll">
+        <p class="title-blurb">
+          Wade out from the village, gather sponges off the rocks, and sell them
+          at the dock. Earn, level up, buy gear — and a boat — and go deeper.
+          The old divers talk, when the wine goes around: of gold in the deep
+          water, and of the one who counts it. <em>The sea keeps its secrets.
+          Go find them.</em>
+        </p>
+        <div class="controls-grid">
+          <span><b>WASD / Arrows</b></span><span>swim</span>
+          <span><b>Hover close</b></span><span>gather loot</span>
+          <span><b>B</b></span><span>chandlery, at the dock</span>
+          <span><b>E</b></span><span>board your kaiki</span>
+          <span><b>Esc</b></span><span>pause</span>
+          <span><b>M</b></span><span>mute</span>
+        </div>
       </div>
-      <button class="btn btn-big" id="start-btn">Dive In</button>
-      <p class="title-save-note hidden" id="title-save-note"></p>
+      <div class="panel-foot">
+        <button class="btn btn-big" id="start-btn">Dive In</button>
+        <p class="title-save-note hidden" id="title-save-note"></p>
+      </div>
     </div>
   </div>
 
   <!-- Pause -->
   <div id="pause" class="overlay hidden">
     <div class="panel pause-panel meander-top">
+      <button class="panel-x" id="pause-x" aria-label="Keep diving">×</button>
       <h2>Paused</h2>
-      <div id="pause-stats" class="pause-stats"></div>
-      <div class="pause-buttons">
-        <button class="btn" id="resume-btn">Keep Diving (Esc)</button>
-        <button class="btn btn-quiet" id="mute-btn">Mute</button>
-        <button class="btn btn-quiet" id="dev-btn">⚡ Dev Mode: Off</button>
-        <button class="btn btn-quiet" id="reset-btn">Reset Save</button>
+      <div id="pause-stats" class="pause-stats panel-scroll"></div>
+      <div class="panel-foot">
+        <div class="pause-buttons">
+          <button class="btn" id="resume-btn">Keep Diving <span class="key-hint">(Esc)</span></button>
+          <button class="btn btn-quiet" id="mute-btn">Mute</button>
+          <button class="btn btn-quiet" id="dev-btn">⚡ Dev Mode: Off</button>
+          <button class="btn btn-quiet" id="reset-btn">Reset Save</button>
+        </div>
+        <p class="pause-note">Dev mode (also the <b>G</b> key): max fitness &amp; stats, no damage, see everything — for exploring the world.</p>
       </div>
-      <p class="pause-note">Dev mode (also the <b>G</b> key): max fitness &amp; stats, no damage, see everything — for exploring the world.</p>
     </div>
   </div>
 
@@ -162,6 +196,7 @@
   <script src="js/hud.js"></script>
   <script src="js/shop.js"></script>
   <script src="js/temple.js"></script>
+  <script src="js/forge.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

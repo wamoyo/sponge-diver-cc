@@ -197,13 +197,10 @@ function makeGiantWreck (state) {
         { x: wx + 40, y: gy - 240, r: 120, hidden: true },  // amidships, tilted
         { x: wx + 130, y: gy - 60, r: 110, hidden: true }   // the buried stern
       ],
-      lootSpots: [
-        { type: 'laurel', x: wx - 10, y: gy - 14 },
-        { type: 'laurel', x: wx + 90, y: gy - 12 },
-        { type: 'helmet', x: wx + 40, y: gy - 16 },
-        { type: 'amphora', x: wx - 60, y: gy - 14 },
-        { type: 'amphora', x: wx + 140, y: gy - 15 }
-      ]
+      lootSpots: [-10, 90, 40, -60, 140].map(function (dx, i) {
+        var types = ['laurel', 'laurel', 'helmet', 'amphora', 'amphora']
+        return { type: types[i], x: wx + dx, y: SD.floorYAt(wx + dx) - 14 }
+      })
     }
   }
   var floorY = SD.floorYAt(wx)
@@ -221,17 +218,18 @@ function makeGiantWreck (state) {
     y: floorY,
     scale: S,
     rocks: rocks,
-    lootSpots: [
-      { type: 'amphora', x: wx - 130 * S, y: floorY - 16 },
-      { type: 'amphora', x: wx - 55 * S, y: floorY - 14 },
-      { type: 'amphora', x: wx + 40 * S, y: floorY - 15 },
-      { type: 'shard', x: wx - 90 * S, y: floorY - 12 },
-      { type: 'helmet', x: wx + 10 * S, y: floorY - 60 },
-      { type: 'laurel', x: wx + 95 * S, y: floorY - 16 },
-      { type: 'laurel', x: wx - 20 * S, y: floorY - 90 },
-      { type: 'statue', x: wx - 300 * S, y: floorY - 12 }, // spilled at the bow, half-buried
-      { type: 'strongbox', x: wx + 120, y: floorY - 18 }    // the captain's box — her ballast, and her doom
-    ]
+    lootSpots: (function () {
+      // each spot seats on ITS OWN local floor — the sand rolls under her
+      var spots = [
+        ['amphora', -130 * S, 16], ['amphora', -55 * S, 14], ['amphora', 40 * S, 15],
+        ['shard', -90 * S, 12], ['helmet', 10 * S, 60], ['laurel', 95 * S, 16],
+        ['laurel', -20 * S, 90], ['statue', -300 * S, 12],
+        ['strongbox', 120, 18] // the captain's box — her ballast, and her doom
+      ]
+      return spots.map(function (sp) {
+        return { type: sp[0], x: wx + sp[1], y: SD.floorYAt(wx + sp[1]) - sp[2] }
+      })
+    })()
   }
 }
 
@@ -317,6 +315,25 @@ function makeSpecials (state) {
   }
 
   return out
+}
+
+// Pure (mutates it): lifts a loot item out of any rock circle so a diver can
+// actually hover within harvest reach — buried treasure is one thing, treasure
+// inside solid stone is another. Settles on the crown of whatever buries it.
+function liftClearOfRocks (rocks, it) {
+  var pr = SD.config.player.radius
+  for (var pass = 0; pass < 6; pass++) {
+    var moved = false
+    for (var i = 0; i < rocks.length; i++) {
+      var r = rocks[i]
+      if (r.hidden) continue
+      if (SD.dist(r.x, r.y, it.x, it.y) < r.r + pr + 6) {
+        it.y = r.y - (r.r + pr + 8)
+        moved = true
+      }
+    }
+    if (!moved) return
+  }
 }
 
 // Pure: the kelp forest — 5 km of stalks with hidden clearings, rooted in
@@ -535,9 +552,6 @@ function makeLoot (state, rng, rocks, cave, shafts, kelpWreckX) {
   for (i = 0; i < cave.finoSpots.length; i++) {
     loot.push(lootItem('fino', cave.finoSpots[i].x, cave.finoSpots[i].y, rng() * SD.TAU))
   }
-  if (!state.bottleRead) {
-    loot.push(lootItem('bottle', cave.bottleSpot.x, cave.bottleSpot.y, 0))
-  }
 
   // — the Kelp Well and the Blue Hole pay for the dive —
   for (i = 0; i < shafts.wellLoot.length; i++) {
@@ -684,6 +698,12 @@ function makeDangers (rng, rocks) {
     var vx = cfg.ventsZone.x1 + 200 + (i / SD.config.ventCount) * (cfg.ventsZone.x2 - cfg.ventsZone.x1 - 400) + SD.rngRange(rng, -120, 120)
     out.vents.push({ x: vx, y: SD.floorYAt(vx), phase: rng() * SD.TAU })
   }
+  // the easternmost vent is the WORST of them: it stands down in the
+  // Smith's Throat, and entering the caves means forcing its core
+  var throat = out.vents[out.vents.length - 1]
+  throat.x = 26820
+  throat.y = SD.floorYAt(26820)
+  throat.boost = 1.45
 
   // — Poseidon, sovereign of the plain —
   var px = cfg.vaultX - 40
@@ -865,6 +885,43 @@ function makeDecor (rng, kelpWreckX) {
   }
 }
 
+// Pure: the Caves of Hephaestus — set dressing for the CUT-OUT under the
+// vents shelf (the carved surfaces themselves live in config.world.hephCaves
+// and collide via SD.groundYAt/overheadYAt). No stacked boulders: the tube
+// is cut terrain. Returns hand-set loot, eel wall-recesses, and decor.
+function makeHephCaves () {
+  var w = SD.config.world
+  var forgeX = w.forge.x
+
+  // Pure: one loot spot resting on the cave floor at x
+  function spot (type, x, dy) {
+    return { type: type, x: x, y: SD.caveFloorYAt(x) - (dy || 10) }
+  }
+
+  return {
+    lootSpots: [
+      // obsidian is what the smith wants — the tube is seamed with it
+      spot('obsidian', 26700), spot('obsidian', 26420), spot('obsidian', 25950),
+      spot('obsidian', 25500), spot('obsidian', 25200), spot('obsidian', 24900, 12),
+      // and what the sea lost down here over the centuries
+      spot('shard', 26560), spot('amphora', 26120, 12), spot('laurel', 25730, 12),
+      spot('helmet', 25320, 12), spot('statue', 25120, 14), spot('amphora', 24650, 12)
+    ],
+    eelHomes: [
+      { x: 25410, y: SD.caveFloorYAt(25410) - 26 },  // a recess at the first choke
+      { x: 26030, y: SD.caveFloorYAt(26030) - 26 }   // and at the second
+    ],
+    decor: {
+      forge: { x: forgeX, y: SD.caveFloorYAt(forgeX) },
+      chambers: [
+        { x: 24760, y: 97 * 32, r: 260 },   // the temple vault
+        { x: 25780, y: 95 * 32, r: 220 },   // dome II
+        { x: 26480, y: 95 * 32, r: 220 }    // dome I
+      ]
+    }
+  }
+}
+
 // Pure-ish (seeded rng): builds the one true sea. Call once at boot.
 SD.genWorld = function (state) {
   var rng = SD.makeRng(SD.config.worldSeed)
@@ -872,6 +929,7 @@ SD.genWorld = function (state) {
   var shafts = makeShafts()
   var giantWreck = makeGiantWreck(state)
   var specials = makeSpecials(state)
+  var heph = makeHephCaves()
   var kelpWreckX = 10700
   var rocks = makeRocks(rng).concat(cave.rocks, shafts.rocks, giantWreck.rocks, specials.rocks)
   var decor = makeDecor(rng, kelpWreckX)
@@ -882,6 +940,7 @@ SD.genWorld = function (state) {
   decor.carcass = specials.decor.carcass
   decor.nikandros = specials.decor.nikandros
   decor.skeletons = specials.decor.skeletons
+  decor.heph = heph.decor
   var dangers = makeDangers(rng, rocks)
   // a moray keeps house in the swallowed kaiki, another in the Anemone's hold
   dangers.eels.push({
@@ -894,10 +953,26 @@ SD.genWorld = function (state) {
     x: giantWreck.x + 150, y: giantWreck.y - 30,
     mode: 'lurk', cooldown: 0, targetX: 0, targetY: 0, bit: false, phase: 2
   })
+  // morays keep the smith's doors — one in the choke, one at the forge door
+  for (var he = 0; he < heph.eelHomes.length; he++) {
+    dangers.eels.push({
+      homeX: heph.eelHomes[he].x, homeY: heph.eelHomes[he].y - 30, r: 60,
+      x: heph.eelHomes[he].x, y: heph.eelHomes[he].y - 30,
+      mode: 'lurk', cooldown: 0, targetX: 0, targetY: 0, bit: false, phase: he * 1.7
+    })
+  }
   var loot = makeLoot(state, rng, rocks, cave, shafts, kelpWreckX)
   for (var gw = 0; gw < giantWreck.lootSpots.length; gw++) {
     var spot = giantWreck.lootSpots[gw]
     loot.push({ type: spot.type, x: spot.x, y: spot.y, phase: rng() * SD.TAU, progress: 0, taken: false, respawnAt: 0 })
+  }
+  for (var hs = 0; hs < heph.lootSpots.length; hs++) {
+    loot.push(lootItem(heph.lootSpots[hs].type, heph.lootSpots[hs].x, heph.lootSpots[hs].y, rng() * SD.TAU))
+  }
+  // the story pieces are placed floor-relative, blind to the rocks —
+  // unbury any that landed inside one (the well plug stays where it's jammed)
+  for (var sp = 0; sp < specials.loot.length; sp++) {
+    if (specials.loot[sp].type !== 'blockage') liftClearOfRocks(rocks, specials.loot[sp])
   }
   loot = loot.concat(specials.loot)
   dangers.jellies = dangers.jellies.concat(specials.jellies)

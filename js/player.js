@@ -44,6 +44,7 @@ SD.awardXp = function (state, amount) {
 // input is analog: {x, y} each in -1..1 (keyboard feeds ±1, joystick fractions).
 SD.updatePlayer = function (state, input, dt) {
   var p = state.player
+  updateStormFeel(state, dt)
   if (p.aboard) { // the kaiki carries you; boat.js drives this frame
     updateBuddy(state, dt)
     return
@@ -71,9 +72,9 @@ SD.updatePlayer = function (state, input, dt) {
   if (Math.abs(ix) < 0.05) p.vx *= Math.exp(-4.2 * dt)
   if (Math.abs(iy) < 0.05) p.vy *= Math.exp(-4.2 * dt)
 
-  // gentle buoyancy, stronger right under the local waterline
-  // (inside the mountain, the air pocket has its own surface)
-  var surfY = SD.surfaceYAt(p.x)
+  // gentle buoyancy, stronger right under the local waterline (inside the
+  // mountain — or up a cave dome — the air pocket has its own surface)
+  var surfY = SD.surfaceYAt(p.x, p.y)
   if (p.y > surfY && iy <= 0.05) {
     p.vy -= cfg.buoyancy * dt
     if (p.y < surfY + pxPerM * 1.2 && Math.abs(iy) < 0.05) p.vy -= 60 * dt
@@ -100,13 +101,14 @@ SD.updatePlayer = function (state, input, dt) {
   p.y += p.vy * dt
   p.swimPhase += dt * (3 + SD.dist(0, 0, p.vx, p.vy) * 0.045)
 
-  // --- world bounds ---
+  // --- world bounds (ground and roof are LOCAL: inside the Caves of
+  // Hephaestus the cave floor and the slab's underside take over) ---
   p.x = SD.clamp(p.x, 150, SD.config.world.widthPx - 150)
-  var floorY = SD.floorYAt(p.x)
+  var floorY = SD.groundYAt(p.x, p.y)
   if (p.y > floorY - cfg.radius) {
     // if the ground rises like a WALL along our motion (shaft sides, the
     // wells, the trench cliffs), stop at it — never ride up its face
-    var prevFloorY = SD.floorYAt(prevX)
+    var prevFloorY = SD.groundYAt(prevX, p.y)
     var slope = (prevFloorY - floorY) / Math.max(Math.abs(p.x - prevX), 0.001)
     if (slope > 4 || p.y - (floorY - cfg.radius) > 46) {
       p.x = prevX
@@ -119,11 +121,11 @@ SD.updatePlayer = function (state, input, dt) {
     }
   }
 
-  // the mountain's belly: its carved underside is terrain too — the cliff
-  // face is a wall, the passage roof presses you down, the dome soars
-  var ceilY = SD.ceilingYAt(p.x)
+  // the rock overhead: the mountain's carved belly, or the cave slab's
+  // underside — the cliff face is a wall, the low roof presses you down
+  var ceilY = SD.overheadYAt(p.x, p.y)
   if (p.y < ceilY + cfg.radius) {
-    var prevCeilY = SD.ceilingYAt(prevX)
+    var prevCeilY = SD.overheadYAt(prevX, p.y)
     var cSlope = (ceilY - prevCeilY) / Math.max(Math.abs(p.x - prevX), 0.001)
     if (cSlope > 4 || ceilY + cfg.radius - p.y > 46) {
       p.x = prevX
@@ -195,26 +197,121 @@ SD.updatePlayer = function (state, input, dt) {
   if (!under) {
     SD.updateBoatTransfer(state, dt)
     updateDockSelling(state, dt)
+    updateDockVoices(state)
   }
   updateBuddy(state, dt)
   updateWellTunnel(state, dt)
   updateHarvest(state, dt)
 }
 
-// Side effect: your safety buddy holds position above and just left of you,
-// never deeper than his training allows. The first rule: never dive alone.
+// Side effect: Poseidon's standing storm, felt in the body — surface chop
+// shoves a swimmer back west, thunder rolls, and the first crossing into
+// the god's waters gets its warning. Runs every frame, sailing or swimming.
+function updateStormFeel (state, dt) {
+  var p = state.player
+  var storm = SD.stormAt(p.x)
+  if (storm <= 0) return
+  var pxPerM = SD.config.pxPerM
+
+  // the chop: a swimmer on the surface is pushed away from the mountain
+  if (!p.aboard && p.y > -8 && p.y < pxPerM * 1.2 && SD.surfaceYAt(p.x, p.y) === 0) {
+    p.x -= storm * 30 * dt
+  }
+
+  if (storm > 0.5 && !state.stormToasted) {
+    state.stormToasted = true
+    SD.hud.toast("⛈ The sky turns to bronze — you have entered Poseidon's waters", 'warn')
+  }
+
+  if (storm > 0.55 && p.y < pxPerM * 6) { // thunder only reaches the shallow water
+    state.thunderCd = (state.thunderCd || 0) - dt
+    if (state.thunderCd <= 0) {
+      state.thunderCd = 6 + (Math.sin(state.time * 7.3) + 1) * 4
+      SD.audio.rumble()
+    }
+  }
+}
+
+// Side effect: the dock has voices — one line per visit. The elder points
+// you at the next unfound secret; Billy mans his grill for the kraken hero;
+// the fishmonger talks shop. Leave the dock and come back for the next line.
+function updateDockVoices (state) {
+  var p = state.player
+  var dock = SD.config.world.dock
+  if (Math.abs(p.x - dock.x) >= dock.radius) {
+    state.dockVisited = false
+    return
+  }
+  if (state.dockVisited) return
+  state.dockVisited = true
+  state.stats.dockVisits = (state.stats.dockVisits || 0) + 1
+  SD.hud.toast(dockLine(state))
+}
+
+// Pure: picks this visit's line. Odd visits are the elder's — he hints the
+// first unfound secret, in the order a diver could reach them. Even visits
+// belong to the grill and the fish stall.
+function dockLine (state) {
+  var f = SD.worldFlags
+  var visits = state.stats.dockVisits || 1
+  var hints = [
+    [!state.relics.fins, '«West past the sponge beds, a god stands in a little cave. Take what he offers — he means you to have it.» — the elder'],
+    [!state.relics.sight, '«A pearl trader went down off the Banks, kit and all. His goggles never fogged, they say.» — the elder'],
+    [!state.relics.hunt, '«A great grouper lies dead in the meadows, an old kamaki still in its back. Pull it free.» — the elder'],
+    [!f.wellTunnel, '«The Well and the Pearl Banks were one passage once, before the stones fell. A blade could clear it.» — the elder'],
+    [!f.quarryOpen, '«The quarrymen sealed their finest work behind a slab and never came back for it.» — the elder'],
+    [!f.anemoneFell, "«The Anemone's captain kept a strongbox aft. She rests uneasy on that ledge — mind she doesn't roll.» — the elder"]
+  ]
+  if (visits % 2 === 1) {
+    for (var i = 0; i < hints.length; i++) {
+      if (hints[i][0]) return hints[i][1]
+    }
+    return 'The elder just nods. The sea has no secrets left from you.'
+  }
+  if (state.relics.feast) return '«Oi, the kraken-griller himself! Free skewer for the hero — always.» — Billy'
+  var stall = [
+    '«Fine finos fetch triple what the coarse ones do. Depth pays — if you live to sell it.» — the fishmonger',
+    "«That storm sits on the east sea like a lid. Poseidon's in a mood again.» — the fishmonger",
+    '«A man came back white as marble last week. Wouldn\'t say what he saw past the graveyard.» — the fishmonger'
+  ]
+  return stall[Math.floor(visits / 2) % stall.length]
+}
+
+// Side effect: your safety buddy works the surface and watches your clock.
+// He needs his own air to reach you, so he floats up top until the arithmetic
+// of a rescue — your seconds of breath against the climb home — says he must
+// drop. Then he gulps air and dives to meet you on his line. Never dive alone.
 function updateBuddy (state, dt) {
   var p = state.player
   var b = state.buddy
-  var maxY = SD.config.buddyRescueM[state.upgrades.buddy] * SD.config.pxPerM
+  var pxPerM = SD.config.pxPerM
+  var maxY = SD.config.buddyRescueM[state.upgrades.buddy] * pxPerM
   var surfY = SD.surfaceYAt(p.x)
   var targetX = p.x - 62
-  var targetY = SD.clamp(p.y * 0.55, surfY - 4, maxY)
-  if (p.aboard) { // he treads water beside the kaiki
-    targetX = state.boat.x - 90
-    targetY = surfY - 2
+  var targetY = surfY - 4 // his post: floating, eyes down
+
+  var climb = Math.max(60, SD.maxSpeed(state) * 0.8) // px/s, a tired diver ascending
+  var margin = p.breath - Math.max(0, p.y - surfY) / climb
+  b.diving = b.diving ? margin < 16 : margin < 10 // drops early, surfaces late
+  if (p.y < surfY + pxPerM * 3) b.diving = false // you're basically home
+  if (b.diving) {
+    targetY = SD.clamp(p.y * 0.85, surfY - 4, maxY)
+    if (!b.wasDiving) SD.hud.toast('Yiannis gulps air and drops after you —')
   }
-  var ease = 1 - Math.exp(-3.2 * dt)
+
+  if (p.aboard) { // the deck carries him — no easing, or a fast boat outruns him
+    b.diving = false
+    b.wasDiving = false
+    b.aboard = true
+    b.x = state.boat.x - 24
+    b.y = -13
+    b.phase += dt * 2
+    return
+  }
+  b.aboard = false
+  b.wasDiving = b.diving
+
+  var ease = 1 - Math.exp(-(b.diving ? 4.5 : 3.2) * dt)
   b.x += (targetX - b.x) * ease
   b.y += (targetY - b.y) * ease
   b.phase += dt * (3 + Math.abs(targetY - b.y) * 0.02)
@@ -225,11 +322,11 @@ function updateWellTunnel (state, dt) {
   if (!SD.worldFlags.wellTunnel) return
   if (state.tunnelCd > 0) { state.tunnelCd -= dt; return }
   var p = state.player
-  var A = SD.config.wellMouthA
+  var A = { x: SD.config.wellMouthA.x, y: SD.floorYAt(SD.config.wellMouthA.x) - 22 }
   var B = SD.config.wellMouthB
   var dest = null
-  if (SD.dist(p.x, p.y, A.x, A.y) < 46) dest = B
-  else if (SD.dist(p.x, p.y, B.x, B.y) < 46) dest = A
+  if (SD.dist(p.x, p.y, A.x, A.y) < 50) dest = B
+  else if (SD.dist(p.x, p.y, B.x, B.y) < 50) dest = A
   if (dest) {
     state.tunnelCd = 2.5
     SD.burstBubbles(state, p.x, p.y, 14)
@@ -351,11 +448,14 @@ function updateHarvest (state, dt) {
 
   var info = SD.config.lootTypes[nearest.type]
 
-  // an octopus holds its rock like grim death — bare hands won't do
-  if (info.needsKnife && state.upgrades.knife < 1) {
+  // some things demand a blade — and the Great Pearl demands a LEGEND
+  var reqKnife = info.needsKnife === true ? 1 : (info.needsKnife || 0)
+  if (state.upgrades.knife < reqKnife) {
     if (!state.bagFullAt || state.time - state.bagFullAt > 2.5) {
       state.bagFullAt = state.time
-      SD.hud.toast('It grips the rock — you need a knife to pry it loose', 'warn')
+      SD.hud.toast(reqKnife >= 4
+        ? 'The shell laughs at your blade — only a LEGEND edge pries this'
+        : 'It holds fast — you need a better knife', 'warn')
     }
     state.harvestTarget = null
     return

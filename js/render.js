@@ -43,12 +43,17 @@ function skinTones (fit) {
 // Side effect: paints sky + sea background in screen space
 function drawBackground (ctx, view, cam) {
   var wlY = -cam.y // waterline in screen px
+  var storm = SD.stormAt(cam.x + view.w * 0.5) // the god's weather over this stretch
   if (wlY > 0) {
     var sky = ctx.createLinearGradient(0, 0, 0, wlY)
     sky.addColorStop(0, '#f2cf9b')
     sky.addColorStop(1, '#bfe0da')
     ctx.fillStyle = sky
     ctx.fillRect(0, 0, view.w, Math.min(wlY, view.h))
+    if (storm > 0) { // the bronze light goes out of the sky
+      ctx.fillStyle = 'rgba(52, 58, 70, ' + (0.45 * storm).toFixed(3) + ')'
+      ctx.fillRect(0, 0, view.w, Math.min(wlY, view.h))
+    }
   }
   if (wlY < view.h) {
     var botM = Math.max(0, (cam.y + view.h) / SD.config.pxPerM)
@@ -58,6 +63,10 @@ function drawBackground (ctx, view, cam) {
     sea.addColorStop(1, SD.sampleStops(seaStops, botM))
     ctx.fillStyle = sea
     ctx.fillRect(0, seaTop, view.w, view.h - seaTop)
+    if (storm > 0 && cam.y < 700) { // the upper water bruises under the storm
+      ctx.fillStyle = 'rgba(18, 28, 42, ' + (0.16 * storm).toFixed(3) + ')'
+      ctx.fillRect(0, seaTop, view.w, view.h - seaTop)
+    }
   }
 }
 
@@ -819,10 +828,11 @@ function drawBoat (ctx, state, t) {
   var sail = state.upgrades.sail
   var L = 1 + (tier - 1) * 0.17 // the hull stretches with the hold
   var x = state.boat.x
-  var y = -3 + Math.sin(t * 1.1) * 2.5
+  var storm = SD.stormAt(x) // in the god's waters she pitches like a cork
+  var y = -3 + Math.sin(t * (1.1 + storm)) * 2.5 * (1 + storm * 2.2)
   ctx.save()
   ctx.translate(x, y)
-  ctx.rotate(Math.sin(t * 0.9) * 0.02)
+  ctx.rotate(Math.sin(t * (0.9 + storm * 0.8)) * (0.02 + storm * 0.055))
 
   // hull
   ctx.fillStyle = '#3a2c20'
@@ -1068,11 +1078,62 @@ function drawWaterline (ctx, t, cam, view) {
   var x0 = cam.x - 20
   var x1 = Math.min(cam.x + view.w + 20, SD.config.world.mountain.faceX + 10)
   for (var x = x0; x <= x1; x += 14) {
-    var y = Math.sin(x * 0.02 + t * 1.6) * 2.4
+    // the god's storm swells the sea as you go east — chop rides the swell
+    var storm = SD.stormAt(x)
+    var y = Math.sin(x * 0.02 + t * 1.6) * 2.4 * (1 + storm * 3.2) +
+            Math.sin(x * 0.043 + t * 3.1) * 5 * storm
     if (x === x0) ctx.moveTo(x, y)
     else ctx.lineTo(x, y)
   }
   ctx.stroke()
+  ctx.restore()
+}
+
+// Side effect: Poseidon's standing storm — rain slanting into the swell,
+// and now and then the sky splits. World space, sky only; the village end
+// of the sea never sees a drop.
+function drawStorm (ctx, t, cam, view) {
+  if (cam.y > 60) return // no sky on screen
+  var x0 = cam.x - 40
+  var x1 = cam.x + view.w + 40
+  // the storm is a bump over the Plain — sample both edges AND the peak,
+  // or a camera straddling its rim would skip rain that's plainly in view
+  var peak = SD.clamp(30600, x0, x1)
+  if (Math.max(SD.stormAt(x0), SD.stormAt(peak), SD.stormAt(x1)) < 0.35) return
+  ctx.save()
+  ctx.strokeStyle = 'rgba(208, 222, 234, 0.5)'
+  ctx.lineWidth = 1.3
+  ctx.beginPath()
+  for (var i = 0; i < 110; i++) {
+    var sx = x0 + ((i * 199.3 + t * 300) % (x1 - x0 + 80)) - 40
+    var storm = SD.stormAt(sx)
+    if (storm < 0.35) continue
+    if ((i % 10) / 10 > storm) continue // the rain thins at the storm's edge
+    var sy = -252 + ((i * 83.7) % 240)
+    ctx.moveTo(sx, sy)
+    ctx.lineTo(sx - 7, sy + 26)
+  }
+  ctx.stroke()
+  var flash = Math.pow(Math.max(0, Math.sin(t * 0.61) * Math.sin(t * 1.93)), 22)
+  if (flash > 0.08) {
+    // the flash lights only the god's stretch of sky — the calm rims stay calm
+    var fx0 = Math.max(x0, 27400)
+    var fx1 = Math.min(x1, 34200)
+    ctx.fillStyle = 'rgba(240, 246, 255, ' + (flash * 0.45).toFixed(3) + ')'
+    if (fx1 > fx0) ctx.fillRect(fx0, -300, fx1 - fx0, 320)
+  }
+  if (flash > 0.5) {
+    var bx = 30600 + Math.sin(t * 0.41) * 2100 // the bolts walk the Plain, not the camera
+    ctx.strokeStyle = 'rgba(250, 252, 255, 0.9)'
+    ctx.lineWidth = 2.6
+    ctx.beginPath()
+    ctx.moveTo(bx, -290)
+    ctx.lineTo(bx - 40, -200)
+    ctx.lineTo(bx + 25, -130)
+    ctx.lineTo(bx - 30, -55)
+    ctx.lineTo(bx + 10, -4)
+    ctx.stroke()
+  }
   ctx.restore()
 }
 
@@ -2916,10 +2977,12 @@ function drawPoseidonTrident (ctx, h, t) {
 
 // Side effect: the sponge diver, rebuilt as ONE body — a streamlined
 // freediver in true side profile. The torso, hips and glutes are a single
-// silhouette; the flutter kick drives from the hip with long, nearly
-// straight legs; the far arm and far leg sit in shadow so the figure reads
-// with depth. Fitness broadens the shoulders, narrows the waist, thickens
-// the legs and browns the skin. Karcharias' hide is worn as a second skin.
+// silhouette; the far arm and far leg sit in shadow so the figure reads
+// with depth. He swims like what he owns: bare feet mean a true frog-kick
+// breaststroke, fins mean the hip-driven flutter, and god-tier fins mean
+// a monofin and the dolphin undulation. Fitness broadens the shoulders,
+// narrows the waist, thickens the legs and browns the skin. Karcharias'
+// hide is worn as a second skin.
 function drawDiver (ctx, state, t) {
   var p = state.player
   if (p.invuln > 0 && Math.floor(t * 12) % 2 === 0) return // hurt blink
@@ -2946,57 +3009,128 @@ function drawDiver (ctx, state, t) {
   var armLo = 2.8 + fit * 0.6
   var defA = Math.max(0, (fit - 0.25) / 0.75) * 0.38
 
+  // the stroke he owns: bare feet frog-kick, fins flutter, monofin dolphin
+  // (dev mode explores in god-tier gear — the G key comes with a monofin)
+  var finTier = state.devMode ? 6 : state.upgrades.fins
+  var strokeMode = finTier === 0 ? 'breast' : finTier >= 6 ? 'dolphin' : 'flutter'
+  var amp = speed > 25 ? 1 : 0.35
+  var kick = Math.sin(p.swimPhase * 2.4) * amp
+  var stone = p.holdingStone
+  var striking = p.spearFlash > 0
+
+  // Pure: frog-kick fold 0..1 at a point cc in the stroke cycle —
+  // knees gather, whip straight, then the long glide
+  function tuckAt (cc) {
+    var v = cc < 0.34 ? SD.smoothstep(0.06, 0.34, cc)
+      : cc < 0.52 ? 1 - SD.smoothstep(0.34, 0.52, cc)
+        : 0
+    return v * amp
+  }
+  var c01 = (p.swimPhase * 0.085) % 1 // one full breaststroke cycle
+  var tuck = strokeMode === 'breast' && !stone ? tuckAt(c01) : 0
+  var tuckFar = strokeMode === 'breast' && !stone ? tuckAt((c01 + 0.975) % 1) : 0
+  // breaststroke arms: pull to the chest while the legs gather,
+  // reach forward again as the legs whip back
+  var pull = 0
+  if (strokeMode === 'breast' && !stone && !striking) {
+    pull = (c01 < 0.18 ? SD.smoothstep(0, 0.18, c01)
+      : c01 < 0.34 ? 1
+        : c01 < 0.6 ? 1 - SD.smoothstep(0.34, 0.6, c01)
+          : 0) * amp
+  }
+  var dip = Math.sin(pull * Math.PI) * 3 // the pull arcs downward, hauling water
+  // dolphin kick: the knees lead and the ankles lag, one wave down the body
+  var kneeK = Math.sin(p.swimPhase * 1.4) * 0.9 * amp
+  var ankK = Math.sin(p.swimPhase * 1.4 - 0.8) * 1.6 * amp
+
   ctx.save()
   ctx.translate(p.x, p.y)
   ctx.rotate(p._ang)
   if (Math.cos(p._ang) < 0) ctx.scale(1, -1) // keep the back up when swimming left
+  if (strokeMode === 'dolphin') ctx.rotate(Math.sin(p.swimPhase * 1.4 + 0.5) * 0.05 * amp) // the whole body rides the wave
 
-  var kick = Math.sin(p.swimPhase * 2.4) * (speed > 25 ? 1 : 0.35)
-  var stone = p.holdingStone
-  var striking = p.spearFlash > 0
   ctx.lineCap = 'round'
 
   // Side effect: one leg from the hip — long, nearly straight, hip-driven,
-  // ankle whipping, toes pointed (or finned)
-  function leg (k, tone, shadeAlpha) {
+  // ankle whipping, toes pointed (or finned). kA lets the ankle lag the
+  // knee (the dolphin wave); in monofin mode the blade is drawn once,
+  // after both legs, so here the feet stay bare.
+  function leg (k, tone, shadeAlpha, kA) {
+    var ka = kA === undefined ? k : kA
+    var wMul = strokeMode === 'dolphin' ? 1.2 : 1 // legs pressed together read wider
     var kneeY = 2.6 + k * 4
-    var ankleY = 3.2 + k * 9.5
+    var ankleY = 3.2 + ka * 9.5
     ctx.globalAlpha = shadeAlpha
     ctx.strokeStyle = tone.skin
-    ctx.lineWidth = thigh
+    ctx.lineWidth = thigh * wMul
     ctx.beginPath()
     ctx.moveTo(-14, 1)
     ctx.quadraticCurveTo(-21, 1.6 + k * 2.2, -27.5, kneeY)
     ctx.stroke()
-    ctx.lineWidth = calf
+    ctx.lineWidth = calf * wMul
     ctx.beginPath()
     ctx.moveTo(-27, kneeY)
     ctx.quadraticCurveTo(-34, kneeY + (ankleY - kneeY) * 0.6, -40.5, ankleY)
     ctx.stroke()
-    if (state.upgrades.fins > 0) {
+    if (state.upgrades.fins > 0 && strokeMode !== 'dolphin') {
       var fl = 11 + state.upgrades.fins * 2.6
       ctx.fillStyle = state.upgrades.fins >= 4 ? '#0e7a6e' : '#1a4f5e'
       ctx.beginPath() // the blade, trailing the ankle
       ctx.moveTo(-39.5, ankleY)
-      ctx.quadraticCurveTo(-42 - fl * 0.4, ankleY - 3 + k * 1.2, -41 - fl, ankleY - 0.6 + k * 2.4)
-      ctx.lineTo(-40.5 - fl * 0.85, ankleY + 1.2 + k * 2)
+      ctx.quadraticCurveTo(-42 - fl * 0.4, ankleY - 3 + ka * 1.2, -41 - fl, ankleY - 0.6 + ka * 2.4)
+      ctx.lineTo(-40.5 - fl * 0.85, ankleY + 1.2 + ka * 2)
       ctx.quadraticCurveTo(-42 - fl * 0.3, ankleY + 3, -39.5, ankleY + 1.8)
       ctx.closePath()
       ctx.fill()
       ctx.fillStyle = '#241a12' // foot pocket
       ctx.beginPath()
-      ctx.ellipse(-41, ankleY + 0.4, 3.4, 2.3, k * 0.12, 0, SD.TAU)
+      ctx.ellipse(-41, ankleY + 0.4, 3.4, 2.3, ka * 0.12, 0, SD.TAU)
       ctx.fill()
     } else {
       ctx.fillStyle = tone.skin // pointed bare foot, streamlined
       ctx.beginPath()
       ctx.moveTo(-39.5, ankleY - 2)
-      ctx.quadraticCurveTo(-45.5, ankleY - 1 + k * 1.6, -48, ankleY + 0.6 + k * 2)
+      ctx.quadraticCurveTo(-45.5, ankleY - 1 + ka * 1.6, -48, ankleY + 0.6 + ka * 2)
       ctx.quadraticCurveTo(-44.5, ankleY + 2.4, -39.5, ankleY + 2.2)
       ctx.closePath()
       ctx.fill()
     }
     ctx.globalAlpha = 1
+  }
+
+  // Side effect: one leg folded for the frog kick — the knee gathers toward
+  // the belly, the heel toward the seat, then the whole leg whips straight
+  // into the glide. lift staggers the pair so they read in depth. At tk = 0
+  // this IS the straight glide leg, bare foot pointed.
+  function frogLeg (tk, lift, tone) {
+    var kneeX = SD.lerp(-27.5, -19.5, tk)
+    var kneeY = SD.lerp(2.6, 6.5 + lift, tk)
+    var ankX = SD.lerp(-40.5, -24.5, tk)
+    var ankY = SD.lerp(3.2, 10.5 + lift, tk)
+    ctx.strokeStyle = tone.skin
+    ctx.lineWidth = thigh
+    ctx.beginPath()
+    ctx.moveTo(-14, 1)
+    ctx.quadraticCurveTo(SD.lerp(-21, -16.5, tk), SD.lerp(1.6, 4.5, tk), kneeX, kneeY)
+    ctx.stroke()
+    ctx.lineWidth = calf
+    ctx.beginPath()
+    ctx.moveTo(kneeX + 0.5, kneeY)
+    ctx.quadraticCurveTo((kneeX + ankX) / 2 - tk * 2, (kneeY + ankY) / 2 + tk * 2.5, ankX, ankY)
+    ctx.stroke()
+    // the bare foot, trailing off the shin
+    var ux = ankX - kneeX
+    var uy = ankY - kneeY
+    var ul = Math.max(Math.sqrt(ux * ux + uy * uy), 0.001)
+    ux /= ul
+    uy /= ul
+    ctx.fillStyle = tone.skin
+    ctx.beginPath()
+    ctx.moveTo(ankX + uy * 2, ankY - ux * 2)
+    ctx.quadraticCurveTo(ankX + ux * 5, ankY + uy * 5 + 1, ankX + ux * 8, ankY + uy * 8 + 1.4)
+    ctx.lineTo(ankX - uy * 1.8, ankY + ux * 1.8)
+    ctx.closePath()
+    ctx.fill()
   }
 
   // --- the FAR side first, in shadow: arm, then leg ---
@@ -3007,6 +3141,17 @@ function drawDiver (ctx, state, t) {
     ctx.moveTo(13, 0)
     ctx.quadraticCurveTo(21, 2.6, 28.5, 4.6)
     ctx.stroke()
+  } else if (!striking && strokeMode === 'breast') {
+    var fhx = SD.lerp(31.5, 13, pull) // far arm working its own pull, in shadow
+    var fhy = SD.lerp(6.4, 10.5, pull) + dip
+    ctx.beginPath()
+    ctx.moveTo(13, 0.5)
+    ctx.quadraticCurveTo(SD.lerp(20.5, 16.5, pull), SD.lerp(4.6, 8, pull) + dip * 0.5, fhx, fhy)
+    ctx.stroke()
+    ctx.fillStyle = body.deep
+    ctx.beginPath()
+    ctx.ellipse(fhx + 0.6, fhy + 0.2, 1.9, 1.4, 0.2, 0, SD.TAU)
+    ctx.fill()
   } else if (!striking) {
     ctx.beginPath() // far arm gliding along the flank
     ctx.moveTo(13, -0.5)
@@ -3022,7 +3167,9 @@ function drawDiver (ctx, state, t) {
     ctx.quadraticCurveTo(3, 4.6, -6.5, 5.4)
     ctx.stroke()
   }
-  leg(-kick, { skin: body.deep }, 1)
+  if (strokeMode === 'breast') frogLeg(tuckFar, -0.9, { skin: body.deep })
+  else if (strokeMode === 'dolphin') leg(kneeK + 0.12, { skin: body.deep }, 1, ankK + 0.12)
+  else leg(-kick, { skin: body.deep }, 1)
 
   // --- the net bag, slung at the small of the back ---
   var wt = SD.bagWeight(p.bag)
@@ -3125,7 +3272,34 @@ function drawDiver (ctx, state, t) {
   }
 
   // --- the near leg, full tone ---
-  leg(kick, body, 1)
+  if (strokeMode === 'breast') {
+    frogLeg(tuck, 0.9, body)
+  } else if (strokeMode === 'dolphin') {
+    leg(kneeK, body, 1, ankK)
+    // THE MONOFIN: god-tier fins are one great blade off both heels
+    var mAnkY = 3.2 + ankK * 9.5
+    var bend = Math.cos(p.swimPhase * 1.4 - 0.8) * -6.5 * amp // flexing against its own travel
+    ctx.fillStyle = '#0e7a6e'
+    ctx.beginPath()
+    ctx.moveTo(-39.5, mAnkY - 2.8)
+    ctx.quadraticCurveTo(-52, mAnkY - 8 + bend * 0.5, -64, mAnkY - 9.5 + bend)
+    ctx.quadraticCurveTo(-69, mAnkY + bend * 1.15, -64, mAnkY + 9.5 + bend)
+    ctx.quadraticCurveTo(-52, mAnkY + 8 + bend * 0.5, -39.5, mAnkY + 2.8)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.6)' // the god-tier trim line
+    ctx.lineWidth = 1.1
+    ctx.beginPath()
+    ctx.moveTo(-41.5, mAnkY - 2.2)
+    ctx.quadraticCurveTo(-53, mAnkY - 6.5 + bend * 0.5, -63, mAnkY - 8 + bend)
+    ctx.stroke()
+    ctx.fillStyle = '#241a12' // one shared foot pocket
+    ctx.beginPath()
+    ctx.ellipse(-40.5, mAnkY, 3.8, 2.8, ankK * 0.1, 0, SD.TAU)
+    ctx.fill()
+  } else {
+    leg(kick, body, 1)
+  }
 
   // --- the perizoma, wrapped over the hips (over the suit, as divers did) ---
   ctx.strokeStyle = TERRA
@@ -3178,18 +3352,22 @@ function drawDiver (ctx, state, t) {
     ctx.quadraticCurveTo(26, 1.2, handX, handY)
     ctx.stroke()
   } else {
-    handX = 33
-    handY = 5.2
+    // at pull = 0 this is the calm level reach; the breaststroke
+    // hauls the same arm down to the chest and back out again
+    handX = SD.lerp(33, 13.5, pull)
+    handY = SD.lerp(5.2, 9.5, pull) + dip
+    var elbX = SD.lerp(24.5, 19, pull)
+    var elbY = SD.lerp(4.8, 8, pull) + dip * 0.7
     ctx.strokeStyle = body.skin
     ctx.lineWidth = armUp
     ctx.beginPath() // upper arm
     ctx.moveTo(15, 1.5)
-    ctx.quadraticCurveTo(20.5, 3.8, 24.5, 4.8)
+    ctx.quadraticCurveTo(SD.lerp(20.5, 17.5, pull), SD.lerp(3.8, 6.5, pull) + dip * 0.4, elbX, elbY)
     ctx.stroke()
     ctx.lineWidth = armLo
-    ctx.beginPath() // forearm, reaching calm and level
-    ctx.moveTo(24, 4.8)
-    ctx.quadraticCurveTo(29, 5.4, handX, handY)
+    ctx.beginPath() // forearm, reaching calm and level (or hauling water)
+    ctx.moveTo(elbX - 0.5, elbY)
+    ctx.quadraticCurveTo(SD.lerp(29, 16, pull), SD.lerp(5.4, 9.2, pull) + dip, handX, handY)
     ctx.stroke()
   }
   ctx.fillStyle = c.skin // the hand is always bare
@@ -3333,6 +3511,611 @@ function drawBubbles (ctx, bubbles) {
   ctx.restore()
 }
 
+// ---------- The Caves of Hephaestus ----------
+
+// Side effect: the cut-out itself — the water-filled void of the Caves of
+// Hephaestus, carved out of the ground body under the vents shelf. Main
+// terrain above you (the slab's crusted underside, hung with stalactites)
+// and main terrain below you (a sand-crusted cave floor). Sampled on the
+// same fixed world grid as drawFloor so the steep faces never warp.
+function drawHephVoid (ctx, cam, wv, t) {
+  var hz = SD.config.world.hephCaves
+  var step = 24
+  var x0 = Math.max(hz.x1, Math.floor((cam.x - 60) / step) * step)
+  var x1 = Math.min(hz.x2, cam.x + wv.w + 60)
+  if (x1 - x0 < step) return
+  var x
+
+  // Pure: the void's top edge — the slab's underside, or the shaft wall
+  // where the mouth pierces it
+  function topAt (tx) { return Math.max(SD.caveRoofYAt(tx), SD.floorYAt(tx)) }
+
+  ctx.save()
+  // the water inside the cut, darker with depth like the open sea
+  var water = ctx.createLinearGradient(0, 84 * 32, 0, 108 * 32)
+  water.addColorStop(0, '#0a294b')
+  water.addColorStop(1, '#061933')
+  ctx.fillStyle = water
+  ctx.beginPath()
+  ctx.moveTo(x0, topAt(x0))
+  for (x = x0 + step; x <= x1; x += step) ctx.lineTo(x, topAt(x))
+  ctx.lineTo(x1, topAt(x1))
+  ctx.lineTo(x1, SD.caveFloorYAt(x1))
+  for (x = x1; x >= x0; x -= step) ctx.lineTo(x, SD.caveFloorYAt(x))
+  ctx.lineTo(x0, SD.caveFloorYAt(x0))
+  ctx.closePath()
+  ctx.fill()
+
+  // the cave floor wears the same sand crust as the world above
+  ctx.lineCap = 'round'
+  ctx.strokeStyle = 'rgba(214, 190, 140, 0.12)'
+  ctx.lineWidth = 13
+  ctx.beginPath()
+  for (x = x0; x <= x1; x += step) {
+    var fy2 = SD.caveFloorYAt(x) + 6
+    if (x === x0) ctx.moveTo(x, fy2)
+    else ctx.lineTo(x, fy2)
+  }
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(228, 206, 158, 0.3)'
+  ctx.lineWidth = 3.5
+  ctx.beginPath()
+  for (x = x0; x <= x1; x += step) {
+    var fy = SD.caveFloorYAt(x)
+    if (x === x0) ctx.moveTo(x, fy)
+    else ctx.lineTo(x, fy)
+  }
+  ctx.stroke()
+
+  // the slab's underside wears the mountain's pale crust...
+  ctx.strokeStyle = 'rgba(150, 182, 196, 0.22)'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  for (x = x0; x <= x1; x += step) {
+    var cy = topAt(x)
+    if (x === x0) ctx.moveTo(x, cy)
+    else ctx.lineTo(x, cy)
+  }
+  ctx.stroke()
+  // ...and stalactites, deterministic so they never dance — only where the
+  // roof really is the slab, not the pierced shaft wall
+  ctx.fillStyle = '#101c2a'
+  for (x = Math.floor(x0 / 110) * 110; x < x1; x += 110) {
+    if (x < hz.x1 + 40) continue
+    if (SD.caveRoofYAt(x) < SD.floorYAt(x)) continue
+    var h = Math.abs(Math.sin(x * 0.713)) * 18 + 6
+    var cy2 = SD.caveRoofYAt(x)
+    ctx.beginPath()
+    ctx.moveTo(x - 7, cy2 - 1)
+    ctx.lineTo(x, cy2 + h)
+    ctx.lineTo(x + 7, cy2 - 1)
+    ctx.closePath()
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+// Side effect: one pocket of trapped air in a cave dome. Air obeys the
+// rock: it fills EVERY curve of the carved roof above the spill line —
+// the fill hugs the dome and tapers to nothing exactly where the roof
+// dips to the waterline, which laps dead flat from wall to wall.
+function drawAirPocket (ctx, pk, t) {
+  var x
+  ctx.save()
+  // the air body: the carved roof above, the trapped waterline below
+  var air = ctx.createLinearGradient(0, pk.topY, 0, pk.surfaceY)
+  air.addColorStop(0, '#0a0d10')
+  air.addColorStop(1, '#2b333a')
+  ctx.fillStyle = air
+  ctx.beginPath()
+  ctx.moveTo(pk.x1, pk.surfaceY)
+  for (x = pk.x1; x <= pk.x2; x += 10) {
+    ctx.lineTo(x, Math.min(SD.caveRoofYAt(x) + 2, pk.surfaceY))
+  }
+  ctx.lineTo(pk.x2, pk.surfaceY)
+  ctx.closePath()
+  ctx.fill()
+  // the waterline, silver in the gloom — only where there is air above it
+  ctx.strokeStyle = 'rgba(190, 225, 235, 0.45)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  var pen = false
+  for (x = pk.x1; x <= pk.x2; x += 12) {
+    if (SD.caveRoofYAt(x) < pk.surfaceY - 5) {
+      var wy = pk.surfaceY + Math.sin(x * 0.05 + t * 2.1) * 1.4
+      if (!pen) { ctx.moveTo(x, wy); pen = true } else ctx.lineTo(x, wy)
+    } else {
+      pen = false
+    }
+  }
+  ctx.stroke()
+  // stray bubbles clinging to the rock of the dome — proof the air is real
+  ctx.strokeStyle = 'rgba(230, 245, 250, 0.35)'
+  ctx.lineWidth = 1.2
+  ctx.beginPath()
+  for (var b = 0; b < 4; b++) {
+    var bx = pk.x1 + 30 + ((b * 73 + 40) % Math.max(pk.x2 - pk.x1 - 60, 1))
+    var roofY = SD.caveRoofYAt(bx)
+    if (roofY > pk.surfaceY - 10) continue // no head-room at the taper
+    var by = roofY + 6 + Math.sin(t * 1.6 + b * 2.1) * 1.5
+    ctx.moveTo(bx + 2 + (b % 2), by)
+    ctx.arc(bx, by, 2 + (b % 2), 0, SD.TAU)
+  }
+  ctx.stroke()
+  // the smith's wall torches, burning in the trapped air
+  for (var ti = 0; ti < pk.torches.length; ti++) {
+    drawTorch(ctx, pk.torches[ti].x, pk.torches[ti].y, t, ti * 3 + (pk.crownX % 7), pk.torches[ti].x < pk.crownX ? 1 : -1)
+  }
+  ctx.restore()
+}
+
+// Side effect: a wall torch socketed into a dome's rock, leaning into the
+// air pocket — the flame burns above the waterline, as fire must
+function drawTorch (ctx, tx, ty, t, i, lean) {
+  var flick = 0.6 + Math.sin(t * 8 + i * 2.7) * 0.25 + Math.sin(t * 13.1 + i * 1.3) * 0.15
+  var hx = tx + lean * 7
+  var hy = ty + 15
+  ctx.save()
+  // warm light spilling through the pocket
+  var g = ctx.createRadialGradient(hx, hy - 4, 3, hx, hy - 4, 85)
+  g.addColorStop(0, 'rgba(255, 175, 85, ' + (0.32 + flick * 0.14).toFixed(2) + ')')
+  g.addColorStop(1, 'rgba(255, 175, 85, 0)')
+  ctx.fillStyle = g
+  ctx.beginPath()
+  ctx.arc(hx, hy - 4, 85, 0, SD.TAU)
+  ctx.fill()
+  // the bronze bracket, pinned into the rock
+  ctx.strokeStyle = '#6b5030'
+  ctx.lineWidth = 3
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(tx, ty + 1)
+  ctx.lineTo(hx, hy)
+  ctx.stroke()
+  // the wrapped head
+  ctx.fillStyle = '#3a2c20'
+  ctx.beginPath()
+  ctx.ellipse(hx, hy, 3.4, 4.6, lean * 0.3, 0, SD.TAU)
+  ctx.fill()
+  // the flame, always upward
+  ctx.fillStyle = 'rgba(255, 210, 120, ' + (0.72 + flick * 0.2).toFixed(2) + ')'
+  ctx.beginPath()
+  ctx.ellipse(hx, hy - 8 - flick * 2, 3, 6 + flick * 2.5, 0, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255, 240, 180, 0.85)'
+  ctx.beginPath()
+  ctx.ellipse(hx, hy - 6, 1.4, 2.6, 0, 0, SD.TAU)
+  ctx.fill()
+  ctx.restore()
+}
+
+// Side effect: the smith's workplace on the dry ledge — a stone hearth with
+// a live fire, the anvil on its stump, a quench pot, and finished work
+// leaning on the wall. fx is the ledge crown x; each prop seats itself.
+function drawForgeSet (ctx, fx, t) {
+  var flick = 0.55 + Math.sin(t * 7.3) * 0.28 + Math.sin(t * 11.7) * 0.17
+  var hx = fx - 56
+  var hy = SD.caveFloorYAt(hx)
+  var ax = fx + 22
+  var ay = SD.caveFloorYAt(ax)
+  ctx.save()
+
+  // firelight pooling over the whole ledge
+  var pool = ctx.createRadialGradient(hx, hy - 30, 8, hx, hy - 30, 240)
+  pool.addColorStop(0, 'rgba(255, 160, 70, ' + (0.22 + flick * 0.1).toFixed(2) + ')')
+  pool.addColorStop(1, 'rgba(255, 160, 70, 0)')
+  ctx.fillStyle = pool
+  ctx.beginPath()
+  ctx.arc(hx, hy - 30, 240, 0, SD.TAU)
+  ctx.fill()
+
+  // the hearth: stacked stone around an ember bed
+  ctx.fillStyle = '#242028'
+  ctx.beginPath()
+  ctx.moveTo(hx - 26, hy)
+  ctx.lineTo(hx - 20, hy - 16)
+  ctx.lineTo(hx - 8, hy - 22)
+  ctx.lineTo(hx + 10, hy - 21)
+  ctx.lineTo(hx + 20, hy - 14)
+  ctx.lineTo(hx + 26, hy)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255, 120, 40, ' + (0.55 + flick * 0.3).toFixed(2) + ')' // embers
+  ctx.beginPath()
+  ctx.ellipse(hx, hy - 20, 12, 4, 0, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255, 210, 120, ' + (0.75 + flick * 0.2).toFixed(2) + ')' // the flame
+  ctx.beginPath()
+  ctx.ellipse(hx, hy - 27 - flick * 3, 5, 8 + flick * 3, 0, 0, SD.TAU)
+  ctx.fill()
+
+  // the anvil on its stump, horn toward the fire
+  ctx.fillStyle = '#3a2c20'
+  ctx.fillRect(ax - 7, ay - 14, 14, 14)
+  ctx.fillStyle = '#2c313a'
+  ctx.fillRect(ax - 16, ay - 24, 32, 10)
+  ctx.beginPath()
+  ctx.moveTo(ax - 16, ay - 24)
+  ctx.quadraticCurveTo(ax - 30, ay - 24, ax - 32, ay - 18)
+  ctx.quadraticCurveTo(ax - 24, ay - 16, ax - 16, ay - 15)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(160, 190, 210, 0.5)' // the worn face, catching fire-light
+  ctx.fillRect(ax - 14, ay - 24, 28, 2)
+
+  // embers riding the heat off the hearth, dying as they climb
+  for (var e = 0; e < 5; e++) {
+    var rise = (t * 26 + e * 23) % 64
+    var ea = (1 - rise / 64) * (0.35 + flick * 0.25)
+    ctx.fillStyle = 'rgba(255, 170, 80, ' + ea.toFixed(2) + ')'
+    ctx.beginPath()
+    ctx.arc(hx + Math.sin(rise * 0.14 + e * 1.7) * 5, hy - 26 - rise, 1.2 + (e % 2) * 0.6, 0, SD.TAU)
+    ctx.fill()
+  }
+
+  // quench pot + a finished spear leaning on the wall
+  ctx.fillStyle = '#4a3320'
+  ctx.beginPath()
+  ctx.ellipse(fx + 52, SD.caveFloorYAt(fx + 52) - 7, 8, 7, 0, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(220, 235, 240, 0.18)' // steam still curling off it
+  ctx.lineWidth = 2.2
+  ctx.beginPath()
+  ctx.moveTo(fx + 50, SD.caveFloorYAt(fx + 52) - 14)
+  ctx.quadraticCurveTo(fx + 47 + Math.sin(t * 1.3) * 3, SD.caveFloorYAt(fx + 52) - 24, fx + 51, SD.caveFloorYAt(fx + 52) - 33)
+  ctx.moveTo(fx + 55, SD.caveFloorYAt(fx + 52) - 13)
+  ctx.quadraticCurveTo(fx + 58 + Math.sin(t * 1.7 + 2) * 3, SD.caveFloorYAt(fx + 52) - 22, fx + 55, SD.caveFloorYAt(fx + 52) - 29)
+  ctx.stroke()
+  ctx.strokeStyle = '#8a6d1c'
+  ctx.lineWidth = 2.4
+  ctx.beginPath()
+  ctx.moveTo(fx + 68, SD.caveFloorYAt(fx + 68) - 2)
+  ctx.lineTo(fx + 58, SD.caveFloorYAt(fx + 58) - 44)
+  ctx.stroke()
+  ctx.restore()
+}
+
+// Side effect: HEPHAESTUS at his anvil — soot-dark curls and a great beard
+// under the workman's pilos, an exomis knotted off the hammer shoulder, a
+// scarred leather apron over it, forearms like mooring posts. The sound leg
+// is braced into the strike; the lame one rests turned on its block, ringed
+// by the golden brace he forged for himself. The whole west side of him is
+// rimmed in his own firelight. He raises the hammer on a slow cycle and
+// brings it down in sparks. Peaceful: the smith fights nobody. He works.
+function drawHephaestus (ctx, g, t) {
+  var cycle = (t + (g.phase || 0)) % 2.6
+  var lift = cycle < 1.3 ? SD.smoothstep(0, 1, cycle / 1.3)
+    : cycle < 1.45 ? 1 - SD.smoothstep(0, 1, (cycle - 1.3) / 0.15)
+      : 0
+  var falling = cycle >= 1.3 && cycle < 1.55
+  var struck = cycle >= 1.45 && cycle < 1.8
+  var breathe = Math.sin(t * 1.1) * 1.2
+  var emberGlow = 0.6 + Math.sin(t * 9) * 0.2
+
+  ctx.save()
+  ctx.translate(g.x, g.y)
+  ctx.scale(-1, 1) // he faces west, toward anvil and hearth
+
+  var skin = '#a86e46' // forge-tanned, soot in the creases
+  var deep = '#7c4e30'
+  var cloth = '#9c8c74' // undyed wool, long past white
+  var leather = '#46331f'
+  ctx.lineCap = 'round'
+
+  // grounded: a contact shadow under the working stance
+  ctx.fillStyle = 'rgba(4, 8, 14, 0.3)'
+  ctx.beginPath()
+  ctx.ellipse(-2, -0.5, 26, 4, 0, 0, SD.TAU)
+  ctx.fill()
+
+  // the block under his lame foot, its top edge catching the fire
+  ctx.fillStyle = '#33302c'
+  ctx.fillRect(-24, -9, 17, 9)
+  ctx.fillStyle = 'rgba(255, 160, 70, 0.22)'
+  ctx.fillRect(-24, -9, 17, 1.6)
+
+  // — legs: the lame one first, turned on its block, wearing the golden
+  //   shin-brace the smith made for himself —
+  ctx.strokeStyle = deep
+  ctx.lineWidth = 7
+  ctx.beginPath()
+  ctx.moveTo(-5, -30)
+  ctx.quadraticCurveTo(-14, -24, -15.5, -16)
+  ctx.quadraticCurveTo(-16, -12.5, -16.5, -10)
+  ctx.stroke()
+  ctx.fillStyle = deep
+  ctx.beginPath() // the turned foot, heel up on the block
+  ctx.ellipse(-17.5, -10.2, 5.2, 2.2, -0.35, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(212, 175, 55, 0.8)' // the golden brace
+  ctx.lineWidth = 1.6
+  ctx.beginPath()
+  ctx.moveTo(-13.2, -16.5)
+  ctx.lineTo(-14.4, -11)
+  ctx.stroke()
+
+  ctx.strokeStyle = skin // the sound leg, planted into the blow
+  ctx.lineWidth = 9.5
+  ctx.beginPath()
+  ctx.moveTo(0, -30)
+  ctx.lineTo(9, -15)
+  ctx.lineTo(10, -1.5)
+  ctx.stroke()
+  ctx.fillStyle = skin
+  ctx.beginPath()
+  ctx.ellipse(12.5, -1.2, 6, 2.4, 0, 0, SD.TAU)
+  ctx.fill()
+
+  // — the far arm first: elbow bent, tongs pinning the work to the anvil —
+  ctx.strokeStyle = deep
+  ctx.lineWidth = 7.5
+  ctx.beginPath() // upper arm
+  ctx.moveTo(7, -53)
+  ctx.quadraticCurveTo(17, -48, 21, -42)
+  ctx.stroke()
+  ctx.lineWidth = 6
+  ctx.beginPath() // forearm to the grip
+  ctx.moveTo(21, -42)
+  ctx.quadraticCurveTo(26, -37, 28.5, -32)
+  ctx.stroke()
+  ctx.strokeStyle = '#2c313a' // the tongs, jaws just apart on the billet
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(28.5, -32.5)
+  ctx.lineTo(36.5, -28.8)
+  ctx.moveTo(28.5, -30.8)
+  ctx.lineTo(36.5, -26)
+  ctx.stroke()
+  // the billet: white-hot in the instant after the strike, cooling orange
+  var heat = struck ? 1 - (cycle - 1.45) / 0.5 : 0
+  ctx.fillStyle = 'rgba(255, ' + Math.round(150 + heat * 90) + ', ' +
+    Math.round(60 + heat * 140) + ', ' + (0.7 + emberGlow * 0.2).toFixed(2) + ')'
+  ctx.beginPath()
+  ctx.ellipse(40, -26.5, 5.5, 2.1, 0.12, 0, SD.TAU)
+  ctx.fill()
+
+  // — the torso: a smith's wedge, leaning into the work —
+  ctx.fillStyle = skin
+  ctx.beginPath()
+  ctx.moveTo(-15, -30)
+  ctx.quadraticCurveTo(-20 - breathe, -46, -11, -57) // the broad back
+  ctx.lineTo(12, -59)                                // the yoke of the shoulders
+  ctx.quadraticCurveTo(21 + breathe, -51, 18, -34)   // chest, toward the fire
+  ctx.quadraticCurveTo(1, -25, -15, -30)             // the waist
+  ctx.closePath()
+  ctx.fill()
+
+  // the exomis, knotted off the hammer shoulder — the chest stays bare
+  ctx.fillStyle = cloth
+  ctx.beginPath()
+  ctx.moveTo(-13, -57)
+  ctx.quadraticCurveTo(-18 - breathe * 0.6, -45, -14.5, -30)
+  ctx.quadraticCurveTo(0, -23.5, 16, -32)
+  ctx.lineTo(9, -42)
+  ctx.quadraticCurveTo(0, -52, -5, -58)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(30, 22, 14, 0.35)' // folds, and old soot
+  ctx.lineWidth = 1.2
+  ctx.beginPath()
+  ctx.moveTo(-8, -50)
+  ctx.quadraticCurveTo(-6, -40, -8, -32)
+  ctx.moveTo(2, -44)
+  ctx.quadraticCurveTo(4, -37, 2, -30)
+  ctx.stroke()
+
+  // the leather apron over it, scarred by a life of sparks
+  ctx.fillStyle = leather
+  ctx.beginPath()
+  ctx.moveTo(-9, -34)
+  ctx.lineTo(13, -35)
+  ctx.lineTo(16, -14)
+  ctx.quadraticCurveTo(2, -8, -11, -13)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255, 160, 70, 0.16)' // fire-sheen down its edge
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(13.6, -33)
+  ctx.lineTo(15.8, -16)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(20, 12, 6, 0.6)' // spark scars
+  ctx.lineWidth = 1.1
+  ctx.beginPath()
+  ctx.moveTo(-2, -26)
+  ctx.lineTo(1, -23)
+  ctx.moveTo(7, -20)
+  ctx.lineTo(9, -17)
+  ctx.stroke()
+
+  // — the head: heavy brow bent to the work —
+  ctx.fillStyle = skin
+  ctx.beginPath()
+  ctx.arc(9, -67, 8, 0, SD.TAU)
+  ctx.fill()
+  ctx.beginPath() // brow + nose, running down into the beard
+  ctx.moveTo(15.5, -72)
+  ctx.quadraticCurveTo(17.6, -70.5, 17.2, -68.6)
+  ctx.lineTo(19.8, -66.2)
+  ctx.lineTo(16.6, -64.8)
+  ctx.lineTo(16.8, -62.5)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#f3e0c8' // the eye, fixed down on the billet
+  ctx.beginPath()
+  ctx.arc(14.4, -67.6, 2, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#241a12'
+  ctx.beginPath()
+  ctx.arc(15.1, -67, 1, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = '#241a12' // the heavy brow
+  ctx.lineWidth = 1.8
+  ctx.beginPath()
+  ctx.moveTo(11.8, -70.8)
+  ctx.lineTo(16.8, -70)
+  ctx.stroke()
+
+  // the great beard, warm at its fire edge
+  ctx.fillStyle = '#2a1c12'
+  ctx.beginPath()
+  ctx.moveTo(16.5, -63.5)
+  ctx.quadraticCurveTo(19, -56, 13, -48)
+  ctx.quadraticCurveTo(6, -43.5, 0, -47)
+  ctx.quadraticCurveTo(-3.5, -52, -1, -59)
+  ctx.quadraticCurveTo(2, -63, 6, -62.5)
+  ctx.quadraticCurveTo(11, -62, 16.5, -63.5)
+  ctx.closePath()
+  ctx.fill()
+  ctx.beginPath() // its curls
+  ctx.arc(4, -47.5, 3, 0, SD.TAU)
+  ctx.arc(10, -48.5, 3.2, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255, 150, 60, 0.28)' // the forge in his beard
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  ctx.moveTo(16.6, -61)
+  ctx.quadraticCurveTo(17.8, -54, 13.5, -49)
+  ctx.stroke()
+
+  // curls at the nape, escaping the cap
+  ctx.fillStyle = '#241a12'
+  ctx.beginPath()
+  ctx.arc(2, -70, 4.2, 0, SD.TAU)
+  ctx.arc(5.5, -73, 3.6, 0, SD.TAU)
+  ctx.fill()
+
+  // the pilos, the workman's felt cone
+  ctx.fillStyle = '#b3a486'
+  ctx.beginPath()
+  ctx.moveTo(0.5, -72.5)
+  ctx.quadraticCurveTo(2, -84, 8.5, -84.5)
+  ctx.quadraticCurveTo(15, -83.5, 15.8, -72.8)
+  ctx.quadraticCurveTo(8, -76.5, 0.5, -72.5)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(60, 48, 32, 0.3)' // its shaded back
+  ctx.beginPath()
+  ctx.moveTo(0.5, -72.5)
+  ctx.quadraticCurveTo(2, -84, 8.5, -84.5)
+  ctx.quadraticCurveTo(5, -80, 3.8, -74)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255, 160, 70, 0.3)' // fire edge on the felt
+  ctx.lineWidth = 1.3
+  ctx.beginPath()
+  ctx.moveTo(15.4, -73.6)
+  ctx.quadraticCurveTo(14.6, -81, 9, -84)
+  ctx.stroke()
+
+  // the fire finds every edge of him it can reach
+  ctx.strokeStyle = 'rgba(255, 165, 75, 0.35)'
+  ctx.lineWidth = 1.6
+  ctx.beginPath()
+  ctx.moveTo(18.5, -36)
+  ctx.quadraticCurveTo(21 + breathe, -50, 12.5, -58.5) // chest into the shoulder
+  ctx.moveTo(11.5, -14)
+  ctx.lineTo(12.2, -3)                                 // the braced shin
+  ctx.stroke()
+
+  // — the hammer arm: a real shoulder, a real elbow, a slow raise
+  //   and a hard fall —
+  var elbX = SD.lerp(13, -8, lift)
+  var elbY = SD.lerp(-46, -70, lift)
+  var handX = SD.lerp(27, -15, lift)
+  var handY = SD.lerp(-37, -84, lift) - Math.sin(lift * Math.PI) * 6
+  ctx.fillStyle = skin
+  ctx.beginPath() // the deltoid
+  ctx.ellipse(3, -55, 7.5, 6.5, -0.2, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = skin
+  ctx.lineWidth = 8.5
+  ctx.beginPath() // upper arm
+  ctx.moveTo(3, -55)
+  ctx.quadraticCurveTo((3 + elbX) / 2 + 3, (-55 + elbY) / 2, elbX, elbY)
+  ctx.stroke()
+  ctx.lineWidth = 7
+  ctx.beginPath() // forearm
+  ctx.moveTo(elbX, elbY)
+  ctx.lineTo(handX, handY)
+  ctx.stroke()
+
+  // the fall leaves a streak of firelight behind the hammer's head
+  if (falling) {
+    ctx.strokeStyle = 'rgba(255, 210, 130, 0.3)'
+    ctx.lineWidth = 7
+    ctx.beginPath()
+    ctx.moveTo(-12, -90)
+    ctx.quadraticCurveTo(28, -80, 34, -38)
+    ctx.stroke()
+  }
+
+  // the hammer itself
+  var hang = SD.lerp(-0.5, -2.6, lift)
+  var hdx = Math.cos(hang)
+  var hdy = Math.sin(hang)
+  ctx.strokeStyle = '#4a3320'
+  ctx.lineWidth = 3.4
+  ctx.beginPath()
+  ctx.moveTo(handX, handY)
+  ctx.lineTo(handX + hdx * 20, handY + hdy * 20)
+  ctx.stroke()
+  ctx.save()
+  ctx.translate(handX + hdx * 22, handY + hdy * 22)
+  ctx.rotate(hang)
+  ctx.fillStyle = '#2c313a'
+  ctx.fillRect(-4, -9.5, 8, 19)
+  ctx.fillStyle = 'rgba(190, 215, 230, 0.5)' // the polished striking face
+  ctx.fillRect(2.6, -9.5, 1.4, 19)
+  ctx.restore()
+
+  // sparks off the anvil at the strike, and the flash of the blow
+  if (struck) {
+    var fade = 1 - (cycle - 1.45) / 0.35
+    var flash = ctx.createRadialGradient(39, -27, 2, 39, -27, 26)
+    flash.addColorStop(0, 'rgba(255, 230, 150, ' + (fade * 0.5).toFixed(2) + ')')
+    flash.addColorStop(1, 'rgba(255, 230, 150, 0)')
+    ctx.fillStyle = flash
+    ctx.beginPath()
+    ctx.arc(39, -27, 26, 0, SD.TAU)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(255, 200, 90, ' + (fade * 0.95).toFixed(2) + ')'
+    ctx.lineWidth = 1.7
+    ctx.beginPath()
+    for (var s = 0; s < 8; s++) {
+      var sa = -0.25 - s * 0.35
+      var sr = 9 + (1 - fade) * 30 + (s % 3) * 6
+      ctx.moveTo(38, -28)
+      ctx.lineTo(38 + Math.cos(sa) * sr, -28 + Math.sin(sa) * sr)
+    }
+    ctx.stroke()
+  }
+
+  ctx.restore()
+}
+
+// Side effect: the caves' interior dressing — shadow pooled in each chamber,
+// then the forge set and the smith himself on the dry ledge. Drawn after
+// the rocks so the shadow sits on the stone.
+function drawHephCaves (ctx, heph, t) {
+  for (var c = 0; c < heph.chambers.length; c++) {
+    var ch = heph.chambers[c]
+    var grad = ctx.createRadialGradient(ch.x, ch.y, ch.r * 0.25, ch.x, ch.y, ch.r * 1.1)
+    grad.addColorStop(0, 'rgba(3, 8, 14, 0.5)')
+    grad.addColorStop(1, 'rgba(3, 8, 14, 0)')
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.arc(ch.x, ch.y, ch.r * 1.1, 0, SD.TAU)
+    ctx.fill()
+  }
+  drawForgeSet(ctx, heph.forge.x, t)
+  if (!heph._god) {
+    var gx = heph.forge.x + 48
+    heph._god = { x: gx, y: SD.caveFloorYAt(gx), phase: 0.4 }
+  }
+  drawHephaestus(ctx, heph._god, t)
+}
+
 // ---------- Murk + darkness ----------
 
 // Side effect: the water itself swallows detail past the clarity radius —
@@ -3341,7 +4124,8 @@ function drawBubbles (ctx, bubbles) {
 // Screen-space: world distances arrive multiplied by the camera zoom.
 function drawMurk (ctx, state, view, cam, zoom) {
   var p = state.player
-  if (p.y < SD.config.pxPerM * 0.6 && !(state.inkT > 0)) return // surface water is clear enough
+  // surfaced water is clear enough — including a cave pocket's little sky
+  if (p.y < SD.surfaceYAt(p.x, p.y) + SD.config.pxPerM * 0.6 && !(state.inkT > 0)) return
 
   var clarity = SD.clarityRadius(state)
   if (state.inkT > 0) {
@@ -3436,6 +4220,20 @@ function drawDarkness (ctx, state, view, cam, zoom) {
   for (var vI = 0; vI < vents.length; vI++) {
     punch(vents[vI].x, vents[vI].y - 40, 230, 0.78)
   }
+  // the caves of Hephaestus: torchlight in every air dome; the forge burns
+  var pks = SD.config.world.airPockets
+  for (var pkI = 0; pkI < pks.length; pkI++) {
+    punch((pks[pkI].x1 + pks[pkI].x2) / 2, pks[pkI].surfaceY - 24, 150, 0.45)
+    var tcs = pks[pkI].torches
+    for (var tcI = 0; tcI < tcs.length; tcI++) {
+      punch(tcs[tcI].x, tcs[tcI].y + 14, 130, 0.7)
+    }
+  }
+  var heph = state.world.decor.heph
+  if (heph) {
+    punch(heph.forge.x - 56, heph.forge.y - 30, 330, 0.9)
+    punch(heph.forge.x + 48, heph.forge.y - 55, 160, 0.6)
+  }
   // the boss cast carries its own terrible presence
   var fauna = state.world.fauna
   for (var bI = 0; bI < fauna.length; bI++) {
@@ -3501,6 +4299,15 @@ SD.render = function (state, ctx, view, zoom) {
     drawVent(ctx, vent, t)
   }
 
+  // the Caves of Hephaestus: the cut-out under the vents shelf, then its
+  // trapped air laid against the slab's underside
+  var hephOnScreen = decor.heph && cam.x + wv.w > 24300 && cam.x < 27100
+  if (hephOnScreen) {
+    drawHephVoid(ctx, cam, wv, t)
+    var pks = SD.config.world.airPockets
+    for (i = 0; i < pks.length; i++) drawAirPocket(ctx, pks[i], t)
+  }
+
   for (i = 0; i < w.rocks.length; i++) {
     var r = w.rocks[i]
     if (r.x + r.r < cam.x - 60 || r.x - r.r > cam.x + wv.w + 60) continue
@@ -3508,6 +4315,7 @@ SD.render = function (state, ctx, view, zoom) {
     drawRock(ctx, r)
   }
   if (decor.cave) drawCave(ctx, decor.cave)
+  if (hephOnScreen) drawHephCaves(ctx, decor.heph, t)
 
   for (i = 0; i < decor.grass.length; i++) {
     var g = decor.grass[i]
@@ -3568,11 +4376,13 @@ SD.render = function (state, ctx, view, zoom) {
 
   if (cam.x + wv.w > SD.config.world.mountain.faceX - 600) drawMountain(ctx, t)
   drawStoryDecor(ctx, decor, cam, wv, t)
-  if (state.buddy && state.mode !== 'gameover') drawBuddy(ctx, state, t)
+  if (state.buddy && !state.buddy.aboard && state.mode !== 'gameover') drawBuddy(ctx, state, t)
   if (state.mode !== 'blackout' && !state.player.aboard) drawDiver(ctx, state, t)
   drawBubbles(ctx, state.effects.bubbles)
   drawWaterline(ctx, t, cam, wv)
   drawBoat(ctx, state, t)
+  if (state.buddy && state.buddy.aboard && state.mode !== 'gameover') drawBuddy(ctx, state, t) // he sits on deck, over the hull
+  drawStorm(ctx, t, cam, wv)
 
   ctx.restore()
   ctx.restore()
@@ -3871,10 +4681,15 @@ function drawBuddy (ctx, state, t) {
   var p = state.player
   var c = skinTones(0.55)
   var dir = p.x >= b.x ? 1 : -1
+  if (b.aboard) {
+    drawBuddySeated(ctx, b, c, state.player.facing || 1)
+    return
+  }
   ctx.save()
   ctx.translate(b.x, b.y)
   ctx.scale(dir, 1)
-  ctx.rotate(Math.sin(b.phase * 0.8) * 0.06 + 0.12)
+  // on the surface he lolls; on a rescue dive he pitches down and means it
+  ctx.rotate(Math.sin(b.phase * 0.8) * 0.06 + (b.diving ? 0.62 : 0.12))
   ctx.lineCap = 'round'
 
   var kick = Math.sin(b.phase * 2) * 0.7
@@ -3937,5 +4752,72 @@ function drawBuddy (ctx, state, t) {
   ctx.beginPath()
   ctx.arc(18.6, -2.4, 1, 0, SD.TAU)
   ctx.fill()
+  ctx.restore()
+}
+
+// Side effect on ctx: Yiannis riding the kaiki — perched on the gunwale,
+// coil beside him, facing wherever the helmsman faces
+function drawBuddySeated (ctx, b, c, facing) {
+  ctx.save()
+  ctx.translate(b.x, b.y)
+  ctx.scale(facing, 1)
+  ctx.lineCap = 'round'
+
+  ctx.strokeStyle = c.deep // far leg, bent over the side
+  ctx.lineWidth = 4.2
+  ctx.beginPath()
+  ctx.moveTo(0, -2)
+  ctx.quadraticCurveTo(7, -1, 8.5, 3)
+  ctx.quadraticCurveTo(9, 7, 8, 10)
+  ctx.stroke()
+  ctx.strokeStyle = c.skin // near leg
+  ctx.beginPath()
+  ctx.moveTo(0, -2)
+  ctx.quadraticCurveTo(6, 0, 7, 4)
+  ctx.quadraticCurveTo(7.2, 8, 6, 11)
+  ctx.stroke()
+
+  ctx.fillStyle = c.skin // torso, upright, a man at ease
+  ctx.beginPath()
+  ctx.moveTo(-4.5, -15)
+  ctx.quadraticCurveTo(0, -16.5, 4.5, -15)
+  ctx.quadraticCurveTo(6, -8, 4.5, -1)
+  ctx.quadraticCurveTo(0, 1, -4.5, -1)
+  ctx.quadraticCurveTo(-6, -8, -4.5, -15)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = '#3a5a74' // the blue perizoma
+  ctx.lineWidth = 5
+  ctx.beginPath()
+  ctx.moveTo(-4.5, -3)
+  ctx.quadraticCurveTo(0, -1.5, 4.5, -3)
+  ctx.stroke()
+
+  ctx.strokeStyle = c.skin // near arm resting on the knee
+  ctx.lineWidth = 3.6
+  ctx.beginPath()
+  ctx.moveTo(2.5, -12)
+  ctx.quadraticCurveTo(7.5, -8, 7, -2)
+  ctx.stroke()
+
+  ctx.fillStyle = c.skin // head, watching the water anyway
+  ctx.beginPath()
+  ctx.arc(1.5, -20, 5.2, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#241a12' // short hair
+  ctx.beginPath()
+  ctx.arc(0.5, -22.5, 4.6, Math.PI * 0.85, Math.PI * 1.95)
+  ctx.fill()
+  ctx.fillStyle = '#241a12' // his eye, still on the sea
+  ctx.beginPath()
+  ctx.arc(4.2, -19.6, 1, 0, SD.TAU)
+  ctx.fill()
+
+  ctx.strokeStyle = '#8a6d4a' // the rescue coil on the deck beside him
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  ctx.arc(-8, 1, 3.4, 0, SD.TAU)
+  ctx.arc(-8, 1, 1.8, 0, SD.TAU)
+  ctx.stroke()
   ctx.restore()
 }

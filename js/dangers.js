@@ -171,8 +171,11 @@ SD.updateDangers = function (state, dt, interactive) {
       if (s.cooldown <= 0) s.mode = 'patrol'
     }
 
-    // keep sharks below their ceiling and off the floor
+    // keep sharks below their ceiling and off the floor — and in the WATER:
+    // a chase into the caves must not breach a pocket's trapped air
     var minY = scfg.ceilingM * pxPerM
+    var pkSurf = SD.surfaceYAt(s.x, s.y)
+    if (pkSurf > 0) minY = Math.max(minY, pkSurf + 26)
     var maxY = SD.floorYAt(s.x) - 40
     s.y = SD.clamp(s.y, minY, maxY)
   }
@@ -234,7 +237,7 @@ SD.updateDangers = function (state, dt, interactive) {
         if (vdx < halfW) {
           var core = 1 - (vdx / halfW) * 0.55       // fiercest in the middle
           var fitScale = SD.clamp(1.7 - SD.maxSpeed(state) / 250, 0.3, 1.7)
-          p.vy -= SD.config.ventsUpdraft * core * fitScale * dt
+          p.vy -= SD.config.ventsUpdraft * (v.boost || 1) * core * fitScale * dt
         }
       }
     }
@@ -247,7 +250,7 @@ SD.updateDangers = function (state, dt, interactive) {
   for (i = 0; i < w.loot.length; i++) {
     var item = w.loot[i]
     if (item.dropped) {
-      item.y = Math.min(item.y + 26 * dt, SD.floorYAt(item.x) - 10)
+      item.y = Math.min(item.y + 26 * dt, SD.groundYAt(item.x, item.y) - 10)
     }
   }
 }

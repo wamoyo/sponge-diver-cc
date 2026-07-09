@@ -20,25 +20,44 @@ SD.hud = (function () {
     var ids = ['hud', 'breath-fill', 'xp-fill', 'hud-level', 'hud-depth', 'hud-money',
       'bag-pips', 'bag-weight', 'hud-hold', 'caption', 'toasts', 'surface-hint',
       'vignette', 'flash', 'tally', 'blackout', 'blackout-line', 'parchment',
-      'touch-shop', 'touch-temple', 'touch-boat']
+      'touch-shop', 'touch-temple', 'touch-boat', 'touch-forge']
     for (var i = 0; i < ids.length; i++) {
       el[ids[i]] = document.getElementById(ids[i])
     }
   }
 
-  // Pure: the right hint line for where the diver is floating
+  // Pure: the right hint line for where the diver is floating — keyboard
+  // keys for desktop hands, pill-and-drag words for touch ones
   function surfaceHintFor (state) {
     var p = state.player
     var cfg = SD.config.world
-    if (p.aboard) return 'Sailing the kaiki — <b>A/D</b> sail · <b>S</b> dive off'
+    var touch = SD.touch.isTouchDevice()
+    if (p.aboard) {
+      return touch ? 'Sailing the kaiki — drag down to dive off'
+        : 'Sailing the kaiki — <b>A/D</b> sail · <b>S</b> dive off'
+    }
     if (Math.abs(p.x - cfg.dock.x) < cfg.dock.radius) {
-      return 'The village dock — your catch sells itself · <b>B</b> — chandlery'
+      return touch ? 'The village dock — your catch sells itself'
+        : 'The village dock — your catch sells itself · <b>B</b> — chandlery'
     }
     if (Math.abs(p.x - cfg.temple.x) < cfg.temple.radius) {
-      return "Poseidon's temple — <b>T</b> — train"
+      return touch ? "Poseidon's temple — tap the pill to train"
+        : "Poseidon's temple — <b>T</b> — train"
     }
-    if (SD.canBoard(state)) return 'Your kaiki — <b>E</b> — climb aboard'
-    return 'At the surface — breathe. <b>S / ↓</b> — dive'
+    if (p.y > 80 * SD.config.pxPerM && Math.abs(p.x - cfg.forge.x) < cfg.forge.radius) {
+      return touch ? 'The forge of Hephaestus — tap the pill to offer'
+        : 'The forge of Hephaestus — <b>F</b> — offer obsidian'
+    }
+    if (SD.surfaceYAt(p.x, p.y) > 0 && p.x < cfg.mountain.pocketX1) {
+      return touch ? 'A pocket of trapped air — breathe. Drag down to dive'
+        : 'A pocket of trapped air — breathe. <b>S / ↓</b> — dive'
+    }
+    if (SD.canBoard(state)) {
+      return touch ? 'Your kaiki — tap the pill to board'
+        : 'Your kaiki — <b>E</b> — climb aboard'
+    }
+    return touch ? 'At the surface — breathe. Drag down to dive'
+      : 'At the surface — breathe. <b>S / ↓</b> — dive'
   }
 
   // Side effect: syncs the per-frame HUD numbers to the DOM
@@ -76,7 +95,7 @@ SD.hud = (function () {
       el['hud-hold'].classList.add('hidden')
     }
 
-    var surfaced = p.y < SD.surfaceYAt(p.x) + SD.config.pxPerM * 0.4 || p.aboard
+    var surfaced = p.y < SD.surfaceYAt(p.x, p.y) + SD.config.pxPerM * 0.4 || p.aboard
     var showHint = surfaced && state.mode === 'playing'
     el['surface-hint'].classList.toggle('hidden', !showHint)
     if (showHint) {
@@ -91,9 +110,11 @@ SD.hud = (function () {
     var cfg = SD.config.world
     var inDock = surfaced && Math.abs(p.x - cfg.dock.x) < cfg.dock.radius
     var inTemple = surfaced && Math.abs(p.x - cfg.temple.x) < cfg.temple.radius
+    var inForge = surfaced && p.y > 80 * SD.config.pxPerM && Math.abs(p.x - cfg.forge.x) < cfg.forge.radius
     var nearBoat = SD.canBoard(state) || p.aboard
     el['touch-shop'].classList.toggle('hidden', !(inDock && state.mode === 'playing'))
     el['touch-temple'].classList.toggle('hidden', !(inTemple && state.mode === 'playing'))
+    el['touch-forge'].classList.toggle('hidden', !(inForge && state.mode === 'playing'))
     el['touch-boat'].classList.toggle('hidden', !(nearBoat && state.mode === 'playing'))
     if (nearBoat) el['touch-boat'].textContent = p.aboard ? '🌊 Dive Off' : '⛵ Board'
 

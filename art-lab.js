@@ -3,7 +3,7 @@
 // calls the REAL draw functions from js/render.js against mock entities, so
 // what you fix in render.js is fixed everywhere. Space freezes time.
 
-/* global drawDiver, drawPoseidon, drawKarcharias, drawKraken, drawKetos,
+/* global drawDiver, drawBuddy, drawPoseidon, drawKarcharias, drawKraken, drawKetos,
    drawFauna, drawUrchin, drawJelly, drawEel, drawShark, drawSquid, drawLoot,
    drawBoat, drawKelp, drawGrass, drawFan, drawSeahorse, drawSeal, drawManta,
    drawColumn, drawWreck, drawShrine, drawHoard, drawVent, drawRock */
@@ -20,8 +20,13 @@ function makeState () {
     devMode: false,
     tridentClaimed: false,
     training: { apnea: 0, stroke: 0, discipline: 0 },
-    upgrades: { fins: 0, stone: 0, light: 0, net: 0, knife: 0, kamaki: 0, charm: 0, boat: 1, sail: 0, favor: 0 },
-    relics: { hide: false, feast: false, feastPending: false },
+    upgrades: { fins: 0, stone: 0, light: 0, net: 0, knife: 0, kamaki: 0, charm: 0, boat: 1, sail: 0, favor: 0, buddy: 0 },
+    relics: { hide: false, feast: false, feastPending: false, fins: false, sight: false, hunt: false },
+    slain: { karcharias: false, kraken: false, ketos: false },
+    bottlesRead: {},
+    buddy: { x: 470, y: -4, phase: 0 },
+    rescued: false,
+    tunnelCd: 0,
     stats: { dives: 0, blackouts: 0, earned: 0, deepest: 0, items: 0 },
     player: {
       x: 0, y: 0, vx: 80, vy: 0, facing: 1,
@@ -140,8 +145,11 @@ function buildScenes () {
   scene('the graveyard of ships', 20500, 1850, 0.55, false)
   scene('the wreck of the ANEMONE (swim inside!)', 20560, 1520, 0.34, true)
   scene("hephaestus' vents", 25100, 2080, 0.5, false)
+  scene('the caves of hephaestus (air pockets!)', 25400, 2640, 0.42, true)
+  scene('the forge of hephaestus', 24330, 2620, 0.6, false)
   scene("poseidon's plain — the hoard", 30100, 3850, 0.55, false)
   scene("the kraken's grotto", 33750, 2760, 0.6, false)
+  scene("poseidon's storm — over the plain", 29900, -260, 0.5, false)
   scene('aphrodite’s lagoon & the blue hole', 37850, -50, 0.5, true)
   scene('the temple mountain', 39560, -330, 0.42, false)
   scene('the cavern passage (carved terrain)', 39980, 340, 0.62, true)
@@ -290,6 +298,28 @@ function buildPoseidon () {
     else if (cycle < 0.75) { h.mode = 'thrust'; h.thrust = 130 * ((cycle - 0.5) / 0.25) }
     else { h.mode = 'recover'; h.thrust = 130 * Math.exp(-(cycle - 0.75) * 6) }
     drawPoseidon(ctx, h, t)
+  })
+}
+
+// ---------- Hephaestus ----------
+
+function buildHephaestus () {
+  tile('sec-hephaestus', 'the smith at work (loops)', 300, 240, 1.6, function (ctx, t, dt) {
+    drawHephaestus(ctx, { x: 10, y: 52, phase: 0.4 }, t)
+  })
+  tile('sec-hephaestus', 'the forge set, on the real ledge', 340, 220, 1.0, function (ctx, t, dt) {
+    var fx = SD.config.world.forge.x
+    ctx.translate(-fx, -SD.caveFloorYAt(fx) + 60)
+    drawForgeSet(ctx, fx, t)
+    drawHephaestus(ctx, { x: fx + 48, y: SD.caveFloorYAt(fx + 48), phase: 0.4 }, t)
+  })
+  tile('sec-hephaestus', 'an air dome (breathe here)', 360, 220, 0.7, function (ctx, t, dt) {
+    // dome II for real: the cut, then its trapped air hugging the roof
+    var pk = SD.config.world.airPockets[1]
+    var midX = (pk.x1 + pk.x2) / 2
+    ctx.translate(-midX, -pk.surfaceY + 40)
+    drawHephVoid(ctx, { x: midX - 260, y: pk.surfaceY - 200 }, { w: 520, h: 400 }, t)
+    drawAirPocket(ctx, pk, t)
   })
 }
 
@@ -482,12 +512,46 @@ function labFrame (nowMs) {
   requestAnimationFrame(labFrame)
 }
 
+// ---------- Yiannis, the safety buddy ----------
+
+// Side effect: buddy tiles — the surface watch, the rescue dive, deck duty
+function buildBuddyTiles () {
+  function buddyState () {
+    var s = makeState()
+    s.buddy = { x: 0, y: 0, phase: 0 }
+    return s
+  }
+  tile('sec-diver', 'yiannis — the surface watch', 300, 170, 2.4, function (ctx, t, dt) {
+    var s = this.state || (this.state = buddyState())
+    s.buddy.phase += dt * 3
+    s.player.x = 40
+    s.player.y = 90 // you, somewhere below — he watches
+    drawBuddy(ctx, s, t)
+  })
+  tile('sec-diver', 'yiannis — the rescue dive', 300, 170, 2.4, function (ctx, t, dt) {
+    var s = this.state || (this.state = buddyState())
+    s.buddy.phase += dt * 6
+    s.buddy.diving = true
+    s.player.x = 60
+    s.player.y = 120
+    drawBuddy(ctx, s, t)
+  })
+  tile('sec-diver', 'yiannis — riding the kaiki', 300, 170, 2.4, function (ctx, t, dt) {
+    var s = this.state || (this.state = buddyState())
+    s.buddy.aboard = true
+    s.buddy.y = 12
+    drawBuddy(ctx, s, t)
+  })
+}
+
 // Side effect: boots the lab
 function bootLab () {
   buildScenes()
   buildDiverControls()
   buildDiverTiles()
+  buildBuddyTiles()
   buildPoseidon()
+  buildHephaestus()
   buildBosses()
   buildFauna()
   buildDangers()
