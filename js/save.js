@@ -17,6 +17,7 @@ SD.saveGame = function (state) {
     xp: state.xp,
     training: state.training,
     upgrades: state.upgrades,
+    relics: state.relics,
     tridentClaimed: state.tridentClaimed,
     bottleRead: state.bottleRead,
     stats: state.stats,
@@ -84,6 +85,11 @@ SD.applySave = function (state, data) {
   if (data.upgrades) {
     for (var k in state.upgrades) {
       if (typeof data.upgrades[k] === 'number') state.upgrades[k] = data.upgrades[k]
+    }
+  }
+  if (data.relics) {
+    for (var r in state.relics) {
+      if (typeof data.relics[r] === 'boolean') state.relics[r] = data.relics[r]
     }
   }
   if (data.tridentClaimed) state.tridentClaimed = true

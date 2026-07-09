@@ -76,8 +76,8 @@ function drawSkyline (ctx, t) {
   ctx.fill()
   // clouds
   ctx.fillStyle = 'rgba(255, 252, 244, 0.75)'
-  for (var i = 0; i < 7; i++) {
-    var cx = ((i * 1400 + t * 7) % (W + 1000)) - 500
+  for (var i = 0; i < 24; i++) {
+    var cx = ((i * 1780 + t * 7) % (W + 1000)) - 500
     var cy = -240 - (i % 3) * 22
     ctx.beginPath()
     ctx.ellipse(cx, cy, 70, 15, 0, 0, SD.TAU)
@@ -161,65 +161,213 @@ function drawVillage (ctx, t) {
   ctx.restore()
 }
 
-// Side effect: Poseidon's temple on the right beach, with its own jetty
-function drawTempleShore (ctx, t) {
-  var cfg = SD.config.world
-  var W = cfg.widthPx
+// Side effect: the Temple Mountain — a headland of rock above the water,
+// hollow below: the passage shade, the rising shaft, and the air-pocket
+// chamber with its own waterline, braziers, and the sanctum on a dry ledge
+function drawMountain (ctx, t) {
+  var mt = SD.config.world.mountain
+  var W = SD.config.world.widthPx
   ctx.save()
 
-  // sand
-  ctx.fillStyle = '#e8d5a3'
+  // the massif above the waterline
+  ctx.fillStyle = '#5c5a4e'
   ctx.beginPath()
-  ctx.moveTo(W, 4)
-  for (var x = W; x >= W - 560; x -= 20) {
-    ctx.lineTo(x, Math.min(SD.floorYAt(x), 4))
-  }
-  ctx.lineTo(W - 560, 4)
+  ctx.moveTo(mt.faceX - 20, 8)
+  ctx.quadraticCurveTo(mt.faceX + 300, -240, mt.faceX + 700, -280)
+  ctx.quadraticCurveTo(41400, -360, 41800, -180)
+  ctx.lineTo(W, -120)
+  ctx.lineTo(W, 8)
   ctx.closePath()
   ctx.fill()
+  ctx.fillStyle = 'rgba(120, 118, 100, 0.5)' // sunlit crags
+  ctx.beginPath()
+  ctx.moveTo(mt.faceX + 240, -120)
+  ctx.quadraticCurveTo(mt.faceX + 480, -250, mt.faceX + 760, -240)
+  ctx.lineTo(mt.faceX + 700, -110)
+  ctx.closePath()
+  ctx.fill()
+  // a few hardy trees on the crown
+  ctx.fillStyle = 'rgba(60, 92, 60, 0.85)'
+  for (var tr = 0; tr < 4; tr++) {
+    var tx = mt.faceX + 500 + tr * 320
+    var ty = -240 - Math.sin(tx * 0.01) * 60
+    ctx.beginPath()
+    ctx.ellipse(tx, ty, 26, 14, 0, 0, SD.TAU)
+    ctx.fill()
+  }
 
-  // temple on the sand: steps, four columns, pediment, gold trident finial
-  var tx = W - 150
-  var ty = SD.floorYAt(W - 150) - 2
-  ctx.fillStyle = MARBLE
-  ctx.fillRect(tx - 96, ty - 10, 192, 10)   // stylobate
-  ctx.fillRect(tx - 108, ty - 4, 216, 6)    // bottom step
-  for (var c = -1.5; c <= 1.5; c++) {
-    ctx.fillRect(tx + c * 52 - 7, ty - 74, 14, 64)
-    ctx.fillRect(tx + c * 52 - 10, ty - 78, 20, 6)
-  }
-  ctx.fillRect(tx - 100, ty - 86, 200, 10)  // architrave
-  ctx.beginPath()                           // pediment
-  ctx.moveTo(tx - 106, ty - 86)
-  ctx.lineTo(tx, ty - 128)
-  ctx.lineTo(tx + 106, ty - 86)
-  ctx.closePath()
-  ctx.fill()
-  ctx.strokeStyle = GOLD                    // trident finial
-  ctx.lineWidth = 3
+  // dim the drowned halls — the passage and chamber live in mountain-shadow
+  ctx.fillStyle = 'rgba(6, 12, 20, 0.42)'
+  ctx.fillRect(mt.faceX, 8, W - mt.faceX, 46 * 32)
+
+  // the pocket: air above its own waterline
+  var air = ctx.createLinearGradient(0, mt.pocketCeilY, 0, mt.pocketSurfaceY)
+  air.addColorStop(0, '#1a140e')
+  air.addColorStop(1, '#3a2c1c')
+  ctx.fillStyle = air
+  ctx.fillRect(mt.pocketX1, mt.pocketCeilY, mt.pocketX2 - mt.pocketX1, mt.pocketSurfaceY - mt.pocketCeilY)
+
+  // the pocket waterline, lapping in the dark
+  ctx.strokeStyle = 'rgba(190, 225, 235, 0.5)'
+  ctx.lineWidth = 2
   ctx.beginPath()
-  ctx.moveTo(tx, ty - 128)
-  ctx.lineTo(tx, ty - 146)
-  ctx.moveTo(tx - 6, ty - 136)
-  ctx.lineTo(tx - 6, ty - 144)
-  ctx.moveTo(tx + 6, ty - 136)
-  ctx.lineTo(tx + 6, ty - 144)
-  ctx.moveTo(tx - 6, ty - 136)
-  ctx.lineTo(tx + 6, ty - 136)
+  for (var wx = mt.pocketX1; wx <= mt.pocketX2; wx += 12) {
+    var wy = mt.pocketSurfaceY + Math.sin(wx * 0.03 + t * 1.8) * 1.8
+    if (wx === mt.pocketX1) ctx.moveTo(wx, wy)
+    else ctx.lineTo(wx, wy)
+  }
   ctx.stroke()
 
-  // temple jetty, over the shallows below the temple hill
-  ctx.strokeStyle = WOOD
-  ctx.lineWidth = 6
-  for (var px = W - 360; px <= W - 240; px += 40) {
+  // the sanctum on the dry ledge, lit by braziers
+  var lx = mt.ledgeX
+  var ly = mt.ledgeY
+  drawShrine(ctx, { x: lx + 60, y: ly + 6 })
+  for (var b = -1; b <= 1; b += 2) {
+    var bx = lx + 60 + b * 95
+    var glow = 0.5 + Math.sin(t * 6 + b) * 0.14
+    ctx.fillStyle = '#6b5030' // the brazier bowl
+    ctx.fillRect(bx - 4, ly - 16, 8, 18)
     ctx.beginPath()
-    ctx.moveTo(px, -12)
-    ctx.lineTo(px, SD.floorYAt(px) - 2)
+    ctx.ellipse(bx, ly - 18, 8, 3.4, 0, 0, SD.TAU)
+    ctx.fill()
+    var fg = ctx.createRadialGradient(bx, ly - 24, 2, bx, ly - 24, 90)
+    fg.addColorStop(0, 'rgba(255, 190, 90, ' + glow + ')')
+    fg.addColorStop(1, 'rgba(255, 190, 90, 0)')
+    ctx.fillStyle = fg
+    ctx.beginPath()
+    ctx.arc(bx, ly - 24, 90, 0, SD.TAU)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(255, 220, 130, 0.9)' // the flame itself
+    ctx.beginPath()
+    ctx.ellipse(bx, ly - 24 - Math.sin(t * 9 + b) * 2, 4, 7 + Math.sin(t * 7 + b) * 2, 0, 0, SD.TAU)
+    ctx.fill()
+  }
+
+  // a faint holy shimmer down the shaft, so the way up can be found
+  var sg = ctx.createLinearGradient(0, mt.pocketSurfaceY, 0, 30 * 32)
+  sg.addColorStop(0, 'rgba(255, 214, 130, 0.16)')
+  sg.addColorStop(1, 'rgba(255, 214, 130, 0)')
+  ctx.fillStyle = sg
+  ctx.fillRect(mt.shaftX1 + 30, mt.pocketSurfaceY, mt.shaftX2 - mt.shaftX1 - 60, 30 * 32 - mt.pocketSurfaceY)
+
+  ctx.restore()
+}
+
+// Side effect: the sunken quarry's cut stone — blocks and half-carved giants
+function drawQuarry (ctx, decor) {
+  var i
+  ctx.save()
+  for (i = 0; i < decor.blocks.length; i++) {
+    var b = decor.blocks[i]
+    ctx.save()
+    ctx.translate(b.x, b.y)
+    ctx.rotate(b.tilt)
+    ctx.fillStyle = MARBLE
+    ctx.fillRect(-b.w / 2, -b.h, b.w, b.h)
+    ctx.strokeStyle = 'rgba(43, 29, 22, 0.3)'
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(-b.w / 2, -b.h, b.w, b.h)
+    ctx.restore()
+  }
+  for (i = 0; i < decor.giants.length; i++) {
+    var g = decor.giants[i]
+    ctx.save()
+    ctx.translate(g.x, g.y)
+    ctx.rotate(g.tilt)
+    ctx.fillStyle = '#c6c0b2'
+    ctx.fillRect(-24, -g.h * 0.55, 48, g.h * 0.55) // the rough-hewn body, still in the stone
+    ctx.beginPath()                                 // the finished head, staring up the slope
+    ctx.arc(0, -g.h * 0.55 - 26, 26, 0, SD.TAU)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(43, 29, 22, 0.35)'
+    ctx.beginPath()                                 // its calm carved eye
+    ctx.arc(-8, -g.h * 0.55 - 30, 3, 0, SD.TAU)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(43, 29, 22, 0.3)'
+    ctx.lineWidth = 2
+    ctx.beginPath()                                 // chisel marks
+    ctx.moveTo(-18, -g.h * 0.2)
+    ctx.lineTo(14, -g.h * 0.26)
+    ctx.moveTo(-16, -g.h * 0.38)
+    ctx.lineTo(16, -g.h * 0.42)
+    ctx.stroke()
+    ctx.restore()
+  }
+  ctx.restore()
+}
+
+// Side effect: a gorgonian fan swaying on the bright bottoms
+function drawFan (ctx, f, t) {
+  ctx.save()
+  ctx.translate(f.x, f.y)
+  ctx.rotate(Math.sin(t * 0.8 + f.phase) * 0.06)
+  ctx.strokeStyle = f.pink ? 'rgba(226, 130, 150, 0.85)' : 'rgba(196, 90, 70, 0.85)'
+  ctx.lineWidth = 2
+  for (var i = -3; i <= 3; i++) {
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.quadraticCurveTo(i * f.h * 0.12, -f.h * 0.6, i * f.h * 0.22, -f.h)
     ctx.stroke()
   }
-  ctx.fillStyle = '#6b4a2c'
-  ctx.fillRect(W - 390, -18, 180, 8)
+  ctx.beginPath()
+  ctx.arc(0, -f.h * 0.55, f.h * 0.55, Math.PI * 1.15, Math.PI * 1.85)
+  ctx.stroke()
+  ctx.restore()
+}
 
+// Side effect: a seahorse holding its patch of meadow
+function drawSeahorse (ctx, s, t) {
+  ctx.save()
+  ctx.translate(s.x, s.y + Math.sin(t * 1.4 + s.phase) * 4)
+  ctx.scale(s.dir, 1)
+  ctx.strokeStyle = '#d8b060'
+  ctx.lineWidth = 3
+  ctx.lineCap = 'round'
+  ctx.beginPath() // curled body
+  ctx.moveTo(0, -8)
+  ctx.quadraticCurveTo(5, -2, 2, 4)
+  ctx.quadraticCurveTo(-1, 8, 2, 10)
+  ctx.stroke()
+  ctx.beginPath() // head + snout
+  ctx.moveTo(0, -8)
+  ctx.quadraticCurveTo(-1, -12, 5, -12)
+  ctx.stroke()
+  ctx.fillStyle = '#241a12'
+  ctx.beginPath()
+  ctx.arc(1, -10, 0.9, 0, SD.TAU)
+  ctx.fill()
+  ctx.restore()
+}
+
+// Side effect: a volcanic vent — dark chimney, shimmering column of rise
+function drawVent (ctx, v, t) {
+  ctx.save()
+  // the chimney
+  ctx.fillStyle = '#1c1712'
+  ctx.beginPath()
+  ctx.moveTo(v.x - 26, v.y + 4)
+  ctx.lineTo(v.x - 9, v.y - 34)
+  ctx.lineTo(v.x + 9, v.y - 34)
+  ctx.lineTo(v.x + 26, v.y + 4)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255, 140, 60, ' + (0.25 + Math.sin(t * 5 + v.phase) * 0.12) + ')'
+  ctx.beginPath()
+  ctx.ellipse(v.x, v.y - 34, 7, 3, 0, 0, SD.TAU)
+  ctx.fill()
+  // the rising water, sketched in bubbles
+  ctx.strokeStyle = 'rgba(230, 245, 250, 0.35)'
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  for (var i = 0; i < 7; i++) {
+    var frac = ((t * 90 + i * 80 + v.phase * 60) % 540)
+    var by = v.y - 36 - frac
+    var bx = v.x + Math.sin(by * 0.03 + i) * (8 + frac * 0.05)
+    var br = 2 + (i % 3)
+    ctx.moveTo(bx + br, by)
+    ctx.arc(bx, by, br, 0, SD.TAU)
+  }
+  ctx.stroke()
   ctx.restore()
 }
 
@@ -333,14 +481,15 @@ function drawSailor (ctx, state, t) {
   ctx.restore()
 }
 
-// Side effect: waterline with little running waves
+// Side effect: waterline with little running waves — the open sea ends
+// where the mountain begins
 function drawWaterline (ctx, t, cam, view) {
   ctx.save()
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)'
   ctx.lineWidth = 2
   ctx.beginPath()
   var x0 = cam.x - 20
-  var x1 = cam.x + view.w + 20
+  var x1 = Math.min(cam.x + view.w + 20, SD.config.world.mountain.faceX + 10)
   for (var x = x0; x <= x1; x += 14) {
     var y = Math.sin(x * 0.02 + t * 1.6) * 2.4
     if (x === x0) ctx.moveTo(x, y)
@@ -1241,9 +1390,183 @@ function drawFishSchool (ctx, school, t) {
   ctx.restore()
 }
 
-// Side effect: one catchable fish — mullet, bream, or grouper
+// Side effect: floating hp pips over a wounded boss
+function drawBossHp (ctx, f, y) {
+  if (f.hp >= f.maxHp) return
+  ctx.save()
+  for (var i = 0; i < f.maxHp; i++) {
+    ctx.fillStyle = i < f.hp ? 'rgba(226, 80, 60, 0.9)' : 'rgba(240, 235, 220, 0.35)'
+    ctx.fillRect(f.x - f.maxHp * 4 + i * 8, y, 6, 5)
+  }
+  ctx.restore()
+}
+
+// Side effect: KARCHARIAS — the great white, twice a shark and angrier
+function drawKarcharias (ctx, f, t) {
+  ctx.save()
+  ctx.translate(f.x, f.y)
+  var dir = f.mode === 'charge' ? (f.vx >= 0 ? 1 : -1) : (Math.cos((f.angle || 0) + Math.PI / 2) >= 0 ? 1 : -1)
+  ctx.scale(dir * 2.3, 2.3)
+  if (f.hurtT > 0) ctx.globalAlpha = 0.6
+  ctx.rotate(Math.sin(f.phase * 2) * 0.03)
+  ctx.fillStyle = f.mode === 'charge' ? '#7a8894' : '#66727e'
+  ctx.beginPath()
+  ctx.moveTo(30, 0)
+  ctx.quadraticCurveTo(12, -11, -14, -8)
+  ctx.lineTo(-26, -15)
+  ctx.quadraticCurveTo(-22, -2, -30, 8)
+  ctx.lineTo(-16, 5)
+  ctx.quadraticCurveTo(6, 10, 30, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.beginPath() // dorsal
+  ctx.moveTo(-2, -9)
+  ctx.lineTo(-9, -22)
+  ctx.lineTo(-14, -8)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#e8e4da' // the white belly
+  ctx.beginPath()
+  ctx.moveTo(28, 1)
+  ctx.quadraticCurveTo(6, 9, -14, 5)
+  ctx.quadraticCurveTo(4, 5, 28, 1)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(200, 60, 50, 0.55)' // old harpoon scars
+  ctx.lineWidth = 1.2
+  ctx.beginPath()
+  ctx.moveTo(2, -7)
+  ctx.lineTo(8, -3)
+  ctx.moveTo(6, -8)
+  ctx.lineTo(11, -4)
+  ctx.stroke()
+  ctx.fillStyle = '#1a1a1a' // dead black eye
+  ctx.beginPath()
+  ctx.arc(20, -3, 2.6, 0, SD.TAU)
+  ctx.fill()
+  // teeth when charging
+  if (f.mode === 'charge' || f.mode === 'windup') {
+    ctx.strokeStyle = '#f4f0e6'
+    ctx.lineWidth = 1.4
+    ctx.beginPath()
+    for (var th = 0; th < 4; th++) {
+      ctx.moveTo(24 + th * 1.6, 1.5)
+      ctx.lineTo(25 + th * 1.6, 4)
+    }
+    ctx.stroke()
+  }
+  ctx.restore()
+  drawBossHp(ctx, f, f.y - 70)
+}
+
+// Side effect: THE KRAKEN — lord of its grotto, all arm and appetite
+function drawKraken (ctx, f, t) {
+  ctx.save()
+  ctx.translate(f.x, f.y)
+  if (f.hurtT > 0) ctx.globalAlpha = 0.65
+  var breathe = Math.sin(t * 1.2 + f.phase) * 3
+  // arms first, writhing
+  ctx.strokeStyle = '#5a2a4e'
+  ctx.lineCap = 'round'
+  for (var i = 0; i < 7; i++) {
+    var a = -0.65 + i * 0.42
+    var wl = 85 + Math.sin(t * 1.6 + i * 1.7) * 18
+    var grab = f.mode === 'grab' && i === 3 ? 26 : 0
+    ctx.lineWidth = 10 - i * 0.6
+    ctx.beginPath()
+    ctx.moveTo(Math.cos(a) * 18, 14)
+    ctx.quadraticCurveTo(
+      Math.cos(a) * (wl * 0.6), 30 + Math.sin(t * 2 + i) * 10,
+      Math.cos(a) * wl, 40 + Math.sin(t * 1.3 + i * 2) * 14 - grab
+    )
+    ctx.stroke()
+  }
+  // mantle
+  ctx.fillStyle = '#6e3860'
+  ctx.beginPath()
+  ctx.ellipse(0, -8, 34 + breathe, 42, 0, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#7e4870'
+  ctx.beginPath()
+  ctx.ellipse(-8, -20, 18, 22, -0.2, 0, SD.TAU)
+  ctx.fill()
+  // the great eye, tracking you
+  ctx.fillStyle = '#e8c86a'
+  ctx.beginPath()
+  ctx.arc(10, -6, 10, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#180c20'
+  ctx.beginPath()
+  ctx.ellipse(12, -6, 4, 6.5, 0, 0, SD.TAU)
+  ctx.fill()
+  ctx.restore()
+  drawBossHp(ctx, f, f.y - 78)
+}
+
+// Side effect: KETOS — the roaming leviathan, drawn as a wake of coils
+function drawKetos (ctx, f, t) {
+  var dir = f.vx >= 0 ? 1 : -1
+  ctx.save()
+  if (f.hurtT > 0) ctx.globalAlpha = 0.65
+  ctx.fillStyle = '#22424e'
+  // trailing coils
+  for (var s = 1; s <= 4; s++) {
+    var sx = f.x - dir * s * 58
+    var sy = f.y + Math.sin(f.phase * 2 - s * 1.2) * 22
+    ctx.beginPath()
+    ctx.ellipse(sx, sy, 30 - s * 4, 20 - s * 2.6, Math.sin(f.phase - s) * 0.2, 0, SD.TAU)
+    ctx.fill()
+  }
+  // head
+  ctx.save()
+  ctx.translate(f.x, f.y)
+  ctx.scale(dir, 1)
+  ctx.fillStyle = '#2a5260'
+  ctx.beginPath()
+  ctx.moveTo(52, 0)
+  ctx.quadraticCurveTo(30, -26, -10, -20)
+  ctx.quadraticCurveTo(-26, 0, -10, 20)
+  ctx.quadraticCurveTo(30, 24, 52, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = '#1a3640' // ridge fins
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(-6, -20)
+  ctx.lineTo(2, -34)
+  ctx.moveTo(10, -18)
+  ctx.lineTo(18, -30)
+  ctx.stroke()
+  ctx.fillStyle = '#c9a227' // lamp of an eye
+  ctx.beginPath()
+  ctx.arc(28, -6, 5, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = '#0e0a08'
+  ctx.beginPath()
+  ctx.arc(29.5, -6, 2.2, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = '#e8e4d6' // a mouthful of trouble
+  ctx.lineWidth = 1.6
+  ctx.beginPath()
+  for (var th = 0; th < 5; th++) {
+    ctx.moveTo(34 + th * 3.4, 6)
+    ctx.lineTo(36 + th * 3.4, 11)
+  }
+  ctx.stroke()
+  ctx.restore()
+  ctx.restore()
+  drawBossHp(ctx, f, f.y - 64)
+}
+
+// Side effect: one catchable fish — mullet, bream, or grouper — or a boss
 function drawFauna (ctx, f, t) {
   if (f.taken) return
+  if (f.boss) {
+    if (f.kind === 'karcharias') drawKarcharias(ctx, f, t)
+    else if (f.kind === 'kraken') drawKraken(ctx, f, t)
+    else drawKetos(ctx, f, t)
+    return
+  }
   var cfg = SD.config.fauna[f.kind]
   var dir = f.vx >= 0 ? 1 : -1
   var r = cfg.r
@@ -1654,20 +1977,23 @@ function drawDiver (ctx, state, t) {
   leg(-1)
 
   // the kamaki rides slung across the back until it's needed
-  if (state.upgrades.kamaki > 0 && !(p.spearFlash > 0)) {
-    ctx.strokeStyle = '#6b4a26'
-    ctx.lineWidth = 2.2
+  // (the Trident of Poseidon, once claimed, rides there instead)
+  if ((state.upgrades.kamaki > 0 || state.tridentClaimed) && !(p.spearFlash > 0)) {
+    ctx.strokeStyle = state.tridentClaimed ? '#8a6d1c' : '#6b4a26'
+    ctx.lineWidth = state.tridentClaimed ? 2.8 : 2.2
     ctx.beginPath()
     ctx.moveTo(-21, -4)
     ctx.lineTo(17, -11)
     ctx.stroke()
-    ctx.strokeStyle = '#c9c2b4'
-    ctx.lineWidth = 1.4
+    ctx.strokeStyle = state.tridentClaimed ? GOLD : '#c9c2b4'
+    ctx.lineWidth = state.tridentClaimed ? 1.8 : 1.4
     ctx.beginPath()
     ctx.moveTo(17, -11)
-    ctx.lineTo(21.5, -12)
+    ctx.lineTo(21.5, -12.5)
     ctx.moveTo(17, -11)
-    ctx.lineTo(21, -10)
+    ctx.lineTo(22, -10.8)
+    ctx.moveTo(17, -11)
+    ctx.lineTo(21, -9.2)
     ctx.stroke()
   }
 
@@ -1708,6 +2034,14 @@ function drawDiver (ctx, state, t) {
       }
     }
     ctx.globalAlpha = 1
+  }
+
+  // Karcharias' hide, worn as a wetsuit across the torso
+  if (state.relics.hide) {
+    ctx.fillStyle = 'rgba(56, 70, 82, 0.5)'
+    ctx.beginPath()
+    ctx.ellipse(-1, 0, 10.5, shoulder * 0.78, 0, 0, SD.TAU)
+    ctx.fill()
   }
 
   // terracotta perizoma at the hips
@@ -1800,27 +2134,35 @@ function drawDiver (ctx, state, t) {
       ctx.closePath()
       ctx.fill()
     }
-    // the kamaki, driven forward on a strike
+    // the kamaki, driven forward on a strike — golden, once the Trident is yours
     if (p.spearFlash > 0) {
       var sx = 26.5
       var sy = -3 + reachWobble * 0.4
       var ext = 30 + (0.35 - p.spearFlash) * 40
-      ctx.strokeStyle = '#6b4a26'
-      ctx.lineWidth = 2.4
+      ctx.strokeStyle = state.tridentClaimed ? '#8a6d1c' : '#6b4a26'
+      ctx.lineWidth = state.tridentClaimed ? 3 : 2.4
       ctx.beginPath()
       ctx.moveTo(sx - 10, sy + 2)
       ctx.lineTo(sx + ext, sy)
       ctx.stroke()
-      ctx.strokeStyle = '#e8e2d4'
-      ctx.lineWidth = 1.6
+      ctx.strokeStyle = state.tridentClaimed ? GOLD : '#e8e2d4'
+      ctx.lineWidth = 1.8
       ctx.beginPath()
       ctx.moveTo(sx + ext, sy)
-      ctx.lineTo(sx + ext + 6, sy - 2.4)
+      ctx.lineTo(sx + ext + 7, sy - 3)
       ctx.moveTo(sx + ext, sy)
-      ctx.lineTo(sx + ext + 7, sy)
+      ctx.lineTo(sx + ext + 8.5, sy)
       ctx.moveTo(sx + ext, sy)
-      ctx.lineTo(sx + ext + 6, sy + 2.4)
+      ctx.lineTo(sx + ext + 7, sy + 3)
       ctx.stroke()
+      if (state.tridentClaimed) { // the god's own crackle
+        ctx.strokeStyle = 'rgba(126, 228, 255, ' + (p.spearFlash * 1.6).toFixed(2) + ')'
+        ctx.lineWidth = 5
+        ctx.beginPath()
+        ctx.moveTo(sx, sy)
+        ctx.lineTo(sx + ext + 6, sy)
+        ctx.stroke()
+      }
     }
   }
 
@@ -2020,6 +2362,15 @@ function drawDarkness (ctx, state, view, cam, zoom) {
   for (var hM = 0; hM < hoard.length; hM++) {
     punch(hoard[hM].x, hoard[hM].y - hoard[hM].h, 60, 0.4)
   }
+  // the braziers of the mountain sanctum, and the glow down its shaft
+  var mt = SD.config.world.mountain
+  punch(mt.ledgeX + 60, mt.ledgeY - 30, 240, 0.85)
+  punch((mt.shaftX1 + mt.shaftX2) / 2, 20 * 32, 130, 0.5)
+  // the vents glow faintly from below
+  var vents = state.world.dangers.vents
+  for (var vI = 0; vI < vents.length; vI++) {
+    punch(vents[vI].x, vents[vI].y - 30, 90, 0.5)
+  }
 
   ctx.drawImage(darkCanvas, 0, 0)
 }
@@ -2049,14 +2400,28 @@ SD.render = function (state, ctx, view, zoom) {
   drawGodrays(ctx, t, cam, wv)
   drawFloor(ctx, cam, wv)
   drawVillage(ctx, t)
-  drawTempleShore(ctx, t)
 
   var i
   var decor = w.decor
   for (i = 0; i < decor.columns.length; i++) drawColumn(ctx, decor.columns[i])
-  drawWreck(ctx, decor.wreck)
+  for (i = 0; i < decor.wrecks.length; i++) {
+    var wr = decor.wrecks[i]
+    if (wr.x < cam.x - 300 || wr.x > cam.x + wv.w + 300) continue
+    drawWreck(ctx, wr)
+  }
+  drawQuarry(ctx, decor)
+  for (i = 0; i < decor.fans.length; i++) {
+    var fan = decor.fans[i]
+    if (fan.x < cam.x - 80 || fan.x > cam.x + wv.w + 80) continue
+    drawFan(ctx, fan, t)
+  }
   drawHoard(ctx, decor.hoard, t)
   drawShrine(ctx, decor.shrine)
+  for (i = 0; i < w.dangers.vents.length; i++) {
+    var vent = w.dangers.vents[i]
+    if (vent.x < cam.x - 120 || vent.x > cam.x + wv.w + 120) continue
+    drawVent(ctx, vent, t)
+  }
 
   for (i = 0; i < w.rocks.length; i++) {
     var r = w.rocks[i]
@@ -2107,6 +2472,13 @@ SD.render = function (state, ctx, view, zoom) {
   for (i = 0; i < w.dangers.sharks.length; i++) drawShark(ctx, w.dangers.sharks[i], t)
   if (w.dangers.poseidon) drawPoseidon(ctx, w.dangers.poseidon, t)
 
+  for (i = 0; i < decor.seahorses.length; i++) {
+    var sh = decor.seahorses[i]
+    if (sh.x < cam.x - 60 || sh.x > cam.x + wv.w + 60) continue
+    drawSeahorse(ctx, sh, t)
+  }
+
+  if (cam.x + wv.w > SD.config.world.mountain.faceX - 600) drawMountain(ctx, t)
   if (state.mode !== 'blackout' && !state.player.aboard) drawDiver(ctx, state, t)
   drawBubbles(ctx, state.effects.bubbles)
   drawWaterline(ctx, t, cam, wv)

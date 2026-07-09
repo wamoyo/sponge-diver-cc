@@ -18,7 +18,8 @@ function newState () {
     drachmae: 0,
     xp: 0,
     training: { apnea: 0, stroke: 0, discipline: 0 },
-    upgrades: { fins: 0, stone: 0, light: 0, net: 0, knife: 0, kamaki: 0, charm: 0, boat: 0, favor: 0 },
+    upgrades: { fins: 0, stone: 0, light: 0, net: 0, knife: 0, kamaki: 0, charm: 0, boat: 0, sail: 0, favor: 0 },
+    relics: { hide: false, feast: false, feastPending: false }, // what the bosses owed you
     tridentClaimed: false,
     bottleRead: false,
     stats: { dives: 0, blackouts: 0, earned: 0, deepest: 0, items: 0 },
@@ -109,7 +110,8 @@ function updateFish (state, dt) {
     var s = schools[i]
     s.x += s.dir * s.speed * dt
     if (s.x < 380) { s.x = 380; s.dir = 1 }
-    if (s.x > SD.config.world.widthPx - 380) { s.x = SD.config.world.widthPx - 380; s.dir = -1 }
+    var eastEnd = SD.config.world.mountain.faceX - 400
+    if (s.x > eastEnd) { s.x = eastEnd; s.dir = -1 }
     // read the bottom ahead; shy away from rising ground
     var aheadY = SD.floorYAt(s.x + s.dir * 90)
     if (s.y > aheadY - 60) {
@@ -204,15 +206,17 @@ function toggleMute () {
 var resetBtnArmed = false
 
 // Pure: true when the surfaced player is inside a shore zone
+// (surfaced relative to the LOCAL waterline — the pocket counts)
 function inZone (zone) {
   var p = state.player
-  var surfaced = p.y < SD.config.pxPerM * 0.4
+  var surfaced = p.y < SD.surfaceYAt(p.x) + SD.config.pxPerM * 0.4
   return surfaced && Math.abs(p.x - zone.x) < zone.radius
 }
 
 // Side effect: nudges the zoom target, clamped to sane bounds
+// (0.04 fits the entire 1.3 km sea on one screen)
 function adjustZoom (factor) {
-  state.zoomTarget = SD.clamp(state.zoomTarget * factor, 0.15, 1.6)
+  state.zoomTarget = SD.clamp(state.zoomTarget * factor, 0.04, 1.6)
 }
 
 // Side effect: flips dev mode — godlike stats for exploring the world

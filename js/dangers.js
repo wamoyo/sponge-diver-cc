@@ -6,8 +6,9 @@
 var SD = window.SD || {}
 window.SD = SD
 
-// Side effect: applies a sting to the player — breath loss, knockback, flash, toast
-function applySting (state, amount, fromX, fromY, label, knock) {
+// Side effect: applies a sting to the player — breath loss, knockback, flash,
+// toast. Shared with the boss fights in fauna.js, hence public.
+SD.applySting = function (state, amount, fromX, fromY, label, knock) {
   var p = state.player
   if (p.invuln > 0 || state.devMode) return
   var resisted = amount * (1 - SD.stingResist(state))
@@ -25,6 +26,7 @@ function applySting (state, amount, fromX, fromY, label, knock) {
   SD.audio.sting()
   SD.hud.toast(label + '  −' + Math.round(resisted * 10) / 10 + ' s', 'warn')
 }
+var applySting = SD.applySting
 
 // Side effect: a shark bite also knocks one item out of the net bag
 function sharkBite (state, shark, cfg) {
@@ -217,6 +219,14 @@ SD.updateDangers = function (state, dt, interactive) {
       var c = w.currents[i]
       if (p.x > c.x && p.x < c.x + c.w && p.y > c.y && p.y < c.y + c.h) {
         p.vx += c.force * dt
+      }
+    }
+
+    // --- Hephaestus' Vents: columns of rising water off the volcanic shelf ---
+    for (i = 0; i < w.dangers.vents.length; i++) {
+      var v = w.dangers.vents[i]
+      if (Math.abs(p.x - v.x) < 46 && p.y < v.y && p.y > v.y - 560) {
+        p.vy -= SD.config.ventsUpdraft * dt // the sea itself throws you upward
       }
     }
   }

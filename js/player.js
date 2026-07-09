@@ -68,10 +68,12 @@ SD.updatePlayer = function (state, input, dt) {
   if (Math.abs(ix) < 0.05) p.vx *= Math.exp(-4.2 * dt)
   if (Math.abs(iy) < 0.05) p.vy *= Math.exp(-4.2 * dt)
 
-  // gentle buoyancy, stronger right under the waterline
-  if (p.y > 0 && iy <= 0.05) {
+  // gentle buoyancy, stronger right under the local waterline
+  // (inside the mountain, the air pocket has its own surface)
+  var surfY = SD.surfaceYAt(p.x)
+  if (p.y > surfY && iy <= 0.05) {
     p.vy -= cfg.buoyancy * dt
-    if (p.y < pxPerM * 1.2 && Math.abs(iy) < 0.05) p.vy -= 60 * dt
+    if (p.y < surfY + pxPerM * 1.2 && Math.abs(iy) < 0.05) p.vy -= 60 * dt
   }
 
   // clamp speed as a true VECTOR — swimming diagonally splits your effort,
@@ -101,8 +103,8 @@ SD.updatePlayer = function (state, input, dt) {
     p.y = floorY - cfg.radius
     if (p.vy > 0) p.vy = 0
   }
-  if (p.y < 0) {
-    p.y = Math.max(p.y, -6) // bobbing at the waterline, never airborne
+  if (p.y < surfY) {
+    p.y = Math.max(p.y, surfY - 6) // bobbing at the waterline, never airborne
     if (p.vy < -30) p.vy = -30
   }
 
@@ -120,7 +122,7 @@ SD.updatePlayer = function (state, input, dt) {
   }
 
   // --- breath: 1 s/s, plus the squeeze of depth, plus panic when low ---
-  var under = p.y > pxPerM * 0.4
+  var under = p.y > surfY + pxPerM * 0.4
   var maxBreath = SD.maxBreath(state)
   var depthNow = SD.depthM(p.y)
   if (under) {
@@ -214,7 +216,8 @@ SD.sellCatch = function (state, items, sourceLabel) {
   return total
 }
 
-// Side effect: sells the bag when the diver reaches the home dock waters
+// Side effect: sells the bag when the diver reaches the home dock waters.
+// If a slain kraken is owed to Billy, the whole village eats first.
 function updateDockSelling (state, dt) {
   var p = state.player
   var dock = SD.config.world.dock
@@ -222,6 +225,14 @@ function updateDockSelling (state, dt) {
   if (!inZone) {
     state.sellCooldown = 0
     return
+  }
+  if (state.relics.feastPending) {
+    state.relics.feastPending = false
+    state.relics.feast = true
+    SD.audio.fanfare()
+    SD.hud.toast("🐙 Billy's Famous Grilled Kraken — the village feasts! +400 xp, and you swim 8% faster, forever", 'big')
+    SD.awardXp(state, 400)
+    SD.saveGame(state)
   }
   state.sellCooldown = (state.sellCooldown || 0) - dt
   if (state.sellCooldown > 0) return
@@ -319,15 +330,19 @@ function takeLoot (state, item) {
     return
   }
 
-  p.bag.push(item.type)
-
   if (item.type === 'trident') {
+    // a relic, not cargo: it never enters the bag and never leaves you
     state.tridentClaimed = true
     SD.audio.fanfare()
-    SD.hud.toast('🔱 The Trident of Poseidon! The god watches you take it.', 'big')
+    SD.hud.toast('🔱 THE TRIDENT OF POSEIDON — your spear now strikes as three', 'big')
     SD.awardXp(state, info.xp)
     SD.saveGame(state)
-  } else if (info.offering) {
+    return
+  }
+
+  p.bag.push(item.type)
+
+  if (info.offering) {
     SD.awardXp(state, info.xp) // a hunt teaches; tribute never reaches the fishmonger
     SD.audio.pickup()
     SD.hud.toast('+ ' + info.name + ' — tribute (+' + info.xp + ' xp)')
@@ -352,8 +367,6 @@ SD.startBlackout = function (state) {
   var kept = []
   if (state.upgrades.favor > 0) {
     kept = p.bag // Poseidon holds your net closed
-  } else if (p.bag.indexOf('trident') !== -1) {
-    kept = ['trident'] // even unconscious, your hands will not open
   }
   state.blackoutKept = kept
 

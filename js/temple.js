@@ -37,10 +37,11 @@ SD.temple = (function () {
     return out
   }
 
-  // Pure: true when the kaiki is anchored close enough for the priests to unload her
+  // Pure: true when the kaiki is anchored at the mountain's face — near
+  // enough; the god knows his own, even through the rock
   function boatAtTemple (state) {
     return SD.hasBoat(state) &&
-      Math.abs(state.boat.x - SD.config.world.temple.x) < SD.config.world.temple.radius + 120
+      Math.abs(state.boat.x - SD.config.world.mountain.faceX) < 500
   }
 
   // Pure: every tribute item within the god's reach — in the net, or in the

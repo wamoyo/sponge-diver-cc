@@ -1,15 +1,18 @@
 # Σφουγγαράς — Sponge Diver
 
 Ancient-Greece-themed freediving game. You're a Kalymnos sponge diver in a
-fixed, learnable sea that runs shore to shore — a real geography with named
-places: the Village Shallows, the long rolling Sponge Grounds (hills and
-15–20 m dips, one of them hiding the Divers' Cave and its primo fino
-sponges), the Kelp Forest wall, the Drop-Off, Poseidon's Trench, and — the
-old divers only whisper about the far side. Gather sponges off the rocks,
-sell at the dock, level up, buy gear and a boat, spear fish as tribute for
-the god, and go deeper. At the very bottom, at world-record depth (130 m),
-Poseidon himself stands guard over a hoard of gold, a treasure chest too
-heavy for a beginner's net, and his own trident.
+fixed, learnable sea ~1.3 km across — a real geography, west to east: the
+Village Shallows · the rolling Sponge Grounds and the winding Divers' Cave ·
+the Seagrass Meadows · the great Kelp Forest and the 80 m Kelp Well beneath
+it · the Pearl Banks · the Sunken Marble Quarry · the Graveyard of Ships
+(Karcharias hunts here) · Hephaestus' Vents · POSEIDON'S PLAIN, a flat
+135 m arena where the god guards his hoard · the Kraken's Grotto · the
+Eastern Rise · Aphrodite's Lagoon and its Blue Hole · and the hollow Temple
+Mountain, whose sanctum sits beside an air pocket you surface into from an
+underwater passage. Sell treasure at the dock; spear fish as tribute; slay
+the boss cast for relics: the Trident (your spear strikes as three),
+Karcharias' hide (half damage forever), and the Kraken — which Billy grills
+for the whole village (+XP, +8% swim speed, forever).
 
 ## Run it
 

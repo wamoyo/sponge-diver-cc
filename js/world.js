@@ -1,7 +1,11 @@
 // Σφουγγαράς — Sponge Diver
-// The dive site. Generated ONCE from a fixed seed — the sea is a real place
-// with two shores: the village dock on the left, Poseidon's temple on the
-// right, and a 130 m abyssal vault between them. Loot regrows on timers.
+// The sea itself. Generated ONCE from a fixed seed — ~1.3 km of coast-to-
+// mountain geography: the village, the rolling Sponge Grounds and their
+// winding cave, the Seagrass Meadows, the great Kelp Forest and its 80 m
+// well, the Pearl Banks, the Sunken Quarry, the Graveyard of Ships,
+// Hephaestus' Vents, Poseidon's Plain, the Kraken's Grotto, the Eastern
+// Rise, Aphrodite's Lagoon with the Blue Hole, and the hollow Temple
+// Mountain. Loot regrows on timers; the geography never changes.
 
 var SD = window.SD || {}
 window.SD = SD
@@ -28,8 +32,13 @@ SD.floorYAt = function (x) {
   return SD.floorDepthAt(x) * SD.config.pxPerM
 }
 
-// Pure: rocks resting on the seafloor — boulders sunk a little into the sand,
-// with occasional stacked pairs. No floating boulders; this is a real sea.
+// Pure: true when x lies in a named zone range {x1, x2}
+function inRange (x, zone) {
+  return x >= zone.x1 && x <= zone.x2
+}
+
+// Pure: rocks resting on the seafloor — boulders sunk a little into the
+// sand, stacked pairs, wall ledges, arena cover, and the hollow mountain.
 function makeRocks (rng) {
   var cfg = SD.config.world
   var rocks = []
@@ -41,11 +50,11 @@ function makeRocks (rng) {
     return rock
   }
 
-  // sponge-bed boulders on both shore slopes (floor 3–22 m) — sponge hosts
+  // sponge-host boulders wherever the bottom is shallow (3–22 m)
   var i, x
-  for (i = 0; i < 26; i++) {
+  for (i = 0; i < 85; i++) {
     for (var tries = 0; tries < 30; tries++) {
-      x = SD.rngRange(rng, 250, cfg.widthPx - 250)
+      x = SD.rngRange(rng, 250, 39500)
       var m = SD.floorDepthAt(x)
       if (m >= 3 && m <= 22) break
     }
@@ -55,72 +64,181 @@ function makeRocks (rng) {
     }
   }
 
-  // mid-depth field boulders (floor 24–95 m) — eel homes, urchin perches
-  for (i = 0; i < 22; i++) {
+  // mid-depth field boulders (24–100 m) — eel homes, urchin perches
+  for (i = 0; i < 70; i++) {
     for (var t2 = 0; t2 < 30; t2++) {
-      x = SD.rngRange(rng, 400, cfg.widthPx - 400)
+      x = SD.rngRange(rng, 9000, 37000)
       var m2 = SD.floorDepthAt(x)
-      if (m2 >= 24 && m2 <= 95) break
+      if (m2 >= 24 && m2 <= 100) break
     }
     drop(x, SD.rngRange(rng, 40, 88))
   }
 
-  // trench-wall ledges — big boulders sunk deep into the steep slopes
-  for (i = 0; i < 8; i++) {
-    var side = i % 2 === 0 ? -1 : 1
-    x = cfg.vaultX + side * SD.rngRange(rng, 220, 520)
+  // the plain's walls — buried ledge boulders down both descents
+  for (i = 0; i < 6; i++) {
+    x = SD.rngRange(rng, 28100, 28700)
     var lr = SD.rngRange(rng, 60, 100)
-    rocks.push({ x: x, y: SD.floorYAt(x) - lr * 0.3, r: lr }) // buried, not perched
+    rocks.push({ x: x, y: SD.floorYAt(x) - lr * 0.3, r: lr })
+    x = SD.rngRange(rng, 32500, 33300)
+    var lr2 = SD.rngRange(rng, 60, 100)
+    rocks.push({ x: x, y: SD.floorYAt(x) - lr2 * 0.3, r: lr2 })
   }
 
-  // a couple of giants on the vault floor itself
-  drop(cfg.vaultX - SD.rngRange(rng, 300, 360), SD.rngRange(rng, 70, 95))
-  drop(cfg.vaultX + SD.rngRange(rng, 300, 360), SD.rngRange(rng, 70, 95))
+  // arena cover on Poseidon's Plain — something to dodge behind at speed
+  drop(29300, 95)
+  drop(29900, 75)
+  drop(31200, 90)
+  drop(31900, 80)
+
+  // the grotto's brow — a heavy roof over the Kraken's slot
+  rocks.push({ x: cfg.grottoX - 130, y: SD.floorYAt(cfg.grottoX - 160) - 60, r: 95 })
+  rocks.push({ x: cfg.grottoX + 140, y: SD.floorYAt(cfg.grottoX + 170) - 55, r: 90 })
+  rocks.push({ x: cfg.grottoX + 10, y: (92 * SD.config.pxPerM) - 40, r: 85 }) // the lintel over the den
 
   return rocks
 }
 
-// Pure: the sponge cave — a boulder dome over the deepest dip of the sponge
-// grounds, mouth on the right, primo fino sponges and a certain bottle inside.
+// Pure: the winding Divers' Cave — staggered ledges over the deep slot in
+// the sponge grounds force a zig-zag descent into the fino chamber.
 function makeCave () {
   var cx = SD.config.world.caveX
-  var floorY = SD.floorYAt(cx)
+  var floorY = SD.floorYAt(cx) // ~33 m at the slot bottom
+  var lipY = 17 * 32           // the surrounding ground
   return {
     x: cx,
-    y: floorY - 95,
-    r: 130,
+    y: (floorY + lipY) / 2,
+    r: 210,
     rocks: [
-      { x: cx - 150, y: floorY - 30, r: 70 },   // left base
-      { x: cx - 112, y: floorY - 128, r: 64 },  // left shoulder
-      { x: cx - 8, y: floorY - 182, r: 76 },    // crown
-      { x: cx + 118, y: floorY - 155, r: 52 },  // right shoulder
-      { x: cx + 168, y: floorY - 16, r: 46 }    // right base — the mouth gapes between these two
+      // the roof over the slot, leaving a mouth on the left
+      { x: cx + 40, y: lipY - 10, r: 95 },
+      { x: cx + 155, y: lipY + 15, r: 75 },
+      // staggered ledges: left wall, then right, then left — the winding way
+      { x: cx - 130, y: lipY + 130, r: 70 },
+      { x: cx + 120, y: lipY + 250, r: 78 },
+      { x: cx - 115, y: lipY + 390, r: 72 }
     ],
     finoSpots: [
-      { x: cx - 72, y: floorY - 10 },
-      { x: cx - 22, y: floorY - 8 },
-      { x: cx + 34, y: floorY - 12 },
-      { x: cx - 92, y: floorY - 92 },
-      { x: cx + 4, y: floorY - 118 },
-      { x: cx + 66, y: floorY - 98 }
+      { x: cx - 55, y: floorY - 10 },
+      { x: cx - 5, y: floorY - 8 },
+      { x: cx + 55, y: floorY - 12 },
+      { x: cx - 90, y: floorY - 60 },
+      { x: cx + 90, y: floorY - 70 },
+      { x: cx + 30, y: floorY - 130 },
+      { x: cx - 40, y: floorY - 190 },
+      { x: cx + 70, y: floorY - 240 }
     ],
-    bottleSpot: { x: cx - 40, y: floorY - 14 }
+    bottleSpot: { x: cx + 8, y: floorY - 14 }
   }
 }
 
-// Pure: the kelp forest — one true forest on the flat shelf, rooted in the
-// sand, growing all the way to the surface. You swim through it slowly,
-// or you buy a boat and sail over the canopy like a civilized person.
+// Pure: ledge rocks that make the Kelp Well and the Blue Hole into winding
+// descents rather than open elevator shafts, plus their treasure spots.
+function makeShafts () {
+  var w = SD.config.world
+  var out = { rocks: [], wellLoot: [], holeLoot: [] }
+
+  // the Kelp Well: dark, narrow, ~80 m
+  var wx = w.kelpWellX
+  out.rocks.push(
+    { x: wx - 95, y: 30 * 32, r: 62 },
+    { x: wx + 95, y: 44 * 32, r: 66 },
+    { x: wx - 90, y: 58 * 32, r: 60 },
+    { x: wx + 85, y: 70 * 32, r: 58 }
+  )
+  var wellFloor = SD.floorYAt(wx)
+  out.wellLoot = [
+    { type: 'laurel', x: wx - 40, y: wellFloor - 12 },
+    { type: 'laurel', x: wx + 45, y: wellFloor - 10 },
+    { type: 'statue', x: wx + 4, y: wellFloor - 16 }
+  ]
+
+  // the Blue Hole: bright turquoise shaft in the lagoon, ~65 m
+  var bx = w.blueHoleX
+  out.rocks.push(
+    { x: bx - 100, y: 20 * 32, r: 58 },
+    { x: bx + 100, y: 34 * 32, r: 60 },
+    { x: bx - 92, y: 48 * 32, r: 56 }
+  )
+  var holeFloor = SD.floorYAt(bx)
+  out.holeLoot = [
+    { type: 'oyster', x: bx - 35, y: holeFloor - 10 },
+    { type: 'oyster', x: bx + 40, y: holeFloor - 12 },
+    { type: 'helmet', x: bx + 5, y: holeFloor - 14 },
+    { type: 'laurel', x: bx - 70, y: holeFloor - 40 }
+  ]
+
+  return out
+}
+
+// Pure: the hollow Temple Mountain — a rock massif from above the waterline
+// down to a low passage along the seafloor; a shaft rises through the body
+// into the air-pocket chamber where the temple stands on a dry ledge.
+function makeMountain () {
+  var mt = SD.config.world.mountain
+  var rocks = []
+
+  // Side effect on rocks: convenience
+  function put (x, y, r) { rocks.push({ x: x, y: y, r: r }) }
+
+  // the west face — a cliff from above the water down to the mouth at ~13 m;
+  // the way in yawns between the cliff's foot and the seafloor
+  put(mt.faceX + 40, -170, 150)
+  put(mt.faceX + 45, 90, 130)
+  put(mt.faceX + 55, 290, 115) // cliff foot ends ~12.5 m; the mouth is below
+
+  // the crown, above the waterline
+  for (var cx = mt.faceX + 250; cx < 41950; cx += 280) {
+    put(cx, -190 - Math.sin(cx * 0.01) * 70, 200)
+  }
+
+  // body over the gallery, west of the pocket — the ceiling steps down as
+  // the floor falls away, a long dark hall descending under the rock
+  for (var bx = mt.faceX + 260; bx < mt.shaftX1 - 60; bx += 220) {
+    put(bx, 150, 145)
+    put(bx + 90, 440, 130)
+    if (bx > mt.faceX + 450) put(bx + 30, 690, 115)
+  }
+
+  // the pocket chamber: thin ceiling, bowl floor, dry ledge — shaft gap on the west
+  for (var px = mt.pocketX1 + 40; px < mt.pocketX2 - 20; px += 150) {
+    put(px, -45, 85) // ceiling above the air
+  }
+  for (var fx = mt.shaftX2 + 60; fx < mt.pocketX2 - 90; fx += 130) {
+    put(fx, 540, 95) // the bowl floor under the pocket water
+  }
+  put(mt.ledgeX + 70, 250, 95)   // the dry ledge the temple stands on
+  put(mt.ledgeX + 210, 235, 85)
+  put(mt.pocketX2 - 10, 120, 110) // east wall of the chamber
+  put(mt.pocketX2 - 20, 420, 105)
+
+  // body below/east of the pocket, down to the passage ceiling
+  for (var dx = mt.shaftX2 + 40; dx < 41950; dx += 210) {
+    put(dx, 690, 120)
+  }
+  put(41950, 200, 140)
+  put(41980, 520, 130)
+
+  return rocks
+}
+
+// Pure: the kelp forest — 5 km of stalks with hidden clearings, rooted in
+// the sand, grown to the surface. The Well's mouth hides in a clearing.
 function makeKelp (rng) {
   var cfg = SD.config.world
   var kcfg = SD.config.dangers.kelp
   var kelp = []
+  var clearings = [10250, cfg.kelpWellX, 12900] // glades in the weeds
   var span = cfg.kelpX2 - cfg.kelpX1
   for (var s = 0; s < kcfg.stalks; s++) {
-    if (rng() < kcfg.gapChance) continue // small clearings to catch your breath
+    if (rng() < kcfg.gapChance) continue // small gaps to catch your breath
     var sx = cfg.kelpX1 + (s / kcfg.stalks) * span + SD.rngRange(rng, -14, 14)
+    var clear = false
+    for (var c = 0; c < clearings.length; c++) {
+      if (Math.abs(sx - clearings[c]) < 170) clear = true
+    }
+    if (clear) continue
     var baseY = SD.floorYAt(sx)
-    // top ends at the surface or just short of it; a few fronds break water
+    if (baseY > 24 * 32) continue // no kelp down the Well
     var topY = SD.rngRange(rng, -6, 60)
     kelp.push({
       x: sx,
@@ -130,11 +248,11 @@ function makeKelp (rng) {
       sway: SD.rngRange(rng, 4, 8) + baseY * 0.012
     })
   }
-  // stray patches on the temple slope, where the bottom is still shallow
-  for (var p = 0; p < 10; p++) {
-    var px = SD.rngRange(rng, cfg.temple.x - 220, cfg.temple.x + 30)
+  // stray fringe on the lagoon's west edge
+  for (var p = 0; p < 12; p++) {
+    var px = SD.rngRange(rng, 37000, 37500)
     var pm = SD.floorDepthAt(px)
-    if (pm < 6 || pm > 24) continue
+    if (pm < 5 || pm > 20) continue
     kelp.push({
       x: px,
       baseY: SD.floorYAt(px),
@@ -146,39 +264,76 @@ function makeKelp (rng) {
   return kelp
 }
 
-// Pure: the animals of the sea — they wander their depth bands and flee
-// the spear. Caught ones respawn elsewhere after a while.
+// Pure: the animals of the sea — fish everywhere the depth suits them,
+// a bonus crowd in Aphrodite's Lagoon, and the boss cast in their lairs.
 function makeFauna (rng) {
   var cfg = SD.config.world
   var out = []
-  for (var kind in SD.config.fauna) {
+
+  // Side effect on out: one fish of a kind near x (or anywhere suitable)
+  function spawnFish (kind, forceX1, forceX2) {
     var f = SD.config.fauna[kind]
-    for (var i = 0; i < f.count; i++) {
-      var fx = 0
-      var fd = 0
-      for (var tries = 0; tries < 50; tries++) {
-        fx = SD.rngRange(rng, 350, cfg.widthPx - 350)
-        var fmax = Math.min(f.maxM, SD.floorDepthAt(fx) - 3)
-        if (fmax > f.minM) {
-          fd = SD.rngRange(rng, f.minM, fmax)
-          break
-        }
+    var fx = 0
+    var fd = 0
+    for (var tries = 0; tries < 60; tries++) {
+      fx = forceX1 ? SD.rngRange(rng, forceX1, forceX2) : SD.rngRange(rng, 350, 39400)
+      var fmax = Math.min(f.maxM, SD.floorDepthAt(fx) - 3)
+      if (fmax > f.minM) {
+        fd = SD.rngRange(rng, f.minM, fmax)
+        break
       }
-      if (!fd) continue
-      out.push({
-        kind: kind,
-        x: fx, y: fd * SD.config.pxPerM,
-        homeY: fd * SD.config.pxPerM,
-        vx: (rng() < 0.5 ? -1 : 1) * f.cruise,
-        vy: 0,
-        mode: 'cruise', // cruise | flee
-        fleeT: 0,
-        taken: false,
-        respawnAt: 0,
-        phase: rng() * SD.TAU
-      })
     }
+    if (!fd) return
+    out.push({
+      kind: kind,
+      x: fx, y: fd * SD.config.pxPerM,
+      homeY: fd * SD.config.pxPerM,
+      vx: (rng() < 0.5 ? -1 : 1) * f.cruise,
+      vy: 0,
+      mode: 'cruise',
+      fleeT: 0,
+      taken: false,
+      respawnAt: 0,
+      phase: rng() * SD.TAU
+    })
   }
+
+  for (var kind in SD.config.fauna) {
+    for (var i = 0; i < SD.config.fauna[kind].count; i++) spawnFish(kind)
+  }
+  // Aphrodite's Lagoon teems with easy tribute
+  for (var m = 0; m < SD.config.lagoonFishBonus.mullet; m++) spawnFish('mullet', cfg.lagoon.x1 + 100, cfg.lagoon.x2 - 100)
+  for (var b = 0; b < SD.config.lagoonFishBonus.bream; b++) spawnFish('bream', cfg.lagoon.x1 + 100, cfg.lagoon.x2 - 100)
+
+  // — the boss cast —
+  var bz = SD.config.bosses
+  out.push({
+    kind: 'karcharias', boss: true,
+    x: 22200, y: 70 * 32, homeX: 22200, homeY: 70 * 32,
+    vx: bz.karcharias.cruise || 60, vy: 0,
+    hp: bz.karcharias.hp, maxHp: bz.karcharias.hp,
+    mode: 'patrol', modeT: 0, angle: 0, dir: 1,
+    taken: false, respawnAt: 0, phase: rng() * SD.TAU
+  })
+  out.push({
+    kind: 'kraken', boss: true,
+    x: cfg.grottoX, y: SD.floorYAt(cfg.grottoX) - 60,
+    homeX: cfg.grottoX, homeY: SD.floorYAt(cfg.grottoX) - 60,
+    vx: 0, vy: 0,
+    hp: bz.kraken.hp, maxHp: bz.kraken.hp,
+    mode: 'lurk', modeT: 0, grabT: 0, dir: -1,
+    taken: false, respawnAt: 0, phase: rng() * SD.TAU
+  })
+  out.push({
+    kind: 'ketos', boss: true,
+    x: SD.rngRange(rng, bz.ketos.x1, bz.ketos.x2), y: 90 * 32,
+    homeX: 0, homeY: 0,
+    vx: bz.ketos.cruise, vy: 0,
+    hp: bz.ketos.hp, maxHp: bz.ketos.hp,
+    mode: 'roam', modeT: 0, dir: 1,
+    taken: false, respawnAt: 0, phase: rng() * SD.TAU
+  })
+
   return out
 }
 
@@ -191,8 +346,8 @@ function makeCurrents (rng) {
     var m = SD.rngRange(rng, ccfg.minM, ccfg.maxM)
     var w = SD.rngRange(rng, ccfg.minW, ccfg.maxW)
     var x = 0
-    for (var tries = 0; tries < 40; tries++) {
-      x = SD.rngRange(rng, 300, cfg.widthPx - 300 - w)
+    for (var tries = 0; tries < 60; tries++) {
+      x = SD.rngRange(rng, 9000, 37000 - w)
       if (SD.floorDepthAt(x) > m + 6 && SD.floorDepthAt(x + w) > m + 6) break
     }
     var deepBoost = 1 + m / 140
@@ -208,24 +363,31 @@ function makeCurrents (rng) {
   return out
 }
 
-// Pure: find a spawn spot for a loot type, respecting the seafloor.
-// Sponges prefer to grow on the boulders; everything else rests where it sank.
-// Returns {x, y} or null if no valid spot found in a few tries.
+// Pure: find a spawn spot for a loot type, respecting the seafloor and zones
 function lootSpot (rng, type, rocks) {
   var cfg = SD.config.world
   var info = SD.config.lootTypes[type]
   var spongey = type === 'sponge' || type === 'honeycomb' || type === 'octopus'
-  for (var tries = 0; tries < 50; tries++) {
-    var x = info.zone === 'kelp'
-      ? SD.rngRange(rng, cfg.kelpX1 + 40, cfg.kelpX2 - 40) // murex live among the holdfasts
-      : SD.rngRange(rng, 220, cfg.widthPx - 220)
+  for (var tries = 0; tries < 60; tries++) {
+    var x
+    if (info.zone === 'weedy') {
+      // murex live where the greenery is: kelp, seagrass, or the lagoon
+      var pickZone = rng()
+      x = pickZone < 0.45 ? SD.rngRange(rng, cfg.kelpX1 + 40, cfg.kelpX2 - 40)
+        : pickZone < 0.8 ? SD.rngRange(rng, cfg.seagrass.x1 + 40, cfg.seagrass.x2 - 40)
+          : SD.rngRange(rng, cfg.lagoon.x1 + 60, cfg.lagoon.x2 - 60)
+    } else if (info.zone === 'vents') {
+      x = SD.rngRange(rng, cfg.ventsZone.x1 + 60, cfg.ventsZone.x2 - 60)
+    } else {
+      x = SD.rngRange(rng, 220, 39500)
+    }
     var floorM = SD.floorDepthAt(x)
 
     // sponges grow on boulder rims; octopus den in them too
     if (spongey && rng() < 0.6) {
       var hosts = rocks.filter(function (r) {
         var rimM = SD.depthM(r.y - r.r * 0.82)
-        return rimM >= info.minM - 2 && rimM <= info.maxM
+        return r.x < 39500 && rimM >= info.minM - 2 && rimM <= info.maxM
       })
       if (hosts.length) {
         var rock = SD.rngPick(rng, hosts)
@@ -250,16 +412,17 @@ function lootItem (type, x, y, phase) {
   return { type: type, x: x, y: y, phase: phase, progress: 0, taken: false, respawnAt: 0 }
 }
 
-// Pure: all loot spots for the whole sea, including the vault treasures
-// and the cave's little secrets
-function makeLoot (state, rng, rocks, cave) {
+// Pure: all loot for the whole sea — zone spawns, the cave, the shafts,
+// the kelp clearings and their wreck, and the hoard on the plain
+function makeLoot (state, rng, rocks, cave, shafts, kelpWreckX) {
   var cfg = SD.config.world
   var loot = []
   var types = SD.config.lootTypes
+  var i
 
   for (var type in types) {
     if (types[type].placement !== 'floor') continue
-    for (var i = 0; i < types[type].count; i++) {
+    for (i = 0; i < types[type].count; i++) {
       var spot = lootSpot(rng, type, rocks)
       if (spot) {
         var item = lootItem(type, spot.x, spot.y, rng() * SD.TAU)
@@ -270,21 +433,42 @@ function makeLoot (state, rng, rocks, cave) {
     }
   }
 
-  // — the cave: primo fino sponges, and the bottle that started the rumors —
-  for (var f = 0; f < cave.finoSpots.length; f++) {
-    loot.push(lootItem('fino', cave.finoSpots[f].x, cave.finoSpots[f].y, rng() * SD.TAU))
+  // — the Divers' Cave: primo finos, and the bottle that started it all —
+  for (i = 0; i < cave.finoSpots.length; i++) {
+    loot.push(lootItem('fino', cave.finoSpots[i].x, cave.finoSpots[i].y, rng() * SD.TAU))
   }
   if (!state.bottleRead) {
     loot.push(lootItem('bottle', cave.bottleSpot.x, cave.bottleSpot.y, 0))
   }
 
-  // — the vault: trident on the shrine, the great chest beside the hoard —
+  // — the Kelp Well and the Blue Hole pay for the dive —
+  for (i = 0; i < shafts.wellLoot.length; i++) {
+    loot.push(lootItem(shafts.wellLoot[i].type, shafts.wellLoot[i].x, shafts.wellLoot[i].y, rng() * SD.TAU))
+  }
+  for (i = 0; i < shafts.holeLoot.length; i++) {
+    loot.push(lootItem(shafts.holeLoot[i].type, shafts.holeLoot[i].x, shafts.holeLoot[i].y, rng() * SD.TAU))
+  }
+
+  // — kelp clearings hold small caches; the swallowed kaiki holds better —
+  var clearings = [10250, 12900]
+  for (var c = 0; c < clearings.length; c++) {
+    for (var mrx = 0; mrx < 3; mrx++) {
+      var mx = clearings[c] + SD.rngRange(rng, -120, 120)
+      loot.push(lootItem('murex', mx, SD.floorYAt(mx) - 8, rng() * SD.TAU))
+    }
+    var shx = clearings[c] + SD.rngRange(rng, -80, 80)
+    loot.push(lootItem('shard', shx, SD.floorYAt(shx) - 8, rng() * SD.TAU))
+  }
+  loot.push(lootItem('amphora', kelpWreckX - 40, SD.floorYAt(kelpWreckX - 40) - 12, 0))
+  loot.push(lootItem('helmet', kelpWreckX + 55, SD.floorYAt(kelpWreckX + 55) - 10, 0))
+  loot.push(lootItem('shard', kelpWreckX + 10, SD.floorYAt(kelpWreckX + 10) - 34, 0))
+
+  // — the hoard on Poseidon's Plain: trident on the shrine, the great chest —
   var vx = cfg.vaultX
   if (!state.tridentClaimed) {
     loot.push(lootItem('trident', vx, SD.floorYAt(vx) - 46, 0))
   }
-  var chest = lootItem('chest', vx + 150, SD.floorYAt(vx + 150) - 16, 0)
-  loot.push(chest)
+  loot.push(lootItem('chest', vx + 170, SD.floorYAt(vx + 170) - 16, 0))
 
   return loot
 }
@@ -314,15 +498,15 @@ SD.updateLootRegrow = function (state) {
 function makeDangers (rng, rocks) {
   var cfg = SD.config.world
   var d = SD.config.dangers
-  var out = { urchins: [], jellies: [], eels: [], sharks: [], squids: [], poseidon: null }
-  var i, x, tries
+  var out = { urchins: [], jellies: [], eels: [], sharks: [], squids: [], vents: [], poseidon: null }
+  var i, tries
 
-  var candidates = rocks.filter(function (r) { return r.x > 200 && r.x < cfg.widthPx - 200 })
+  var candidates = rocks.filter(function (r) { return r.x > 200 && r.x < 39500 })
   var urchinRocks = candidates.filter(function (r) { return SD.depthM(r.y) >= d.urchin.minM })
 
   for (i = 0; i < d.urchin.count && urchinRocks.length; i++) {
     var rock = SD.rngPick(rng, urchinRocks)
-    var ang = SD.rngRange(rng, -Math.PI * 0.85, -Math.PI * 0.15) // upper rim of the rock
+    var ang = SD.rngRange(rng, -Math.PI * 0.85, -Math.PI * 0.15)
     out.urchins.push({
       x: rock.x + Math.cos(ang) * rock.r,
       y: rock.y + Math.sin(ang) * rock.r,
@@ -330,23 +514,23 @@ function makeDangers (rng, rocks) {
     })
   }
 
-  for (i = 0; i < d.jelly.count; i++) {
-    var jx = 0
-    var jd = 0
-    for (tries = 0; tries < 40; tries++) {
-      jx = SD.rngRange(rng, 300, cfg.widthPx - 300)
+  // Side effect on out: one jelly drifting near x (or anywhere suitable)
+  function spawnJelly (x1, x2) {
+    for (var jt = 0; jt < 40; jt++) {
+      var jx = SD.rngRange(rng, x1, x2)
       var jmax = Math.min(d.jelly.maxM, SD.floorDepthAt(jx) - 4)
       if (jmax > d.jelly.minM) {
-        jd = SD.rngRange(rng, d.jelly.minM, jmax)
-        break
+        var jd = SD.rngRange(rng, d.jelly.minM, jmax)
+        out.jellies.push({
+          x: jx, y: jd * SD.config.pxPerM, baseY: jd * SD.config.pxPerM,
+          phase: rng() * SD.TAU, drift: SD.rngRange(rng, -1, 1)
+        })
+        return
       }
     }
-    if (!jd) continue
-    out.jellies.push({
-      x: jx, y: jd * SD.config.pxPerM, baseY: jd * SD.config.pxPerM,
-      phase: rng() * SD.TAU, drift: SD.rngRange(rng, -1, 1)
-    })
   }
+  for (i = 0; i < d.jelly.count; i++) spawnJelly(300, 39400)
+  for (i = 0; i < 8; i++) spawnJelly(cfg.pearls.x1, cfg.pearls.x2) // curtains over the Pearl Banks
 
   var eelRocks = candidates.filter(function (r) {
     var m = SD.depthM(r.y)
@@ -362,7 +546,7 @@ function makeDangers (rng, rocks) {
     })
   }
 
-  // reef sharks patrol the open mid-depths; abyss sharks haunt the trench
+  // reef sharks over the quarry + graveyard; abyss sharks on the plain
   function makeShark (scfg, x1, x2, kind) {
     var sx = SD.rngRange(rng, x1, x2)
     var smax = Math.min(scfg.maxM, SD.floorDepthAt(sx) - 5)
@@ -374,42 +558,45 @@ function makeDangers (rng, rocks) {
       mode: 'patrol', cooldown: 0, phase: rng() * SD.TAU
     }
   }
-  for (i = 0; i < d.shark.count; i++) {
-    // patrol lanes east of the kelp, where the floor actually reaches shark depth
-    out.sharks.push(makeShark(d.shark, cfg.kelpX2 + 400, cfg.vaultX + 350, 'reef'))
-  }
+  for (i = 0; i < 2; i++) out.sharks.push(makeShark(d.shark, cfg.quarry.x1, cfg.quarry.x2, 'reef'))
+  for (i = 0; i < 4; i++) out.sharks.push(makeShark(d.shark, cfg.graveyard.x1, cfg.graveyard.x2, 'reef'))
   for (i = 0; i < d.abyssShark.count; i++) {
-    out.sharks.push(makeShark(d.abyssShark, cfg.vaultX - 850, cfg.vaultX + 850, 'abyss'))
+    out.sharks.push(makeShark(d.abyssShark, 28600, 32600, 'abyss'))
   }
 
-  for (i = 0; i < d.squid.count; i++) {
-    var qx = 0
-    var qd = 0
-    for (tries = 0; tries < 40; tries++) {
-      qx = SD.rngRange(rng, 500, cfg.widthPx - 500)
+  // Side effect on out: one squid in deep water between x1..x2
+  function spawnSquid (x1, x2) {
+    for (var qt = 0; qt < 40; qt++) {
+      var qx = SD.rngRange(rng, x1, x2)
       var qmax = Math.min(d.squid.maxM, SD.floorDepthAt(qx) - 6)
       if (qmax > d.squid.minM) {
-        qd = SD.rngRange(rng, d.squid.minM, qmax)
-        break
+        var qd = SD.rngRange(rng, d.squid.minM, qmax)
+        out.squids.push({
+          x: qx, y: qd * SD.config.pxPerM, baseY: qd * SD.config.pxPerM,
+          dir: rng() < 0.5 ? -1 : 1, cooldown: 0, phase: rng() * SD.TAU
+        })
+        return
       }
     }
-    if (!qd) continue
-    out.squids.push({
-      x: qx, y: qd * SD.config.pxPerM, baseY: qd * SD.config.pxPerM,
-      dir: rng() < 0.5 ? -1 : 1, cooldown: 0, phase: rng() * SD.TAU
-    })
+  }
+  for (i = 0; i < 7; i++) spawnSquid(17000, 36000)
+
+  // Hephaestus' Vents — columns of rising water off the volcanic shelf
+  for (i = 0; i < SD.config.ventCount; i++) {
+    var vx = cfg.ventsZone.x1 + 200 + (i / SD.config.ventCount) * (cfg.ventsZone.x2 - cfg.ventsZone.x1 - 400) + SD.rngRange(rng, -120, 120)
+    out.vents.push({ x: vx, y: SD.floorYAt(vx), phase: rng() * SD.TAU })
   }
 
-  // — Poseidon himself, hovering over his hoard —
-  var vx = cfg.vaultX
+  // — Poseidon, sovereign of the plain —
+  var px = cfg.vaultX - 40
   out.poseidon = {
-    homeX: vx - 40,
-    homeY: SD.floorYAt(vx - 40) - 130,
-    x: vx - 40,
-    y: SD.floorYAt(vx - 40) - 130,
+    homeX: px,
+    homeY: SD.floorYAt(px) - 140,
+    x: px,
+    y: SD.floorYAt(px) - 140,
     facing: -1,
     awake: false,
-    mode: 'idle',      // idle | approach | windup | thrust | recover
+    mode: 'idle',
     modeT: 0,
     thrust: 0,
     stabAngle: 0,
@@ -421,10 +608,9 @@ function makeDangers (rng, rocks) {
 
 // Pure: ambient fish schools, purely decorative
 function makeFish (rng) {
-  var cfg = SD.config.world
   var schools = []
-  for (var i = 0; i < 12; i++) {
-    var fx = SD.rngRange(rng, 400, cfg.widthPx - 400)
+  for (var i = 0; i < 30; i++) {
+    var fx = SD.rngRange(rng, 400, 39400)
     var fd = SD.rngRange(rng, 4, Math.max(8, Math.min(80, SD.floorDepthAt(fx) - 8)))
     var n = 4 + Math.floor(rng() * 6)
     var fish = []
@@ -439,41 +625,79 @@ function makeFish (rng) {
   return schools
 }
 
-// Pure: background decor — grass, columns, the wreck, the vault hoard
-function makeDecor (rng) {
+// Pure: background decor — grass, seagrass meadows, columns, wrecks, the
+// quarry's cut marble, gorgonian fans, seahorses, the hoard, the shrine
+function makeDecor (rng, kelpWreckX) {
   var cfg = SD.config.world
+  var i
+
   var grass = []
-  for (var i = 0; i < 110; i++) {
-    var gx = SD.rngRange(rng, 250, cfg.widthPx - 250)
+  for (i = 0; i < 220; i++) {
+    var gx = SD.rngRange(rng, 250, 39500)
     if (SD.floorDepthAt(gx) < 2) continue
     grass.push({ x: gx, y: SD.floorYAt(gx), h: SD.rngRange(rng, 18, 52), phase: rng() * SD.TAU })
   }
+  // the Seagrass Meadows themselves: tall posidonia, thick as a carpet
+  for (i = 0; i < 160; i++) {
+    var sx = SD.rngRange(rng, cfg.seagrass.x1, cfg.seagrass.x2)
+    grass.push({ x: sx, y: SD.floorYAt(sx), h: SD.rngRange(rng, 44, 96), phase: rng() * SD.TAU })
+  }
+
   var columns = []
-  for (var c = 0; c < 5; c++) {
+  for (var c = 0; c < 10; c++) {
     var cx = 0
     for (var tries = 0; tries < 40; tries++) {
-      cx = SD.rngRange(rng, 1200, cfg.widthPx - 1200)
+      cx = SD.rngRange(rng, 9000, 37000)
       var m = SD.floorDepthAt(cx)
-      if (m > 30 && m < 100) break
+      if (m > 25 && m < 100) break
     }
     columns.push({ x: cx, y: SD.floorYAt(cx), h: SD.rngRange(rng, 90, 170), tilt: SD.rngRange(rng, -0.16, 0.16), broken: rng() < 0.7 })
   }
 
-  // the wreck lies on the drop-off shoulder before the trench
-  var wreckX = 0
-  for (var wt = 0; wt < 60; wt++) {
-    wreckX = SD.rngRange(rng, cfg.vaultX - 1000, cfg.vaultX - 400)
-    var wm = SD.floorDepthAt(wreckX)
-    if (wm > 72 && wm < 96) break
+  // wrecks: the kelp's swallowed kaiki + a fleet's graveyard
+  var wrecks = [{ x: kelpWreckX, y: SD.floorYAt(kelpWreckX) }]
+  var wreckXs = [20800, 21900, 22800, 23600]
+  for (i = 0; i < wreckXs.length; i++) {
+    wrecks.push({ x: wreckXs[i], y: SD.floorYAt(wreckXs[i]) })
   }
 
-  // gold hoard mounds heaped around the vault shrine — a proper hoard
+  // the quarry's cut stone: blocks and two half-carved giants
+  var blocks = []
+  for (i = 0; i < 14; i++) {
+    var qx = SD.rngRange(rng, cfg.quarry.x1 + 300, cfg.quarry.x2 - 300)
+    blocks.push({
+      x: qx, y: SD.floorYAt(qx),
+      w: SD.rngRange(rng, 40, 110), h: SD.rngRange(rng, 26, 60),
+      tilt: SD.rngRange(rng, -0.12, 0.12)
+    })
+  }
+  var giants = [
+    { x: 18200, y: SD.floorYAt(18200), h: 210, tilt: -0.18 },
+    { x: 19200, y: SD.floorYAt(19200), h: 170, tilt: 0.24 }
+  ]
+
+  // gorgonian fans + seahorses for the pretty shallows
+  var fans = []
+  for (i = 0; i < 16; i++) {
+    var fx = rng() < 0.5 ? SD.rngRange(rng, cfg.seagrass.x1, cfg.seagrass.x2) : SD.rngRange(rng, cfg.lagoon.x1, cfg.lagoon.x2 - 200)
+    if (SD.floorDepthAt(fx) < 3) continue
+    fans.push({ x: fx, y: SD.floorYAt(fx), h: SD.rngRange(rng, 26, 54), phase: rng() * SD.TAU, pink: rng() < 0.6 })
+  }
+  var seahorses = []
+  for (i = 0; i < 12; i++) {
+    var hx = rng() < 0.5 ? SD.rngRange(rng, cfg.seagrass.x1, cfg.seagrass.x2) : SD.rngRange(rng, cfg.lagoon.x1, cfg.lagoon.x2 - 200)
+    var hm = SD.floorDepthAt(hx)
+    if (hm < 3) continue
+    seahorses.push({ x: hx, y: SD.floorYAt(hx) - SD.rngRange(rng, 20, 60), phase: rng() * SD.TAU, dir: rng() < 0.5 ? -1 : 1 })
+  }
+
+  // gold hoard mounds heaped around the shrine on the plain
   var hoard = []
-  for (var hM = 0; hM < 9; hM++) {
-    var hx = cfg.vaultX + SD.rngRange(rng, -290, 290)
+  for (var hM = 0; hM < 11; hM++) {
+    var hx2 = cfg.vaultX + SD.rngRange(rng, -340, 340)
     hoard.push({
-      x: hx,
-      y: SD.floorYAt(hx),
+      x: hx2,
+      y: SD.floorYAt(hx2),
       w: SD.rngRange(rng, 40, 100),
       h: SD.rngRange(rng, 12, 30),
       phase: rng() * SD.TAU
@@ -483,9 +707,13 @@ function makeDecor (rng) {
   return {
     grass: grass,
     columns: columns,
-    wreck: { x: wreckX, y: SD.floorYAt(wreckX) },
-    shrine: { x: cfg.vaultX, y: SD.floorYAt(cfg.vaultX) },
-    hoard: hoard
+    wrecks: wrecks,
+    blocks: blocks,
+    giants: giants,
+    fans: fans,
+    seahorses: seahorses,
+    hoard: hoard,
+    shrine: { x: cfg.vaultX, y: SD.floorYAt(cfg.vaultX) }
   }
 }
 
@@ -493,16 +721,25 @@ function makeDecor (rng) {
 SD.genWorld = function (state) {
   var rng = SD.makeRng(SD.config.worldSeed)
   var cave = makeCave()
-  var rocks = makeRocks(rng).concat(cave.rocks)
-  var decor = makeDecor(rng)
+  var shafts = makeShafts()
+  var kelpWreckX = 10700
+  var rocks = makeRocks(rng).concat(cave.rocks, shafts.rocks, makeMountain())
+  var decor = makeDecor(rng, kelpWreckX)
   decor.cave = { x: cave.x, y: cave.y, r: cave.r }
+  var dangers = makeDangers(rng, rocks)
+  // a moray keeps house in the swallowed kaiki
+  dangers.eels.push({
+    homeX: kelpWreckX + 20, homeY: SD.floorYAt(kelpWreckX + 20) - 30, r: 60,
+    x: kelpWreckX + 20, y: SD.floorYAt(kelpWreckX + 20) - 30,
+    mode: 'lurk', cooldown: 0, targetX: 0, targetY: 0, bit: false, phase: 0
+  })
   return {
     rocks: rocks,
     kelp: makeKelp(rng),
     currents: makeCurrents(rng),
-    loot: makeLoot(state, rng, rocks, cave),
+    loot: makeLoot(state, rng, rocks, cave, shafts, kelpWreckX),
     fauna: makeFauna(rng),
-    dangers: makeDangers(rng, rocks),
+    dangers: dangers,
     fishSchools: makeFish(rng),
     decor: decor
   }

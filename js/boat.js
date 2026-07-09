@@ -59,10 +59,10 @@ SD.updateBoat = function (state, input, dt) {
 
   if (p.aboard) {
     var ix = SD.clamp(input.x, -1, 1)
-    boat.x += ix * SD.config.boatSpeed * dt
+    boat.x += ix * SD.sailSpeed(state) * dt
     if (Math.abs(ix) > 0.15) p.facing = ix > 0 ? 1 : -1
-    // keep her in honest water — she beaches at neither shore
-    boat.x = SD.clamp(boat.x, 320, SD.config.world.widthPx - 320)
+    // keep her in honest water — beach at neither shore, stop at the mountain
+    boat.x = SD.clamp(boat.x, 320, SD.config.world.boatMaxX)
     p.x = boat.x
     p.y = -14
     p.vx = 0

@@ -76,7 +76,7 @@ SD.hud = (function () {
       el['hud-hold'].classList.add('hidden')
     }
 
-    var surfaced = p.y < SD.config.pxPerM * 0.4 || p.aboard
+    var surfaced = p.y < SD.surfaceYAt(p.x) + SD.config.pxPerM * 0.4 || p.aboard
     var showHint = surfaced && state.mode === 'playing'
     el['surface-hint'].classList.toggle('hidden', !showHint)
     if (showHint) {
