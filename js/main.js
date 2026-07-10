@@ -151,6 +151,18 @@ function updateFish (state, dt) {
   }
 }
 
+// Pure: the ambient lyre's mood for a named region — home water is bright,
+// the graveyard sparse, the smith's country low and reedy, the god's plain
+// long and grave, Aphrodite's water sweet and high. Everywhere else, the sea.
+function moodOf (region) {
+  if (region === 'The Village Shallows' || region === 'The Sponge Grounds') return 'home'
+  if (region === 'The Graveyard of Ships' || region === 'The Wreck of the Anemone') return 'grave'
+  if (region.indexOf('Hephaestus') !== -1 || region.indexOf('Forge') !== -1 || region.indexOf('Smith') !== -1) return 'forge'
+  if (region === "Poseidon's Plain" || region === 'The Deep Approaches') return 'god'
+  if (region === "Aphrodite's Lagoon" || region === 'The Eastern Rise' || region === 'The Blue Hole') return 'rose'
+  return 'sea'
+}
+
 // Side effect: the gentle company — mantas and monk seals cruise slow
 // elliptical laps around their home water, facing along their travel and
 // nosing up or down with it (drawSeal/drawManta read dir + tilt).
@@ -504,6 +516,7 @@ function frame (nowMs) {
     SD.updateLootRegrow(state)
     SD.hud.updateBand(state)
     SD.audio.heartbeat(dt, state.player.breath / SD.maxBreath(state))
+    SD.audio.ambience(dt, moodOf(SD.regionAt(state.player.x, SD.depthM(state.player.y))))
   } else if (state.mode === 'blackout') {
     state.blackoutT += dt
     if (state.blackoutT > 3) SD.finishBlackout(state)

@@ -203,6 +203,33 @@ SD.audio = (function () {
     }
   }
 
+  // the ambient lyre: every stretch of sea has its own mood — which notes
+  // of the mode it favors, how high, how often, and on what voice
+  var ambTimer = 2
+  var ambMoods = {
+    home: { notes: [0, 2, 4, 5, 7], base: 1, gap: [1.8, 3.6], wave: 'triangle', gain: 0.045 },
+    sea: { notes: [0, 3, 4, 7], base: 0.5, gap: [2.8, 5.2], wave: 'triangle', gain: 0.04 },
+    grave: { notes: [0, 1, 5], base: 0.5, gap: [3.6, 6.6], wave: 'sine', gain: 0.035 },
+    forge: { notes: [0, 1, 4], base: 0.25, gap: [2.6, 4.8], wave: 'sawtooth', gain: 0.02 },
+    god: { notes: [0, 1], base: 0.25, gap: [4.5, 8], wave: 'sine', gain: 0.05 },
+    rose: { notes: [2, 4, 5, 7], base: 2, gap: [2, 4], wave: 'sine', gain: 0.038 }
+  }
+
+  // Side effect: paces the ambient lyre — a bored player on deck, plucking
+  // whatever the water puts in his head. Call every frame with dt and a
+  // mood key ('home' | 'sea' | 'grave' | 'forge' | 'god' | 'rose').
+  function ambience (dt, mood) {
+    if (!ctx || muted) return
+    ambTimer -= dt
+    if (ambTimer > 0) return
+    var m = ambMoods[mood] || ambMoods.sea
+    ambTimer = m.gap[0] + Math.random() * (m.gap[1] - m.gap[0])
+    var f = phrygian[m.notes[Math.floor(Math.random() * m.notes.length)]] * m.base
+    tone(f, 1.7, m.wave, m.gain)
+    if (Math.random() < 0.4) tone(f * 1.5, 1.3, 'sine', m.gain * 0.5, 0.3) // a fifth, echoing
+    if (Math.random() < 0.25) tone(f * 0.5, 2.6, 'sine', m.gain * 0.55, 0.12) // a drone beneath
+  }
+
   return {
     init: init,
     setMuted: setMuted,
@@ -222,6 +249,7 @@ SD.audio = (function () {
     dolphin: dolphin,
     rumble: rumble,
     fanfare: fanfare,
-    heartbeat: heartbeat
+    heartbeat: heartbeat,
+    ambience: ambience
   }
 })()

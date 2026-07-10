@@ -108,6 +108,7 @@ function drawBackground (ctx, view, cam) {
 // the sun barely moves, the clouds keep half your pace). The horizon's
 // islands and landmarks live in the backdrop set below.
 function drawSkyline (ctx, t, cam, wv) {
+  if (cam.y > 140) return // the sky is long gone off the top of the screen
   var W = SD.config.world.widthPx
   var camCX = cam.x + wv.w / 2
   ctx.save()
@@ -130,6 +131,27 @@ function drawSkyline (ctx, t, cam, wv) {
     ctx.ellipse(cx, cy, 70, 15, 0, 0, SD.TAU)
     ctx.ellipse(cx + 45, cy - 8, 45, 12, 0, 0, SD.TAU)
     ctx.fill()
+  }
+  // gulls working the coast — small flocks wheeling over their own water,
+  // wings beating out of step so the sky never looks stamped
+  ctx.strokeStyle = 'rgba(250, 248, 240, 0.85)'
+  ctx.lineWidth = 1.7
+  ctx.lineCap = 'round'
+  var flocks = [430, 2600, 9300, 15600, 22300, 37900]
+  for (var gf = 0; gf < flocks.length; gf++) {
+    var ax = flocks[gf]
+    if (ax < cam.x - 700 || ax > cam.x + wv.w + 700) continue
+    for (var gu = 0; gu < 3; gu++) {
+      var ga = t * (0.16 + gu * 0.035) + gu * 2.1 + gf * 1.3
+      var gx = ax + Math.cos(ga) * (170 + gu * 55)
+      var gy = -62 - gu * 22 - Math.sin(ga * 1.7) * 26
+      var flap = Math.sin(t * (6.5 + gu) + gu * 1.7 + gf) * 3.6
+      ctx.beginPath()
+      ctx.moveTo(gx - 7, gy - flap)
+      ctx.quadraticCurveTo(gx - 2.5, gy + flap * 0.5, gx, gy)
+      ctx.quadraticCurveTo(gx + 2.5, gy + flap * 0.5, gx + 7, gy - flap)
+      ctx.stroke()
+    }
   }
   ctx.restore()
 }
@@ -4809,34 +4831,39 @@ function drawDarkness (ctx, state, view, cam, zoom) {
   var p = state.player
   var topA = darkAlpha(Math.max(0, cam.y / SD.config.pxPerM))
   var botA = darkAlpha(Math.max(0, (cam.y + view.h / zoom) / SD.config.pxPerM))
-  if (topA < 0.01 && botA < 0.01) return
+  if (topA < 0.03 && botA < 0.03) return // a 3% veil isn't worth a full-screen pass
 
+  // the veil is soft gradients only, so it renders at HALF resolution and
+  // scales up invisibly — a quarter of the pixels to fill, punch and blit
+  var RS = 0.5
+  var dw = Math.ceil(view.w * RS)
+  var dh = Math.ceil(view.h * RS)
   if (!darkCanvas) {
     darkCanvas = document.createElement('canvas')
     darkCtx = darkCanvas.getContext('2d')
   }
-  if (darkCanvas.width !== view.w || darkCanvas.height !== view.h) {
-    darkCanvas.width = view.w
-    darkCanvas.height = view.h
+  if (darkCanvas.width !== dw || darkCanvas.height !== dh) {
+    darkCanvas.width = dw
+    darkCanvas.height = dh
   }
 
   var dc = darkCtx
   dc.globalCompositeOperation = 'source-over'
-  dc.clearRect(0, 0, view.w, view.h)
-  var grad = dc.createLinearGradient(0, 0, 0, view.h)
+  dc.clearRect(0, 0, dw, dh)
+  var grad = dc.createLinearGradient(0, 0, 0, dh)
   grad.addColorStop(0, 'rgba(3, 10, 24, ' + topA + ')')
   grad.addColorStop(1, 'rgba(3, 10, 24, ' + botA + ')')
   dc.fillStyle = grad
-  dc.fillRect(0, 0, view.w, view.h)
+  dc.fillRect(0, 0, dw, dh)
 
   dc.globalCompositeOperation = 'destination-out'
 
   // Side effect on dc: punches a soft hole of light
   function punch (wx, wy, wr, strength) {
-    var sx = (wx - cam.x) * zoom
-    var sy = (wy - cam.y) * zoom
-    var r = wr * zoom
-    if (sx < -r || sx > view.w + r || sy < -r || sy > view.h + r) return
+    var sx = (wx - cam.x) * zoom * RS
+    var sy = (wy - cam.y) * zoom * RS
+    var r = wr * zoom * RS
+    if (sx < -r || sx > dw + r || sy < -r || sy > dh + r) return
     var g = dc.createRadialGradient(sx, sy, r * 0.15, sx, sy, r)
     g.addColorStop(0, 'rgba(0, 0, 0, ' + strength + ')')
     g.addColorStop(1, 'rgba(0, 0, 0, 0)')
@@ -4898,7 +4925,7 @@ function drawDarkness (ctx, state, view, cam, zoom) {
   var gwk = state.world.decor.giantWreck
   if (gwk) punch(gwk.x, gwk.y - 160, 520, 0.5)
 
-  ctx.drawImage(darkCanvas, 0, 0)
+  ctx.drawImage(darkCanvas, 0, 0, view.w, view.h)
 }
 
 // ---------- Main render ----------
@@ -4943,14 +4970,18 @@ SD.render = function (state, ctx, view, zoom) {
   if (decor.giantWreck && decor.giantWreck.x > cam.x - 500 && decor.giantWreck.x < cam.x + wv.w + 500) {
     drawGiantWreck(ctx, decor.giantWreck, t)
   }
-  drawQuarry(ctx, decor)
+  var qz = SD.config.world.quarry
+  if (cam.x + wv.w > qz.x1 - 300 && cam.x < qz.x2 + 300) drawQuarry(ctx, decor)
   for (i = 0; i < decor.fans.length; i++) {
     var fan = decor.fans[i]
     if (fan.x < cam.x - 80 || fan.x > cam.x + wv.w + 80) continue
     drawFan(ctx, fan, t)
   }
-  drawHoard(ctx, decor.hoard, t)
-  drawShrine(ctx, decor.shrine)
+  var vlt = SD.config.world.vaultX
+  if (cam.x + wv.w > vlt - 560 && cam.x < vlt + 560) {
+    drawHoard(ctx, decor.hoard, t)
+    drawShrine(ctx, decor.shrine)
+  }
   for (i = 0; i < w.dangers.vents.length; i++) {
     var vent = w.dangers.vents[i]
     if (vent.x < cam.x - 120 || vent.x > cam.x + wv.w + 120) continue
@@ -4963,7 +4994,10 @@ SD.render = function (state, ctx, view, zoom) {
   if (hephOnScreen) {
     drawHephVoid(ctx, cam, wv, t)
     var pks = SD.config.world.airPockets
-    for (i = 0; i < pks.length; i++) drawAirPocket(ctx, pks[i], t)
+    for (i = 0; i < pks.length; i++) {
+      if (pks[i].topY > cam.y + wv.h + 60 || pks[i].surfaceY < cam.y - 60) continue
+      drawAirPocket(ctx, pks[i], t)
+    }
   }
 
   for (i = 0; i < w.rocks.length; i++) {
@@ -5008,7 +5042,12 @@ SD.render = function (state, ctx, view, zoom) {
     if (mr.x < cam.x - 160 || mr.x > cam.x + wv.w + 160) continue
     drawManta(ctx, mr, t)
   }
-  for (i = 0; i < w.fishSchools.length; i++) drawFishSchool(ctx, w.fishSchools[i], t)
+  for (i = 0; i < w.fishSchools.length; i++) {
+    var fs = w.fishSchools[i]
+    if (fs.x < cam.x - 140 || fs.x > cam.x + wv.w + 140) continue
+    if (fs.y < cam.y - 120 || fs.y > cam.y + wv.h + 120) continue
+    drawFishSchool(ctx, fs, t)
+  }
   for (i = 0; i < w.fauna.length; i++) {
     var fa = w.fauna[i]
     if (fa.x < cam.x - 80 || fa.x > cam.x + wv.w + 80) continue
@@ -5019,12 +5058,38 @@ SD.render = function (state, ctx, view, zoom) {
     if (seal.x < cam.x - 120 || seal.x > cam.x + wv.w + 120) continue
     drawSeal(ctx, seal, t)
   }
-  for (i = 0; i < w.dangers.urchins.length; i++) drawUrchin(ctx, w.dangers.urchins[i])
-  for (i = 0; i < w.dangers.eels.length; i++) drawEel(ctx, w.dangers.eels[i], t)
-  for (i = 0; i < w.dangers.jellies.length; i++) drawJelly(ctx, w.dangers.jellies[i], t)
-  for (i = 0; i < w.dangers.squids.length; i++) drawSquid(ctx, w.dangers.squids[i], t)
-  for (i = 0; i < w.dangers.sharks.length; i++) drawShark(ctx, w.dangers.sharks[i], t)
-  if (w.dangers.poseidon) drawPoseidon(ctx, w.dangers.poseidon, t)
+  // dangers only bite on screen — the far ones can wait their turn
+  var dgs = w.dangers
+  for (i = 0; i < dgs.urchins.length; i++) {
+    var ur = dgs.urchins[i]
+    if (ur.x < cam.x - 40 || ur.x > cam.x + wv.w + 40 || ur.y < cam.y - 40 || ur.y > cam.y + wv.h + 40) continue
+    drawUrchin(ctx, ur)
+  }
+  for (i = 0; i < dgs.eels.length; i++) {
+    var el = dgs.eels[i]
+    if (el.homeX < cam.x - 300 || el.homeX > cam.x + wv.w + 300 || el.homeY < cam.y - 300 || el.homeY > cam.y + wv.h + 300) continue
+    drawEel(ctx, el, t)
+  }
+  for (i = 0; i < dgs.jellies.length; i++) {
+    var jl = dgs.jellies[i]
+    if (jl.x < cam.x - 90 || jl.x > cam.x + wv.w + 90 || jl.y < cam.y - 90 || jl.y > cam.y + wv.h + 90) continue
+    drawJelly(ctx, jl, t)
+  }
+  for (i = 0; i < dgs.squids.length; i++) {
+    var sq = dgs.squids[i]
+    if (sq.x < cam.x - 90 || sq.x > cam.x + wv.w + 90 || sq.y < cam.y - 90 || sq.y > cam.y + wv.h + 90) continue
+    drawSquid(ctx, sq, t)
+  }
+  for (i = 0; i < dgs.sharks.length; i++) {
+    var sk = dgs.sharks[i]
+    if (sk.x < cam.x - 110 || sk.x > cam.x + wv.w + 110 || sk.y < cam.y - 110 || sk.y > cam.y + wv.h + 110) continue
+    drawShark(ctx, sk, t)
+  }
+  var pgod = dgs.poseidon
+  if (pgod && pgod.x > cam.x - 340 && pgod.x < cam.x + wv.w + 340 &&
+    pgod.y > cam.y - 340 && pgod.y < cam.y + wv.h + 340) {
+    drawPoseidon(ctx, pgod, t)
+  }
 
   for (i = 0; i < decor.seahorses.length; i++) {
     var sh = decor.seahorses[i]
