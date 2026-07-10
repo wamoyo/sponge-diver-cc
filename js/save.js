@@ -20,6 +20,8 @@ SD.saveGame = function (state) {
     relics: state.relics,
     slain: state.slain,
     bottlesRead: state.bottlesRead,
+    seenLoot: state.seenLoot,
+    townFolk: state.townFolk,
     worldFlags: SD.worldFlags,
     tridentClaimed: state.tridentClaimed,
     stats: state.stats,
@@ -97,6 +99,12 @@ SD.applySave = function (state, data) {
   if (data.tridentClaimed) state.tridentClaimed = true
   if (data.bottlesRead) state.bottlesRead = data.bottlesRead
   if (data.bottleRead) state.bottlesRead[0] = true // the old single-bottle saves
+  if (data.seenLoot) state.seenLoot = data.seenLoot
+  if (data.townFolk) {
+    for (var tf in data.townFolk) {
+      if (data.townFolk[tf]) state.townFolk[tf] = true
+    }
+  }
   if (data.slain) {
     for (var sl in state.slain) {
       if (typeof data.slain[sl] === 'boolean') state.slain[sl] = data.slain[sl]

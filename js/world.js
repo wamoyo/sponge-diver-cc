@@ -1,6 +1,6 @@
 // Σφουγγαράς — Sponge Diver
 // The sea itself. Generated ONCE from a fixed seed — ~1.3 km of coast-to-
-// mountain geography: the village, the rolling Sponge Grounds and their
+// mountain geography: the village, the rolling Sponge Beds and their
 // winding cave, the Seagrass Meadows, the great Kelp Forest and its 80 m
 // well, the Pearl Banks, the Sunken Quarry, the Graveyard of Ships,
 // Hephaestus' Vents, Poseidon's Plain, the Kraken's Grotto, the Eastern
@@ -107,7 +107,7 @@ function makeRocks (rng) {
 }
 
 // Pure: the winding Divers' Cave — staggered ledges over the deep slot in
-// the sponge grounds force a zig-zag descent into the fino chamber.
+// the sponge beds force a zig-zag descent into the fino chamber.
 function makeCave () {
   var cx = SD.config.world.caveX
   var floorY = SD.floorYAt(cx) // ~33 m at the slot bottom
@@ -246,7 +246,7 @@ function makeSpecials (state) {
     out.loot.push(it)
   }
 
-  // — the Statue of Hermes, in a shallow alcove of the sponge grounds —
+  // — the Statue of Hermes, in a shallow alcove of the sponge beds —
   var hx = cfg.hermesX
   var hFloor = SD.floorYAt(hx)
   out.rocks.push(
@@ -493,6 +493,8 @@ function lootSpot (rng, type, rocks) {
           : SD.rngRange(rng, cfg.lagoon.x1 + 60, cfg.lagoon.x2 - 60)
     } else if (info.zone === 'vents') {
       x = SD.rngRange(rng, cfg.ventsZone.x1 + 60, cfg.ventsZone.x2 - 60)
+    } else if (info.zone === 'quarry') {
+      x = SD.rngRange(rng, cfg.quarry.x1 + 60, cfg.quarry.x2 - 60)
     } else {
       x = SD.rngRange(rng, 220, 39500)
     }
@@ -840,7 +842,7 @@ function makeDecor (rng, kelpWreckX) {
     }
   }
 
-  // monk seals lap the sunny shallows — the sponge grounds and the lagoon
+  // monk seals lap the sunny shallows — the sponge beds and the lagoon
   var seals = []
   for (i = 0; i < 4; i++) {
     var sealZone = i < 3 ? [1100, 2750] : [37700, 39200]

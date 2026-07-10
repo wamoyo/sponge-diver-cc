@@ -122,9 +122,11 @@ SD.shop = (function () {
     shopEl.classList.remove('hidden')
   }
 
-  // Side effect: closes the shop, back to diving
+  // Side effect: closes the shop — back to the water, or back to the
+  // village street if that's where the diver walked in from
   function close (state) {
-    state.mode = 'playing'
+    state.mode = state.shopReturnMode || 'playing'
+    state.shopReturnMode = null
     shopEl.classList.add('hidden')
   }
 

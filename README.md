@@ -2,7 +2,7 @@
 
 Ancient-Greece-themed freediving game. You're a Kalymnos sponge diver in a
 fixed, learnable sea ~1.3 km across — a real geography, west to east: the
-Village Shallows · the rolling Sponge Grounds and the winding Divers' Cave ·
+Village Shallows · the rolling Sponge Beds and the winding Divers' Cave ·
 the Seagrass Meadows · the great Kelp Forest and the 80 m Kelp Well beneath
 it · the Pearl Banks · the Sunken Marble Quarry · the Graveyard of Ships
 (Karcharias hunts here) · Hephaestus' Vents, with the CAVES OF HEPHAESTUS
@@ -26,11 +26,13 @@ any static server).
 | | Desktop | Phone / tablet |
 |---|---|---|
 | Swim | WASD / arrows, **or drag with the mouse** | drag anywhere (floating joystick) |
-| Descend fast | hold ↓ (with the skandalopetra) | drag far down |
+| Descend fast | hold ↓ — ride a skandalopetra; stop and the stone is GONE | drag far down |
 | Gather loot | hover close (progress ring) | hover close |
 | Chandlery | **B** at the dock, or click the pill | tap the pill |
+| The village | **V** at the dock · walk WASD · talk **E** | tap the 🏘️ pill |
 | Temple | **T** at its jetty, or click the pill | tap the pill |
 | Forge | **F** at the smith's ledge in the caves | tap the pill |
+| Shapeshift | **Q** (needs Delphinus' Gift) | tap the 🐬 pill |
 | Board / leave boat | **E**, or click the pill · **A/D** sail · **S** dive off | tap the pill |
 | Pause / mute | Esc or the II pill / M | II pill |
 | Zoom | mouse wheel, or **−** / **=** / **0** to reset | — |
@@ -53,10 +55,25 @@ and veterans find their kaiki already tied up at the dock).
   *and everything you carry* — back to the village. Black out beyond his
   reach and that is the end: ΘΑΝΑΤΟΣ, one life, the save returns to the sea.
   When you sail, he rides the kaiki with you, feet over the gunwale.
-- **Two economies.** Treasure sells at the village dock for drachmae (gear
-  money). Fish and octopus are *tribute* — the fishmonger won't touch them;
-  only the temple takes them, in exchange for training that grows your body:
-  Apnea (breath), Stroke Drills (speed), Breath Discipline (recovery + panic).
+- **Two economies.** Treasure sells for drachmae (gear money) — at the dock,
+  in the village, or to the priests at the temple steps, so either shore can
+  empty your net and hold. Fish and octopus are *tribute*: the dock hands
+  won't touch them and the temple trades them for training that grows your
+  body — Apnea (breath), Stroke Drills (speed), Breath Discipline (recovery
+  + panic). Only Big Vasilis' taverna (once he arrives) pays coin for catch;
+  every fish sold is a fish the god never sees. Choose.
+- **THE VILLAGE is a place you walk.** Press **V** at the dock and the view
+  changes: a top-down vector village in the old Zelda way — plaza, well,
+  olive trees, the jetty back to the sea. At first only Old Stavros' Sponge
+  Exchange and the chandlery stand; everyone else ARRIVES when you first
+  bring home the kind of thing they trade in, and their house rises from an
+  empty lot: Thalassia the jeweler (first pearl — she buys pearls, amethyst,
+  coral), Big Vasilis' taverna (first catch), Kyra Despina's antiquary
+  (first artifact), Argyris the silversmith (first silver or gold), and
+  Porphyra's dye-house (first murex). Talk with **E**; the keepers pay a
+  premium over the dock hands' flat rate. New finds seed the sea too:
+  red coral in the shallows, Siphnian silver, quarry amethyst, river gold
+  in the deep approaches.
 - **Experience shapes you.** Loot, depth, and hunting all grant XP. Levels
   add breath/speed/recovery — and fitness (levels + training + dives) is
   drawn on the diver himself: the skin browns, the shoulders broaden, the
@@ -68,13 +85,19 @@ and veterans find their kaiki already tied up at the dock).
   the first pair of olive-oil goggles is the purchase that opens the sea.
   Swimming is honest, too: speed is a real vector, so straight down is
   genuinely the fastest way to depth (the skandalopetra pulls only downward).
-- **The kelp forest** spans the flat shelf east of the sponge grounds,
+- **The skandalopetra is a real stone**, the old Kalymnos way: you carry a
+  few on your belt (more and bigger with each tier), grab one as a descent
+  begins, and the moment you stop descending it tumbles to the bottom,
+  spent. Reload only aboard or beside the kaiki, at the dock, or on the
+  temple shore — anchoring the boat over deep water is what makes long
+  stone-diving expeditions possible.
+- **The kelp forest** spans the flat shelf east of the sponge beds,
   seafloor to surface, every stalk bowed and swaying. Swimming through it is
   a slog (a knife helps a little). A boat sails clean over the canopy — the
   single best quality-of-life purchase in the game. Murex snails — the
   purple-dye shells of the ancients — live among the holdfasts, and octopus
   den in the boulders.
-- **The Divers' Cave** hides in the deepest dip of the sponge grounds: a
+- **The Divers' Cave** hides in the deepest dip of the sponge beds: a
   boulder dome with pale, high-grade fino sponges inside — and something
   else, left behind by whoever farmed them first.
 - **The kaiki** is a mobile depot: surface beside her and your catch loads
@@ -107,6 +130,13 @@ and veterans find their kaiki already tied up at the dock).
   bring him **obsidian** and gear already at the chandlery's best, and he
   forges it one god-tier further (fins, goggles, knife, kamaki — **F** to
   offer).
+- **Delphinus' Gift** sits at the top of the chandlery's catalog: shift
+  (**Q**) into a **dolphin** — far faster, breath that barely drains, kelp
+  means nothing — or, at tier two, **THE ORCA**, which sharks flee on
+  sight and stings barely dent. The price: no hands — no gathering, no
+  spear, until you shift back. And race the surface from below: a
+  breaching mammal leaves the water entirely, somersaulting high over it
+  before the sea takes it back.
 - **The Wreck of the Anemone:** a giant merchant ship lies breached in the
   Graveyard. Swim in through the torn planking amidships and rob the hold —
   amphorae, a helmet, gold — while a moray watches from the dark and
@@ -177,6 +207,7 @@ world seed.
 - `js/shop.js` — the dockside chandlery
 - `js/temple.js` — tribute-based training
 - `js/forge.js` — Hephaestus' blessings: obsidian for god-forged gear
+- `js/town.js` — the walkable top-down village: view, keepers, arrivals, premiums
 - `js/main.js` — boot, input, game loop, camera
 
 ## Ideas for later

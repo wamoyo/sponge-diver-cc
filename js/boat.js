@@ -43,6 +43,9 @@ SD.toggleBoard = function (state) {
   }
   if (SD.canBoard(state)) {
     p.aboard = true
+    p.form = null // no flukes on deck — you board on two legs
+    p.breachT = 0
+    p.flipA = 0
     p.vx = 0
     p.vy = 0
     SD.audio.board()
@@ -70,6 +73,7 @@ SD.updateBoat = function (state, input, dt) {
     p.vx = 0
     p.vy = 0
     p.breath = Math.min(SD.maxBreath(state), p.breath + SD.recoveryRate(state) * dt)
+    SD.refillStones(state) // the hold always carries spare stones
     if (input.y > 0.5) SD.toggleBoard(state) // shove off and dive
   }
 

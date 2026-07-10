@@ -240,7 +240,7 @@ SD.updateFauna = function (state, dt, interactive) {
       else updateKetos(state, f, dt, interactive)
 
       // spear the monster
-      if (interactive && tier > 0 && p.spearCd <= 0 &&
+      if (interactive && tier > 0 && !p.form && p.spearCd <= 0 &&
         SD.dist(f.x, f.y, p.x, p.y) < reach + bcfg.r * 0.5) {
         p.spearCd = SD.config.kamakiCooldown[tier]
         spearBoss(state, f, bcfg)
@@ -295,7 +295,7 @@ SD.updateFauna = function (state, dt, interactive) {
     if (f.y < cfg.minM * SD.config.pxPerM * 0.5) f.y = cfg.minM * SD.config.pxPerM * 0.5
 
     // --- the strike ---
-    if (interactive && under && tier > 0 && p.spearCd <= 0 && toPlayer < reach) {
+    if (interactive && under && tier > 0 && !p.form && p.spearCd <= 0 && toPlayer < reach) {
       p.spearCd = SD.config.kamakiCooldown[tier]
       p.spearFlash = 0.35
       if (SD.bagWeight(p.bag) + cfg.weight > SD.bagCapacity(state)) {
@@ -306,6 +306,7 @@ SD.updateFauna = function (state, dt, interactive) {
       f.respawnAt = state.time + cfg.respawn
       f.mode = 'cruise'
       p.bag.push(f.kind)
+      state.seenLoot[f.kind] = true // word reaches the village taverna
       state.stats.items = (state.stats.items || 0) + 1
       SD.awardXp(state, cfg.xp)
       SD.audio.spear()

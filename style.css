@@ -24,7 +24,7 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-#sea { position: fixed; inset: 0; display: block; touch-action: none; }
+#sea { position: fixed; inset: 0; display: block; touch-action: none; outline: none; }
 
 .hidden { display: none !important; }
 
@@ -267,6 +267,36 @@ body {
 }
 
 #tally .tally-note { margin-top: 6px; font-size: 12.5px; font-style: italic; text-align: center; color: var(--terracotta-dark); }
+
+/* ---------- Town parley box ---------- */
+
+#town-dialog {
+  position: fixed;
+  left: 50%;
+  bottom: 9%;
+  transform: translateX(-50%);
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  padding: 14px 22px 16px;
+  min-width: 320px;
+  max-width: min(560px, 92vw);
+  z-index: 22;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+}
+
+#town-dialog h3 {
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+  color: var(--terracotta-dark);
+}
+
+#town-dialog .town-trade { font-size: 13px; color: var(--ink); opacity: 0.75; letter-spacing: 0.04em; }
+#town-dialog p { font-style: italic; font-size: 15px; margin-bottom: 12px; }
+#town-dialog .town-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#town-dialog .town-note { font-size: 12.5px; font-style: italic; opacity: 0.75; flex-basis: 100%; }
+#town-dialog .btn-quiet { opacity: 0.8; }
 
 /* ---------- Overlays ---------- */
 
@@ -635,6 +665,15 @@ body.touch .key-hint { display: none; }
   font-size: 19px;
 }
 
+/* the shapeshift pill lives bottom-left, always at hand mid-swim */
+#touch-shape {
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  left: max(18px, env(safe-area-inset-left));
+  width: 54px;
+  height: 54px;
+  font-size: 24px;
+}
+
 #touch-shop, #touch-temple, #touch-forge {
   bottom: calc(64px + env(safe-area-inset-bottom));
   left: 50%;
@@ -651,6 +690,22 @@ body.touch .key-hint { display: none; }
   font-size: 17px;
   padding: 12px 26px;
   white-space: nowrap;
+}
+
+/* the village pill: above the zone pills so both can show at the dock */
+#touch-town {
+  bottom: calc(180px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 17px;
+  padding: 12px 26px;
+  white-space: nowrap;
+}
+
+/* ashore, the parley box owns the bottom — the pill moves up top */
+#touch-town.in-town {
+  bottom: auto;
+  top: max(14px, env(safe-area-inset-top));
 }
 
 /* ---------- Small screens ---------- */

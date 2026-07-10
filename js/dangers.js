@@ -153,9 +153,15 @@ SD.updateDangers = function (state, dt, interactive) {
       s.y += Math.sin(s.phase * 0.8) * 12 * dt
       if (s.x < s.x1) { s.x = s.x1; s.dir = 1 }
       if (s.x > s.x2) { s.x = s.x2; s.dir = -1 }
-      if (interactive && toPlayer < scfg.detectRadius && playerDeep && s.cooldown <= 0) s.mode = 'chase'
+      if (interactive && toPlayer < scfg.detectRadius && playerDeep && s.cooldown <= 0 && !p.form) s.mode = 'chase'
+      // the orca is the one thing in the sea a shark will not argue with
+      if (interactive && p.form === 'orca' && toPlayer < scfg.detectRadius) {
+        s.mode = 'flee'
+        s.cooldown = scfg.cooldown
+        s.dir = p.x > s.x ? 1 : -1
+      }
     } else if (s.mode === 'chase') {
-      if (!interactive || !playerDeep || toPlayer > scfg.detectRadius * 1.9) {
+      if (!interactive || !playerDeep || toPlayer > scfg.detectRadius * 1.9 || p.form) {
         s.mode = 'patrol' // lost interest — too shallow or too far
       } else {
         var cdx = p.x - s.x

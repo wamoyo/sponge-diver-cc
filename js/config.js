@@ -21,7 +21,7 @@ SD.config = {
     maxDepthM: 135,          // the floor of Poseidon's Plain
     skyTopPx: -300,          // how far above the waterline the camera may see
     // seafloor cross-section, west → east:
-    // Village Shallows → rolling Sponge Grounds (with the winding Divers'
+    // Village Shallows → rolling Sponge Beds (with the winding Divers'
     // Cave) → Seagrass Meadows → the long Kelp Forest (with the 80 m Kelp
     // Well) → Pearl Banks → Sunken Marble Quarry → Graveyard of Ships →
     // Hephaestus' Vents → POSEIDON'S PLAIN (a flat 135 m arena) → the
@@ -29,7 +29,7 @@ SD.config = {
     // the Temple Mountain, hollow, with an air pocket in its heart.
     floorPoints: [
       { x: 0, m: -3 }, { x: 260, m: 0 }, { x: 520, m: 4 }, { x: 900, m: 7 },
-      // — the Sponge Grounds, long and rolling —
+      // — the Sponge Beds, long and rolling —
       { x: 1250, m: 13 }, { x: 1500, m: 9 }, { x: 1800, m: 16 }, { x: 2100, m: 6 },
       { x: 2400, m: 11 }, { x: 2700, m: 19 }, { x: 2950, m: 8 },
       { x: 3080, m: 16 }, { x: 3160, m: 31 }, { x: 3260, m: 33 }, { x: 3340, m: 16 }, // the Divers' Cave slot
@@ -81,7 +81,7 @@ SD.config = {
     dock: { x: 470, radius: 150 },       // home jetty — swim here to sell, B for the chandlery
     temple: { x: 41520, radius: 300 },   // on the plateau inside the mountain — T to train
     vaultX: 30600,                       // center of the hoard on Poseidon's Plain
-    caveX: 3200,                         // the winding Divers' Cave in the sponge grounds
+    caveX: 3200,                         // the winding Divers' Cave in the sponge beds
     kelpX1: 9000,                        // the forest spans the flat shelf
     kelpX2: 14000,
     kelpWellX: 11720,                    // the narrow 80 m shaft under the forest
@@ -285,6 +285,11 @@ SD.config = {
     statue: { name: 'Marble Head', value: 400, xp: 55, weight: 4, minM: 42, maxM: 125, harvest: 2.6, count: 14, regrow: 380, placement: 'floor' },
     obsidian: { name: 'Obsidian Shard', value: 120, xp: 24, weight: 2, minM: 68, maxM: 86, harvest: 1.6, count: 8, regrow: 200, placement: 'floor', zone: 'vents' },
     coin: { name: "Poseidon's Coin", value: 400, xp: 45, weight: 1, minM: 130, maxM: 135, harvest: 1.0, count: 5, regrow: 200, placement: 'floor' },
+    // — precious metals and stones; each first find brings a buyer to town —
+    coral: { name: 'Red Coral', value: 70, xp: 15, weight: 1, minM: 6, maxM: 26, harvest: 1.5, count: 20, regrow: 160, placement: 'floor', needsKnife: 1 },
+    silver: { name: 'Siphnian Silver', value: 110, xp: 22, weight: 3, minM: 44, maxM: 88, harvest: 1.8, count: 14, regrow: 220, placement: 'floor' },
+    amethyst: { name: 'Amethyst', value: 130, xp: 26, weight: 1, minM: 38, maxM: 62, harvest: 1.6, count: 10, regrow: 240, placement: 'floor', zone: 'quarry' },
+    gold: { name: 'River Gold', value: 240, xp: 40, weight: 2, minM: 95, maxM: 130, harvest: 2.0, count: 8, regrow: 300, placement: 'floor' },
     octopus: { name: 'Octopus', value: 0, offering: 4, xp: 14, weight: 2, minM: 10, maxM: 60, harvest: 2.4, count: 16, regrow: 200, placement: 'floor', needsKnife: true },
     chest: { name: 'Abyssal Treasure Chest', value: 1800, xp: 300, weight: 12, minM: 134, maxM: 135, harvest: 3.5, count: 1, regrow: 900, placement: 'vault', heavy: true },
     trident: { name: 'Trident of Poseidon', value: 0, xp: 400, weight: 0, minM: 134, maxM: 135, harvest: 3.2, count: 1, regrow: 0, placement: 'vault', relic: true },
@@ -303,6 +308,45 @@ SD.config = {
     krakenBeak: { name: "Kraken's Beak", value: 0, offering: 40, xp: 90, weight: 5, harvest: 1.4, count: 0, regrow: 0, placement: 'drop' },
     ketosHorn: { name: 'Horn of the Ketos', value: 0, offering: 60, xp: 140, weight: 6, harvest: 1.6, count: 0, regrow: 0, placement: 'drop' }
   },
+
+  // The village folk. Old Stavros and the chandler are always there; everyone
+  // else ARRIVES the first time you bring home the kind of thing they trade
+  // in. In person they pay a premium over the dock hands' flat rate — and the
+  // taverna is the only place in the world that pays coin for catch at all.
+  townFolk: [
+    { id: 'stavros', name: 'Old Stavros', trade: 'The Sponge Exchange', always: true, premium: 1.15,
+      buys: ['sponge', 'honeycomb', 'fino'],
+      greet: '«Sponges! The sea gives and Stavros pays — fair as the tide.»',
+      arrive: null },
+    { id: 'chandler', name: 'Nikos the Chandler', trade: 'The Chandlery', always: true, premium: 1, buys: [],
+      greet: '«Gear for the deep, diver. Come in, come in.»',
+      arrive: null },
+    { id: 'jeweler', name: 'Thalassia', trade: "The Jeweler's Stall", premium: 1.2,
+      buys: ['oyster', 'greatPearl', 'amethyst', 'coral'],
+      unlockOn: ['oyster', 'greatPearl', 'amethyst', 'coral'],
+      greet: '«Pearls want light, diver. Bring them to me — the dock hands would weigh them like turnips.»',
+      arrive: '💍 A jeweler has come to the village — Thalassia pays properly for what shines' },
+    { id: 'taverna', name: 'Big Vasilis', trade: 'The Taverna', premium: 1,
+      buys: ['octopus', 'mullet', 'bream', 'grouper'],
+      unlockOn: ['octopus', 'mullet', 'bream', 'grouper'],
+      greet: '«Octopus! On the coals with it! The god can spare a few, eh?»',
+      arrive: '🍢 Smoke rises in the village — Big Vasilis has opened his taverna, and he buys catch' },
+    { id: 'antiquarian', name: 'Kyra Despina', trade: 'The Antiquary', premium: 1.2,
+      buys: ['shard', 'amphora', 'helmet', 'laurel', 'statue', 'coin', 'chest', 'strongbox'],
+      unlockOn: ['shard', 'amphora', 'helmet', 'laurel', 'statue', 'coin', 'chest', 'strongbox'],
+      greet: '«Old things remember, diver. I pay for the remembering.»',
+      arrive: '🏺 A collector has taken the corner house — Kyra Despina pays a premium for the old things' },
+    { id: 'silversmith', name: 'Argyris', trade: 'The Silversmith', premium: 1.2,
+      buys: ['silver', 'gold', 'obsidian'],
+      unlockOn: ['silver', 'gold'],
+      greet: '«Metal from the sea floor! Siphnos would weep. Let me weigh it.»',
+      arrive: '⚒️ A silversmith has lit his little furnace in the village — Argyris buys metal' },
+    { id: 'dyemaker', name: 'Porphyra', trade: 'The Dye-House', premium: 1.25,
+      buys: ['murex'],
+      unlockOn: ['murex'],
+      greet: '«Murex! Crush a thousand, dye one robe. Kings pay for that purple — and I pay you.»',
+      arrive: '🐚 A dye-maker has hung purple cloth in the village — Porphyra wants every murex you find' }
+  ],
 
   dangers: {
     urchin: { count: 26, minM: 4, sting: 4, radius: 12 },
@@ -351,10 +395,10 @@ SD.config = {
     },
     {
       id: 'stone', icon: '🪨', name: 'Skandalopetra',
-      flavor: 'A rock. But a really, really good rock.',
-      what: 'Descent speed, hold ↓',
+      flavor: 'Real stones, the old way: ride one down, and when the descent stops it is gone. Reload at the kaiki or ashore.',
+      what: 'Stones on your belt & their pull — hold ↓ to ride one',
       tiers: [70, 200, 520, 1200],
-      levels: ['—', '+50%', '+100%', '+150%', '+200%']
+      levels: ['—', '1 stone, +50%', '2 stones, +100%', '3 stones, +150%', '4 stones, +200%']
     },
     {
       id: 'light', icon: '🫒', name: 'Olive-Oil Goggles',
@@ -411,9 +455,22 @@ SD.config = {
       what: 'Rescue depth — black out within it and he saves you, your catch, and the day',
       tiers: [350, 1000],
       levels: ['meets you at 10 m', 'meets you at 20 m', 'meets you at 30 m']
+    },
+    {
+      id: 'shape', icon: '🐬', name: "Delphinus' Gift",
+      flavor: 'Dionysus turned pirates into dolphins as a punishment. For you, a fair price makes it a blessing.',
+      what: 'Become the sea itself — Q to shift (no hands: no gathering, no spear)',
+      tiers: [2400, 5200],
+      levels: ['two legs', 'THE DOLPHIN', 'THE ORCA']
     }
   ],
   buddyRescueM: [10, 20, 30],   // rescue depth by buddy tier — beyond it, the sea keeps you
+  // Delphinus' Gift, by form: swim-speed multiplier, breath-drain multiplier,
+  // the tail-kick a breach adds to your exit speed, and the somersault rate
+  formStats: {
+    dolphin: { name: 'Dolphin', speed: 1.75, drain: 0.55, breach: 1.7, spin: 6.8 },
+    orca: { name: 'Orca', speed: 2.25, drain: 0.4, breach: 1.5, spin: 5.6 }
+  },
 
   netCapacity: [2, 4, 7, 10, 14, 19, 25],    // carry weight by net tier
   holdCapacity: [0, 24, 48, 90],              // boat hold weight by boat tier
@@ -422,7 +479,8 @@ SD.config = {
   boatBoardRadius: 95,                        // close enough to board (E) — anywhere along the hull
   boatTransferRadius: 110,                    // surfacing this close auto-loads the hold
   knifeMults: [1, 0.78, 0.6, 0.45, 0.33, 0.24], // harvest-time multiplier by knife tier (last: god-forged)
-  stoneMults: [1, 1.5, 2.0, 2.5, 3.0],        // descent-speed multiplier by stone tier
+  stoneMults: [1, 1.5, 2.0, 2.5, 3.0],        // descent pull by stone tier — bigger stones drop harder
+  stoneCapacity: [0, 1, 2, 3, 4],             // stones on the belt by tier — each falls away when the ride ends
   charmResist: [0, 0.2, 0.38, 0.55],          // sting reduction by charm tier
   weightSlow: 0.032                           // speed mult = 1 / (1 + carried * this)
 }
@@ -474,13 +532,16 @@ SD.maxBreath = function (state) {
 
 // Pure: max swim speed px/s — base + fins + stroke drills + diver level.
 // Billy's grilled kraken sticks to the ribs: +8% forever after the feast.
+// In Delphinus' shape the whole body is a fin: the form multiplies it all.
 SD.maxSpeed = function (state) {
-  if (state.devMode) return 380
+  var form = state.player && state.player.form
+  var mult = form ? SD.config.formStats[form].speed : 1
+  if (state.devMode) return 380 * mult
   var v = SD.config.player.baseSpeed +
     state.upgrades.fins * 12 +
     state.training.stroke * SD.config.training.stroke.per +
     SD.level(state) * SD.config.perLevel.speed
-  return state.relics.feast ? v * 1.08 : v
+  return (state.relics.feast ? v * 1.08 : v) * mult
 }
 
 // Pure: sailing speed px/s for the current Sails of Boreas
@@ -583,11 +644,19 @@ SD.descentMult = function (state) {
   return SD.config.stoneMults[state.upgrades.stone]
 }
 
+// Pure: how many skandalopetra fit on the diver's belt (dev pockets are deep)
+SD.stonesMax = function (state) {
+  if (state.devMode) return 9
+  return SD.config.stoneCapacity[state.upgrades.stone]
+}
+
 // Pure: fraction of sting damage absorbed — charm, plus Karcharias' tough
-// hide worn as a wetsuit (half of what remains)
+// hide worn as a wetsuit (half of what remains), plus orca blubber
 SD.stingResist = function (state) {
   var base = SD.config.charmResist[state.upgrades.charm]
-  return state.relics.hide ? 1 - (1 - base) * 0.5 : base
+  if (state.relics.hide) base = 1 - (1 - base) * 0.5
+  if (state.player && state.player.form === 'orca') base = 1 - (1 - base) * 0.45
+  return base
 }
 
 // Pure: player depth in meters (0 at the surface)
@@ -702,7 +771,7 @@ SD.regionAt = function (x, m) {
   if (x >= 34500 && x < w.lagoon.x1) return 'The Eastern Rise'
   if (x >= w.lagoon.x1) return "Aphrodite's Lagoon"
   if (x < 700) return 'The Village Shallows'
-  if (x < w.seagrass.x1) return 'The Sponge Grounds'
+  if (x < w.seagrass.x1) return 'The Sponge Beds'
   return 'The Open Blue'
 }
 

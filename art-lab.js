@@ -135,7 +135,7 @@ function scene (title, camX, camY, zoom, poseDiver) {
 function buildScenes () {
   LAB_WORLD = SD.genWorld(makeState())
   scene('the village & dock', -30, -190, 0.85, false)
-  scene('the sponge grounds', 1300, -100, 0.55, true)
+  scene('the sponge beds', 1300, -100, 0.55, true)
   scene("the divers' cave", 2830, 260, 0.72, false)
   scene('the seagrass meadows', 7200, -80, 0.55, true)
   scene('the kelp forest', 10100, -70, 0.5, true)
@@ -259,6 +259,42 @@ function buildDiverTiles () {
     diverState.harvestTarget = { progress: 0.5 }
     drawDiver(ctx, diverState, t)
     diverState.harvestTarget = null
+  })
+  // Delphinus' Gift — each form gets its own little sea
+  tile('sec-diver', "the dolphin (Delphinus' Gift, Q)", 300, 170, 2.0, function (ctx, t, dt) {
+    var s = this.s || (this.s = (function () {
+      var st = makeState()
+      st.player.form = 'dolphin'
+      return st
+    })())
+    s.player.swimPhase += dt * 6
+    s.player.vx = 120
+    drawMarineForm(ctx, s, t)
+  })
+  tile('sec-diver', 'THE ORCA (tier 2)', 340, 190, 1.8, function (ctx, t, dt) {
+    var s = this.s || (this.s = (function () {
+      var st = makeState()
+      st.player.form = 'orca'
+      return st
+    })())
+    s.player.swimPhase += dt * 5
+    s.player.vx = 140
+    drawMarineForm(ctx, s, t)
+  })
+  tile('sec-diver', 'the breach somersault (loops)', 320, 220, 1.3, function (ctx, t, dt) {
+    var s = this.s || (this.s = (function () {
+      var st = makeState()
+      st.player.form = 'orca'
+      return st
+    })())
+    var p = s.player
+    p.swimPhase += dt * 5
+    p.vx = 180
+    p.vy = -260
+    p.breachT = 1
+    p.flipA = (t * 5.6) % (Math.PI * 4)
+    drawMarineForm(ctx, s, t)
+    p.breachT = 0
   })
 }
 
@@ -433,6 +469,22 @@ function buildLoot () {
 // ---------- World pieces ----------
 
 function buildWorld () {
+  // the village, top-down — the whole map in one postcard, everyone home
+  tile('sec-world', 'the village (walkable, top-down)', 620, 350, 1, function (ctx, t, dt) {
+    var s = this.state
+    if (!s) {
+      s = this.state = makeState()
+      s.townFolk = { stavros: true, chandler: true, jeweler: true, taverna: true,
+        antiquarian: true, silversmith: true, dyemaker: true }
+      s.seenLoot = {}
+    }
+    s.time = t
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
+    // squeeze the whole 1560px town into the tile
+    ctx.scale(620 / 1560, 620 / 1560)
+    SD.town.render(s, ctx, { w: 1560, h: 350 * 1560 / 620 })
+  })
+
   // the kaiki at each stage of her life
   function boatTile (title, boatTier, sailTier, aboard, hold) {
     tile('sec-world', title, 300, 200, 1.15, function (ctx, t, dt) {

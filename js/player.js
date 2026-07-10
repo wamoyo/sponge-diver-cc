@@ -24,7 +24,68 @@ SD.newPlayer = function () {
     diveMaxM: 0,    // deepest point of the current dive
     wasUnder: false, // for splash + dive-end triggers
     holdingStone: false,
-    aboard: false   // true while sailing the kaiki
+    stoneLatch: false, // set when a stone drops: re-press ↓ for the next
+    stones: 0,      // skandalopetra on the belt — one is spent per descent
+    aboard: false,  // true while sailing the kaiki
+    form: null,     // Delphinus' Gift: null (diver), 'dolphin', or 'orca'
+    breachT: 0,     // seconds left of ballistic flight after a breach
+    flipA: 0        // the somersault angle, accumulated while airborne
+  }
+}
+
+// Side effect: shifts between the diver and Delphinus' shape (Q / the pill).
+// Tier 1 of the gift grants the dolphin; tier 2 the orca. No hands in
+// either — the sea gives speed and breath, and takes the gathering.
+SD.toggleForm = function (state) {
+  var p = state.player
+  if (!state.upgrades.shape || p.aboard) return
+  if (p.form) {
+    p.form = null
+    SD.hud.toast('🤿 Your own shape again — hands and all')
+  } else {
+    p.form = state.upgrades.shape >= 2 ? 'orca' : 'dolphin'
+    SD.audio.dolphin()
+    SD.hud.toast(p.form === 'orca'
+      ? '🐋 THE ORCA — the sea parts before you, and the sharks remember'
+      : '🐬 The dolphin takes you — swift, and slow to need air', 'big')
+  }
+  if (p.holdingStone) SD.dropStone(state) // flippers hold no rock
+  p.breachT = 0
+  p.flipA = 0
+  SD.burstBubbles(state, p.x, p.y, 16)
+}
+
+// Side effect: the stone leaves the diver's hands and sinks, spent. The
+// old crews hauled them back up on ropes; down here it is simply gone.
+SD.dropStone = function (state) {
+  var p = state.player
+  if (!p.holdingStone) return
+  p.holdingStone = false
+  p.stoneLatch = true // no fresh grab until ↓ is released and pressed anew
+  if (!state.devMode) p.stones = Math.max(0, p.stones - 1)
+  state.effects.droppedStones.push({
+    x: p.x + p.facing * 20,
+    y: p.y + 8,
+    vy: Math.max(p.vy * 0.4, 0) + 60,
+    r: 4.5 + state.upgrades.stone,
+    spin: 0,
+    life: 4,
+    settled: false
+  })
+}
+
+// Side effect: tops up the belt wherever a crew could hand you a stone —
+// aboard or beside the kaiki, at the home dock, on the temple shore
+SD.refillStones = function (state) {
+  var p = state.player
+  var max = SD.stonesMax(state)
+  if (state.upgrades.stone < 1 || p.stones >= max) return
+  var w = SD.config.world
+  var nearBoat = SD.hasBoat(state) && Math.abs(p.x - state.boat.x) < SD.config.boatTransferRadius
+  var ashore = Math.abs(p.x - w.dock.x) < w.dock.radius || Math.abs(p.x - w.temple.x) < w.temple.radius
+  if (p.aboard || nearBoat || ashore) {
+    p.stones = max
+    SD.hud.toast('🪨 Skandalopetra reloaded — ' + max + ' on the belt')
   }
 }
 
@@ -60,17 +121,33 @@ SD.updatePlayer = function (state, input, dt) {
     ix /= ilen
     iy /= ilen
   }
-  var diving = iy > 0.4
-  var stoneMult = diving ? SD.descentMult(state) : 1
-  p.holdingStone = diving && state.upgrades.stone > 0 && p.y > 8
+  if (p.breachT > 0) { // no swimming in mid-air — the arc owns you
+    ix = 0
+    iy = 0
+  }
+  var diving = iy > 0.4 && !p.form // a dolphin needs no stone
+  // the skandalopetra is a REAL stone: grab one off the belt as the
+  // descent starts, and the moment the descent stops it falls away —
+  // spent until the kaiki or the shore hands you another. The latch
+  // spends ONE stone per press of ↓, never a belt per bump of the floor.
+  if (!diving) p.stoneLatch = false
+  if (diving && !p.holdingStone && !p.stoneLatch && p.y > 8 &&
+      (state.devMode || (state.upgrades.stone > 0 && p.stones > 0)) &&
+      p.y < SD.groundYAt(p.x, p.y) - cfg.radius - 40) { // needs water below
+    p.holdingStone = true
+  }
+  if (p.holdingStone && (!diving || p.y <= 8)) {
+    SD.dropStone(state)
+  }
+  var stoneMult = p.holdingStone ? SD.descentMult(state) : 1
 
   p.vx += ix * cfg.accel * dt
   p.vy += iy * cfg.accel * (iy > 0 ? stoneMult : 1) * dt
   if (Math.abs(ix) > 0.15) p.facing = ix > 0 ? 1 : -1
 
-  // water drag when the diver stops kicking on an axis
-  if (Math.abs(ix) < 0.05) p.vx *= Math.exp(-4.2 * dt)
-  if (Math.abs(iy) < 0.05) p.vy *= Math.exp(-4.2 * dt)
+  // water drag when the diver stops kicking on an axis (none in the air)
+  if (Math.abs(ix) < 0.05 && p.breachT <= 0) p.vx *= Math.exp(-4.2 * dt)
+  if (Math.abs(iy) < 0.05 && p.breachT <= 0) p.vy *= Math.exp(-4.2 * dt)
 
   // gentle buoyancy, stronger right under the local waterline (inside the
   // mountain — or up a cave dome — the air pocket has its own surface)
@@ -85,14 +162,35 @@ SD.updatePlayer = function (state, input, dt) {
   // bonus applies only to the downward component of your motion.
   if (p.entangled > 0) p.entangled -= dt
   var max = SD.maxSpeed(state) * SD.weightMult(SD.bagWeight(p.bag))
-  if (p.entangled > 0 && !state.devMode) max *= SD.config.dangers.kelp.slow
+  if (p.entangled > 0 && !state.devMode && !p.form) max *= SD.config.dangers.kelp.slow
   var sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
-  if (sp > 0.001) {
+  if (sp > 0.001 && p.breachT <= 0) {
     var downness = Math.max(0, p.vy / sp)
     var allowed = max * (1 + (stoneMult - 1) * (diving ? downness * downness : 0))
     if (sp > allowed) {
       p.vx *= allowed / sp
       p.vy *= allowed / sp
+    }
+  }
+
+  // --- Delphinus' breach: hit the surface fast and the sea lets you GO —
+  // a tail-kick at the line, then a ballistic somersault high into the
+  // air, right out the top of the screen, gravity owning the way down ---
+  if (p.form && p.breachT <= 0 && p.y > surfY && p.y < surfY + pxPerM &&
+      p.vy < -280 && SD.groundYAt(p.x, p.y) > surfY) {
+    p.breachT = 3.5
+    p.flipA = 0
+    p.vy *= SD.config.formStats[p.form].breach
+    SD.burstBubbles(state, p.x, p.y, 16)
+  }
+  if (p.breachT > 0) {
+    p.breachT -= dt
+    p.vy += 780 * dt
+    p.flipA += SD.config.formStats[p.form].spin * dt * (p.facing >= 0 ? 1 : -1)
+    if ((p.y >= surfY - 4 && p.vy > 0) || p.breachT <= 0) { // re-entry
+      p.breachT = 0
+      p.flipA = 0
+      SD.burstBubbles(state, p.x, p.y, 12)
     }
   }
 
@@ -118,6 +216,7 @@ SD.updatePlayer = function (state, input, dt) {
     if (p.y > floorY - cfg.radius) {
       p.y = floorY - cfg.radius
       if (p.vy > 0) p.vy = 0
+      if (p.holdingStone) SD.dropStone(state) // the ride ends at the bottom
     }
   }
 
@@ -138,9 +237,9 @@ SD.updatePlayer = function (state, input, dt) {
     }
   }
 
-  if (p.y < surfY && floorY > surfY) { // only where there IS water below —
-    p.y = Math.max(p.y, surfY - 6)     // dry ledges above the line are land
-    if (p.vy < -30) p.vy = -30
+  if (p.y < surfY && floorY > surfY && p.breachT <= 0) { // only where there
+    p.y = Math.max(p.y, surfY - 6)  // IS water below — dry ledges are land,
+    if (p.vy < -30) p.vy = -30      // and a breaching mammal is FLYING
   }
 
   // rocks push the diver out
@@ -170,6 +269,7 @@ SD.updatePlayer = function (state, input, dt) {
     if (ratio < bcfg.panicBelow) {
       drain += (bcfg.panicBelow - ratio) / bcfg.panicBelow * bcfg.panicDrain * SD.panicScale(state)
     }
+    if (p.form) drain *= SD.config.formStats[p.form].drain // mammal lungs
     p.breath -= drain * dt
     p.diveMaxM = Math.max(p.diveMaxM, depthNow)
     state.stats.deepest = Math.max(state.stats.deepest, Math.round(depthNow))
@@ -198,10 +298,40 @@ SD.updatePlayer = function (state, input, dt) {
     SD.updateBoatTransfer(state, dt)
     updateDockSelling(state, dt)
     updateDockVoices(state)
+    SD.refillStones(state)
+    updateTempleSelling(state, dt)
   }
   updateBuddy(state, dt)
   updateWellTunnel(state, dt)
   updateHarvest(state, dt)
+}
+
+// Side effect: the priests buy the rest — treasure sold at the temple steps
+// pays like the dock, so a far-shore haul can end its ledger at the god's
+// door. Tribute is untouched: fish stay for the offering plate.
+function updateTempleSelling (state, dt) {
+  var tz = SD.config.world.temple
+  if (Math.abs(state.player.x - tz.x) >= tz.radius) return
+  state.templeSellCd = (state.templeSellCd || 0) - dt
+  if (state.templeSellCd > 0) return
+  state.templeSellCd = 1.2
+
+  var p = state.player
+  var sale = SD.splitTribute(p.bag)
+  var goods = sale.sale
+  var fromHold = 0
+  // the kaiki anchored at the mountain's face is within the god's ledger too
+  if (SD.hasBoat(state) && Math.abs(state.boat.x - SD.config.world.mountain.faceX) < 500) {
+    var holdSplit = SD.splitTribute(state.boat.hold)
+    fromHold = holdSplit.sale.length
+    if (fromHold) {
+      goods = goods.concat(holdSplit.sale)
+      state.boat.hold = holdSplit.tribute
+    }
+  }
+  if (!goods.length) return
+  p.bag = sale.tribute
+  SD.sellCatch(state, goods, 'The Priests Buy for the Temple')
 }
 
 // Side effect: Poseidon's standing storm, felt in the body — surface chop
@@ -245,6 +375,7 @@ function updateDockVoices (state) {
   if (state.dockVisited) return
   state.dockVisited = true
   state.stats.dockVisits = (state.stats.dockVisits || 0) + 1
+  SD.town.checkArrivals(state) // new finds bring new folk to the village
   SD.hud.toast(dockLine(state))
 }
 
@@ -446,6 +577,16 @@ function updateHarvest (state, dt) {
   state.harvestTarget = nearest
   if (!nearest) return
 
+  // flippers cannot gather — the gift has its price
+  if (p.form) {
+    if (!state.bagFullAt || state.time - state.bagFullAt > 3) {
+      state.bagFullAt = state.time
+      SD.hud.toast('No hands in this shape — Q to shift back', 'warn')
+    }
+    state.harvestTarget = null
+    return
+  }
+
   var info = SD.config.lootTypes[nearest.type]
 
   // some things demand a blade — and the Great Pearl demands a LEGEND
@@ -573,6 +714,7 @@ function takeLoot (state, item) {
   }
 
   p.bag.push(item.type)
+  state.seenLoot[item.type] = true // the village hears what the sea gave up
 
   if (info.event === 'topple') {
     SD.toppleAnemone(state)
@@ -668,6 +810,11 @@ SD.finishBlackout = function (state) {
   p.wasUnder = false
   p.entangled = 0
   p.aboard = false
+  p.form = null   // you wake in your own shape
+  p.breachT = 0
+  p.flipA = 0
+  p.holdingStone = false
+  p.stones = SD.stonesMax(state) // the dock hands restock the belt
   state.boat.x = SD.config.world.boatStartX
   state.buddy.x = p.x - 62
   state.buddy.y = -4

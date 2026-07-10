@@ -9,7 +9,7 @@
 </head>
 <body>
 
-  <canvas id="sea"></canvas>
+  <canvas id="sea" tabindex="-1"></canvas>
 
   <!-- In-game HUD -->
   <div id="hud" class="hidden">
@@ -24,6 +24,7 @@
       </div>
       <div class="hud-stats">
         <span id="hud-depth">0 m</span>
+        <span id="hud-stones" class="hidden">🪨 0</span>
         <span id="hud-money">₯ 0</span>
       </div>
     </div>
@@ -49,6 +50,11 @@
   <button id="touch-temple" class="touch-btn hidden">🏛️ Temple</button>
   <button id="touch-boat" class="touch-btn hidden">⛵ Board</button>
   <button id="touch-forge" class="touch-btn hidden">🔥 Forge</button>
+  <button id="touch-shape" class="touch-btn hidden">🐬</button>
+  <button id="touch-town" class="touch-btn hidden">🏘️ Village</button>
+
+  <!-- Town parley box (filled by js/town.js) -->
+  <div id="town-dialog" class="hidden meander-top"></div>
 
   <!-- Catch sold tally -->
   <div id="tally" class="hidden meander-top"></div>
@@ -197,6 +203,7 @@
   <script src="js/shop.js"></script>
   <script src="js/temple.js"></script>
   <script src="js/forge.js"></script>
+  <script src="js/town.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

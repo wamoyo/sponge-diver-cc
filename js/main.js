@@ -18,10 +18,12 @@ function newState () {
     drachmae: 0,
     xp: 0,
     training: { apnea: 0, stroke: 0, discipline: 0 },
-    upgrades: { fins: 0, stone: 0, light: 0, net: 0, knife: 0, kamaki: 0, charm: 0, boat: 0, sail: 0, buddy: 0 },
+    upgrades: { fins: 0, stone: 0, light: 0, net: 0, knife: 0, kamaki: 0, charm: 0, boat: 0, sail: 0, buddy: 0, shape: 0 },
     relics: { hide: false, feast: false, feastPending: false, fins: false, sight: false, hunt: false },
     slain: { karcharias: false, kraken: false, ketos: false },
     bottlesRead: {},
+    seenLoot: {},                                  // every loot type ever picked up
+    townFolk: { stavros: true, chandler: true },   // who has arrived in the village
     tridentClaimed: false,
     stats: { dives: 0, blackouts: 0, earned: 0, deepest: 0, items: 0 },
     muted: false,
@@ -43,7 +45,7 @@ function newState () {
     zoom: 1,
     zoomTarget: 1,
     devMode: false, // the G toggle — godlike stats for exploring; never saved
-    effects: { shake: 0, flash: 0, bubbles: [] }
+    effects: { shake: 0, flash: 0, bubbles: [], droppedStones: [] }
   }
 }
 
@@ -86,6 +88,30 @@ function updateBubbles (state, dt) {
     if (b.life <= 0 || b.y < 2 || b.y < SD.overheadYAt(b.x, b.y) + 6) list.splice(i, 1)
   }
   if (list.length > 220) list.splice(0, list.length - 220)
+}
+
+// Side effect: spent skandalopetra sink to the bottom and are lost there —
+// a short tumble, a puff of sand, and the sea keeps them
+function updateDroppedStones (state, dt) {
+  var list = state.effects.droppedStones
+  if (!list) return
+  for (var i = list.length - 1; i >= 0; i--) {
+    var s = list[i]
+    if (!s.settled) {
+      s.vy = Math.min(s.vy + 700 * dt, 420) // stones sink hard, even in water
+      s.y += s.vy * dt
+      s.spin += dt * 3
+      var gy = SD.groundYAt(s.x, s.y) - 6
+      if (s.y >= gy) {
+        s.y = gy
+        s.settled = true
+        SD.burstBubbles(state, s.x, s.y - 4, 4)
+      }
+    } else {
+      s.life -= dt
+      if (s.life <= 0) list.splice(i, 1)
+    }
+  }
 }
 
 // Side effect: eases the camera toward the diver, clamped to the world.
@@ -183,6 +209,7 @@ function startGame () {
   document.getElementById('title').classList.add('hidden')
   SD.hud.setVisible(true)
   state.mode = 'playing'
+  refocusGame()
   if (state.muted) {
     SD.hud.toast('🔇 Sound is off — press M to unmute', 'warn')
   } else {
@@ -214,6 +241,7 @@ function openPause () {
     '<span>Trident of Poseidon</span><span>' + (state.tridentClaimed ? 'claimed 🔱' : 'still down there') + '</span>'
   document.getElementById('mute-btn').textContent = state.muted ? 'Unmute' : 'Mute'
   document.getElementById('pause').classList.remove('hidden')
+  refocusGame()
 }
 
 // Side effect: hides the pause overlay and resumes
@@ -222,6 +250,7 @@ function closePause () {
   document.getElementById('pause').classList.add('hidden')
   resetBtnArmed = false
   document.getElementById('reset-btn').textContent = 'Reset Save'
+  refocusGame()
 }
 
 // Side effect: closes whichever window is actually on screen — DOM truth,
@@ -242,6 +271,29 @@ function closeTopWindow () {
   if (visible('forge')) { SD.forge.close(state); return true }
   if (visible('pause')) { closePause(); return true }
   return false
+}
+
+// Side effect: pulls keyboard focus back into the game — onto the open
+// window's first button, or onto the canvas when the sea has the stage.
+// Alt-tabbing can strand focus on the browser's own UI, and then Esc (and
+// every other key) never reaches the page until a click; keeping focus on
+// something of ours makes the keys work the moment the player returns.
+// (Blackout and game over are skipped on purpose: focusing Begin Again
+// would let a stray Enter wipe the save.)
+function refocusGame () {
+  var active = document.activeElement
+  var windows = ['parchment', 'shop', 'temple', 'forge', 'pause', 'title']
+  for (var i = 0; i < windows.length; i++) {
+    var el = document.getElementById(windows[i])
+    if (!el.classList.contains('hidden')) {
+      if (!el.contains(active)) {
+        var btn = el.querySelector('button')
+        if (btn) btn.focus({ preventScroll: true })
+      }
+      return
+    }
+  }
+  if (active !== canvas) canvas.focus({ preventScroll: true })
 }
 
 // Side effect: flips mute on the audio engine + save. The visible pill is
@@ -316,6 +368,10 @@ function bindInput () {
     if (ev.code === 'KeyE' && state.mode === 'playing') {
       SD.toggleBoard(state)
     }
+    if (ev.code === 'KeyV' && state.mode === 'playing' && inZone(SD.config.world.dock) && !state.player.aboard) {
+      SD.town.enter(state) // walk ashore into the village (town.js handles keys from there)
+    }
+    if (ev.code === 'KeyQ' && state.mode === 'playing') SD.toggleForm(state)
     if (ev.code === 'KeyG') toggleDev()
     if (ev.code === 'Minus') adjustZoom(0.8)
     if (ev.code === 'Equal') adjustZoom(1.25)
@@ -324,6 +380,7 @@ function bindInput () {
       ev.preventDefault()
       // Esc closes whatever window is open; with none open, it pauses
       if (!closeTopWindow() && state.mode === 'playing') openPause()
+      refocusGame()
     }
   })
 
@@ -341,6 +398,11 @@ function bindInput () {
   window.addEventListener('blur', function () {
     keys.left = keys.right = keys.up = keys.down = false
     if (state.mode === 'playing') openPause()
+  })
+  // coming back from an alt-tab: put the keys back in the player's hands
+  window.addEventListener('focus', refocusGame)
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) refocusGame()
   })
 
   document.getElementById('start-btn').addEventListener('click', startGame)
@@ -368,11 +430,18 @@ function bindInput () {
   document.getElementById('touch-temple').addEventListener('click', function () {
     if (state.mode === 'playing') SD.temple.open(state)
   })
+  document.getElementById('touch-shape').addEventListener('click', function () {
+    if (state.mode === 'playing') SD.toggleForm(state)
+  })
   document.getElementById('touch-forge').addEventListener('click', function () {
     if (state.mode === 'playing') SD.forge.open(state)
   })
   document.getElementById('touch-boat').addEventListener('click', function () {
     if (state.mode === 'playing') SD.toggleBoard(state)
+  })
+  document.getElementById('touch-town').addEventListener('click', function () {
+    if (state.mode === 'playing' && inZone(SD.config.world.dock) && !state.player.aboard) SD.town.enter(state)
+    else if (state.mode === 'town') SD.town.leave(state)
   })
   document.getElementById('touch-pause').addEventListener('click', function () {
     if (state.mode === 'playing') openPause()
@@ -417,6 +486,13 @@ function frame (nowMs) {
   lastT = nowMs
   state.time += dt
 
+  if (state.mode === 'town') { // ashore: the village owns the whole frame
+    SD.town.frame(state, readInput(), dt, ctx, view)
+    SD.hud.sync(state)
+    requestAnimationFrame(frame)
+    return
+  }
+
   if (state.mode === 'playing') {
     var input = readInput()
     SD.updateBoat(state, input, dt)
@@ -442,6 +518,7 @@ function frame (nowMs) {
   updateFish(state, dt)
   updateCruisers(state, dt)
   updateBubbles(state, dt)
+  updateDroppedStones(state, dt)
 
   // camera zoom eases toward its target; the visible world window grows as it shrinks
   state.zoom += (state.zoomTarget - state.zoom) * (1 - Math.exp(-8 * dt))
@@ -464,6 +541,7 @@ function boot () {
   state.player = SD.newPlayer()
   state.buddy = { x: state.player.x - 62, y: -4, phase: 0 }
   state.player.breath = SD.maxBreath(state)
+  state.player.stones = SD.stonesMax(state) // the belt starts full, at the dock
   state.world = SD.genWorld(state)
   state.cam.x = state.player.x - window.innerWidth / 2
   state.cam.y = SD.config.world.skyTopPx
@@ -472,12 +550,14 @@ function boot () {
   SD.shop.init(state)
   SD.temple.init(state)
   SD.forge.init(state)
+  SD.town.init(state)
   document.getElementById('mute-pill').textContent = state.muted ? '🔇' : '🔊'
   bindInput()
   SD.touch.init(canvas) // pointer joystick — mouse and finger alike
   if (SD.touch.isTouchDevice()) bindTouch()
   resize()
   window.addEventListener('resize', resize)
+  refocusGame()
 
   if (state.stats.dives > 0) {
     var note = document.getElementById('title-save-note')

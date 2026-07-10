@@ -17,10 +17,10 @@ SD.hud = (function () {
 
   // Side effect: caches element references. Call once on boot.
   function init () {
-    var ids = ['hud', 'breath-fill', 'xp-fill', 'hud-level', 'hud-depth', 'hud-money',
+    var ids = ['hud', 'breath-fill', 'xp-fill', 'hud-level', 'hud-depth', 'hud-money', 'hud-stones',
       'bag-pips', 'bag-weight', 'hud-hold', 'caption', 'toasts', 'surface-hint',
       'vignette', 'flash', 'tally', 'blackout', 'blackout-line', 'parchment',
-      'touch-shop', 'touch-temple', 'touch-boat', 'touch-forge']
+      'touch-shop', 'touch-temple', 'touch-boat', 'touch-forge', 'touch-shape', 'touch-town']
     for (var i = 0; i < ids.length; i++) {
       el[ids[i]] = document.getElementById(ids[i])
     }
@@ -37,8 +37,8 @@ SD.hud = (function () {
         : 'Sailing the kaiki — <b>A/D</b> sail · <b>S</b> dive off'
     }
     if (Math.abs(p.x - cfg.dock.x) < cfg.dock.radius) {
-      return touch ? 'The village dock — your catch sells itself'
-        : 'The village dock — your catch sells itself · <b>B</b> — chandlery'
+      return touch ? 'The village dock — tap 🏘️ to walk ashore'
+        : 'The village dock — <b>V</b> — walk into the village · <b>B</b> — chandlery'
     }
     if (Math.abs(p.x - cfg.temple.x) < cfg.temple.radius) {
       return touch ? "Poseidon's temple — tap the pill to train"
@@ -70,6 +70,12 @@ SD.hud = (function () {
     el['breath-fill'].className = ratio < 0.28 ? 'low' : ''
     el['hud-depth'].textContent = Math.round(SD.depthM(p.y)) + ' m'
     el['hud-money'].textContent = SD.fmtDr(state.drachmae)
+    if (state.upgrades.stone > 0) {
+      el['hud-stones'].classList.remove('hidden')
+      el['hud-stones'].textContent = '🪨 ' + (state.devMode ? '∞' : p.stones + '/' + SD.stonesMax(state))
+    } else {
+      el['hud-stones'].classList.add('hidden')
+    }
 
     var lv = SD.levelFromXp(state.xp)
     el['hud-level'].textContent = 'Lv ' + lv.level + (state.devMode ? ' ⚡DEV' : '')
@@ -115,8 +121,15 @@ SD.hud = (function () {
     el['touch-shop'].classList.toggle('hidden', !(inDock && state.mode === 'playing'))
     el['touch-temple'].classList.toggle('hidden', !(inTemple && state.mode === 'playing'))
     el['touch-forge'].classList.toggle('hidden', !(inForge && state.mode === 'playing'))
+    var canShape = state.upgrades.shape > 0 && !p.aboard
+    el['touch-shape'].classList.toggle('hidden', !(canShape && state.mode === 'playing'))
+    if (canShape) el['touch-shape'].textContent = p.form ? '🤿' : (state.upgrades.shape >= 2 ? '🐋' : '🐬')
     el['touch-boat'].classList.toggle('hidden', !(nearBoat && state.mode === 'playing'))
     if (nearBoat) el['touch-boat'].textContent = p.aboard ? '🌊 Dive Off' : '⛵ Board'
+    var townable = (inDock && !p.aboard && state.mode === 'playing') || state.mode === 'town'
+    el['touch-town'].classList.toggle('hidden', !townable)
+    el['touch-town'].classList.toggle('in-town', state.mode === 'town') // top of the screen ashore — the parley box owns the bottom
+    if (townable) el['touch-town'].textContent = state.mode === 'town' ? '🌊 To the Sea' : '🏘️ Village'
 
     var low = ratio < 0.28 && !surfaced
     el.vignette.style.opacity = low ? (1 - ratio / 0.28).toFixed(2) : '0'

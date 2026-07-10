@@ -157,6 +157,14 @@ SD.audio = (function () {
     noise(0.3, 0.14, 0, 1400)
   }
 
+  // Side effect: whistle-and-click — Delphinus answers the shift
+  function dolphin () {
+    tone(1500, 0.18, 'sine', 0.07, 0, 2400)
+    tone(2200, 0.16, 'sine', 0.05, 0.16, 1400)
+    noise(0.05, 0.04, 0.05, 6000)
+    tone(1800, 0.22, 'sine', 0.06, 0.3, 2600)
+  }
+
   // Side effect: descending tone for blacking out
   function blackout () {
     tone(330, 1.4, 'sine', 0.1, 0, 60)
@@ -211,6 +219,7 @@ SD.audio = (function () {
     sting: sting,
     splash: splash,
     blackout: blackout,
+    dolphin: dolphin,
     rumble: rumble,
     fanfare: fanfare,
     heartbeat: heartbeat

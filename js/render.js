@@ -23,6 +23,38 @@ var seaStops = [
   { at: 132, rgb: [4, 15, 35] }
 ]
 
+// The sky remembers where you are: bronze over home water, marble light
+// over the quarry, bruised bone over the graveyard, ash by the volcano,
+// and rose — of course — over Aphrodite's lagoon. Sampled by the camera's
+// place in the world, blended on the way between. (Poseidon's storm lays
+// its own gray on top in drawBackground.)
+var skyTopStops = [
+  { at: 0, rgb: [242, 207, 155] },
+  { at: 17200, rgb: [242, 207, 155] },
+  { at: 18500, rgb: [236, 223, 202] },
+  { at: 20600, rgb: [204, 184, 158] },
+  { at: 23200, rgb: [204, 184, 158] },
+  { at: 25500, rgb: [214, 176, 140] },
+  { at: 27600, rgb: [242, 207, 155] },
+  { at: 34800, rgb: [242, 207, 155] },
+  { at: 37300, rgb: [246, 192, 178] },
+  { at: 38550, rgb: [248, 176, 168] },
+  { at: 39650, rgb: [242, 207, 155] }
+]
+var skyBotStops = [
+  { at: 0, rgb: [191, 224, 218] },
+  { at: 17200, rgb: [191, 224, 218] },
+  { at: 18500, rgb: [214, 226, 218] },
+  { at: 20600, rgb: [184, 198, 194] },
+  { at: 23200, rgb: [184, 198, 194] },
+  { at: 25500, rgb: [204, 194, 176] },
+  { at: 27600, rgb: [191, 224, 218] },
+  { at: 34800, rgb: [191, 224, 218] },
+  { at: 37300, rgb: [234, 206, 202] },
+  { at: 38550, rgb: [242, 198, 196] },
+  { at: 39650, rgb: [191, 224, 218] }
+]
+
 var darkCanvas = null
 var darkCtx = null
 
@@ -40,14 +72,16 @@ function skinTones (fit) {
   }
 }
 
-// Side effect: paints sky + sea background in screen space
+// Side effect: paints sky + sea background in screen space. The sky's
+// colors are sampled by where in the world the camera stands.
 function drawBackground (ctx, view, cam) {
   var wlY = -cam.y // waterline in screen px
-  var storm = SD.stormAt(cam.x + view.w * 0.5) // the god's weather over this stretch
+  var camCX = cam.x + view.w * 0.5
+  var storm = SD.stormAt(camCX) // the god's weather over this stretch
   if (wlY > 0) {
     var sky = ctx.createLinearGradient(0, 0, 0, wlY)
-    sky.addColorStop(0, '#f2cf9b')
-    sky.addColorStop(1, '#bfe0da')
+    sky.addColorStop(0, SD.sampleStops(skyTopStops, camCX))
+    sky.addColorStop(1, SD.sampleStops(skyBotStops, camCX))
     ctx.fillStyle = sky
     ctx.fillRect(0, 0, view.w, Math.min(wlY, view.h))
     if (storm > 0) { // the bronze light goes out of the sky
@@ -70,36 +104,440 @@ function drawBackground (ctx, view, cam) {
   }
 }
 
-// Side effect: sun, clouds, a distant island on the horizon (world space)
-function drawSkyline (ctx, t) {
+// Side effect: sun and clouds (world space, each at its own distance —
+// the sun barely moves, the clouds keep half your pace). The horizon's
+// islands and landmarks live in the backdrop set below.
+function drawSkyline (ctx, t, cam, wv) {
   var W = SD.config.world.widthPx
+  var camCX = cam.x + wv.w / 2
   ctx.save()
-  // sun
+  // sun, pinned to the far sky
+  var sunX = plaxX(W * 0.6, 0.08, camCX)
   ctx.fillStyle = 'rgba(255, 238, 200, 0.9)'
   ctx.beginPath()
-  ctx.arc(W * 0.6, -210, 46, 0, SD.TAU)
+  ctx.arc(sunX, -210, 46, 0, SD.TAU)
   ctx.fill()
   ctx.fillStyle = 'rgba(255, 238, 200, 0.25)'
   ctx.beginPath()
-  ctx.arc(W * 0.6, -210, 78, 0, SD.TAU)
+  ctx.arc(sunX, -210, 78, 0, SD.TAU)
   ctx.fill()
-  // clouds
+  // clouds, sliding at half the world
   ctx.fillStyle = 'rgba(255, 252, 244, 0.75)'
   for (var i = 0; i < 24; i++) {
-    var cx = ((i * 1780 + t * 7) % (W + 1000)) - 500
+    var cx = ((i * 1780 + t * 7 + cam.x * 0.5) % (W + 1000)) - 500
     var cy = -240 - (i % 3) * 22
     ctx.beginPath()
     ctx.ellipse(cx, cy, 70, 15, 0, 0, SD.TAU)
     ctx.ellipse(cx + 45, cy - 8, 45, 12, 0, 0, SD.TAU)
     ctx.fill()
   }
-  // island out at sea, over the kelp
+  ctx.restore()
+}
+
+// ---------- Parallax backdrops ----------
+// The far world above the horizon: each stretch of sea gets its own
+// landmark on the skyline, and every layer slides at its own fraction of
+// the camera, in both axes — near things pass, far things linger. Below
+// the waterline the sea stays clean; only the real seafloor lives there.
+
+// Pure: where a distant thing anchored at wx appears for this camera —
+// it slides toward the camera center by (1 - f) of the distance, so it
+// clings to its home stretch of sea while scrolling slower than the world
+function plaxX (wx, f, camCX) {
+  return wx + (camCX - wx) * (1 - f)
+}
+
+// Side effect: a green headland over the sponge beds — olive terraces,
+// cypress spires, and a whitewashed chapel keeping watch
+function skHeadland (ctx, t) {
+  ctx.fillStyle = 'rgba(122, 138, 116, 0.5)'
+  ctx.beginPath()
+  ctx.moveTo(-260, 0)
+  ctx.quadraticCurveTo(-150, -96, -20, -62)
+  ctx.quadraticCurveTo(100, -84, 250, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(186, 200, 172, 0.3)' // olive terraces
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(-190, -40)
+  ctx.quadraticCurveTo(-90, -66, 30, -46)
+  ctx.moveTo(-150, -20)
+  ctx.quadraticCurveTo(-30, -40, 120, -30)
+  ctx.stroke()
+  ctx.fillStyle = 'rgba(52, 80, 60, 0.6)' // cypress spires
+  var cyp = [[-150, -72], [-98, -84], [44, -60], [116, -52]]
+  for (var i = 0; i < cyp.length; i++) {
+    ctx.beginPath()
+    ctx.moveTo(cyp[i][0] - 5, cyp[i][1])
+    ctx.lineTo(cyp[i][0], cyp[i][1] - 26)
+    ctx.lineTo(cyp[i][0] + 5, cyp[i][1])
+    ctx.closePath()
+    ctx.fill()
+  }
+  ctx.fillStyle = 'rgba(246, 240, 226, 0.8)' // the chapel
+  ctx.fillRect(-38, -78, 16, 11)
+  ctx.beginPath()
+  ctx.arc(-30, -78, 8, Math.PI, 0)
+  ctx.fill()
+}
+
+// Side effect: two fishing kaikis on the horizon, lateen sails full
+function skSails (ctx, t) {
+  for (var i = 0; i < 2; i++) {
+    var bx = i * 120 - 60
+    var by = Math.sin(t * 1.1 + i * 2.4) * 2
+    ctx.fillStyle = 'rgba(58, 52, 44, 0.55)'
+    ctx.beginPath() // the hull, hull-down in the haze
+    ctx.moveTo(bx - 20, by)
+    ctx.quadraticCurveTo(bx, by + 6, bx + 22, by - 1)
+    ctx.lineTo(bx + 18, by - 4)
+    ctx.lineTo(bx - 17, by - 4)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = 'rgba(240, 234, 214, 0.7)' // the lateen wing
+    ctx.beginPath()
+    ctx.moveTo(bx - 2, by - 5)
+    ctx.quadraticCurveTo(bx + 2 + i * 3, by - 30, bx + 16, by - 34)
+    ctx.quadraticCurveTo(bx + 10, by - 18, bx + 14, by - 5)
+    ctx.closePath()
+    ctx.fill()
+  }
+}
+
+// Side effect: a low green isle for the meadows — a shepherd's hut and
+// his flock of white dots on the slope
+function skShepherdIsle (ctx, t) {
+  ctx.fillStyle = 'rgba(128, 146, 112, 0.45)'
+  ctx.beginPath()
+  ctx.moveTo(-210, 0)
+  ctx.quadraticCurveTo(-60, -66, 60, -54)
+  ctx.quadraticCurveTo(150, -46, 210, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(150, 128, 96, 0.7)' // the hut
+  ctx.fillRect(-16, -58, 14, 9)
+  ctx.beginPath()
+  ctx.moveTo(-19, -58)
+  ctx.lineTo(-9, -66)
+  ctx.lineTo(1, -58)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(244, 240, 230, 0.7)' // the flock
+  var sheep = [[-70, -46], [-52, -50], [-30, -42], [40, -40], [66, -32]]
+  for (var i = 0; i < sheep.length; i++) {
+    ctx.beginPath()
+    ctx.ellipse(sheep[i][0], sheep[i][1], 4, 2.4, 0, 0, SD.TAU)
+    ctx.fill()
+  }
+  ctx.fillStyle = 'rgba(52, 80, 60, 0.55)' // one cypress by the door
+  ctx.beginPath()
+  ctx.moveTo(8, -58)
+  ctx.lineTo(12, -80)
+  ctx.lineTo(16, -58)
+  ctx.closePath()
+  ctx.fill()
+}
+
+// Side effect: the twin-peaked island out past the kelp, a sail beneath it
+function skKelpIsle (ctx, t) {
   ctx.fillStyle = 'rgba(90, 110, 105, 0.45)'
   ctx.beginPath()
-  ctx.moveTo(W * 0.5, 0)
-  ctx.quadraticCurveTo(W * 0.54, -80, W * 0.585, 0)
+  ctx.moveTo(-340, 0)
+  ctx.quadraticCurveTo(-170, -150, 0, -66)
+  ctx.quadraticCurveTo(170, -122, 340, 0)
+  ctx.closePath()
   ctx.fill()
-  ctx.restore()
+  ctx.fillStyle = 'rgba(240, 234, 214, 0.6)' // a sail working the strait
+  ctx.beginPath()
+  ctx.moveTo(-40, -3)
+  ctx.lineTo(-40, -20 + Math.sin(t * 1.3) * 1.5)
+  ctx.lineTo(-30, -4)
+  ctx.closePath()
+  ctx.fill()
+}
+
+// Side effect: bare skerries off the pearl banks, gulls riding the wind
+function skSkerries (ctx, t) {
+  ctx.fillStyle = 'rgba(102, 108, 104, 0.5)'
+  var rocks = [[-130, 34, 20], [10, 52, 30], [140, 28, 16]]
+  for (var i = 0; i < rocks.length; i++) {
+    ctx.beginPath()
+    ctx.moveTo(rocks[i][0] - rocks[i][1], 0)
+    ctx.quadraticCurveTo(rocks[i][0] - 6, -rocks[i][2], rocks[i][0] + rocks[i][1] * 0.7, 0)
+    ctx.closePath()
+    ctx.fill()
+  }
+  ctx.strokeStyle = 'rgba(250, 248, 240, 0.7)' // the gulls
+  ctx.lineWidth = 1.6
+  for (var g = 0; g < 3; g++) {
+    var gx = Math.sin(t * 0.4 + g * 2.2) * 110
+    var gy = -56 - g * 16 + Math.sin(t * 0.9 + g) * 6
+    var flap = Math.sin(t * 6 + g * 1.7) * 3
+    ctx.beginPath()
+    ctx.moveTo(gx - 6, gy - flap * 0.6)
+    ctx.quadraticCurveTo(gx, gy + flap, gx + 6, gy - flap * 0.6)
+    ctx.stroke()
+  }
+}
+
+// Side effect: pale quarried cliffs on the horizon — stepped marble
+// benches and the old timber hoist against the sky
+function skMarbleCliffs (ctx, t) {
+  ctx.fillStyle = 'rgba(206, 200, 186, 0.55)'
+  ctx.beginPath()
+  ctx.moveTo(-240, 0)
+  ctx.lineTo(-220, -58)
+  ctx.lineTo(-140, -58)
+  ctx.lineTo(-128, -92)
+  ctx.lineTo(-30, -92)
+  ctx.lineTo(-18, -120)
+  ctx.lineTo(90, -120)
+  ctx.lineTo(104, -70)
+  ctx.lineTo(190, -70)
+  ctx.lineTo(210, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(150, 142, 126, 0.4)' // saw seams in the benches
+  ctx.lineWidth = 1.6
+  ctx.beginPath()
+  ctx.moveTo(-200, -58)
+  ctx.lineTo(-140, -58)
+  ctx.moveTo(-100, -92)
+  ctx.lineTo(-30, -92)
+  ctx.moveTo(0, -120)
+  ctx.lineTo(70, -120)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(74, 58, 38, 0.65)' // the hoist
+  ctx.lineWidth = 2.6
+  ctx.beginPath()
+  ctx.moveTo(30, -120)
+  ctx.lineTo(30, -152)
+  ctx.moveTo(30, -152)
+  ctx.lineTo(64, -144)
+  ctx.moveTo(64, -144)
+  ctx.lineTo(64, -128)
+  ctx.stroke()
+}
+
+// Side effect: the dead fleet hull-down on the graveyard's horizon —
+// listing masts, a hanging yard, slow birds
+function skDeadFleet (ctx, t) {
+  ctx.fillStyle = 'rgba(52, 56, 60, 0.55)'
+  var hulls = [[-150, 44, 12, 0.3], [0, 60, 16, -0.2], [150, 40, 10, 0.5]]
+  for (var i = 0; i < hulls.length; i++) {
+    var h = hulls[i]
+    ctx.beginPath() // the hump of a dead hull
+    ctx.moveTo(h[0] - h[1], 0)
+    ctx.quadraticCurveTo(h[0], -h[2] * 1.6, h[0] + h[1], 0)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(52, 56, 60, 0.6)'
+    ctx.lineWidth = 2.4
+    ctx.beginPath() // its listing mast
+    ctx.moveTo(h[0], -h[2])
+    ctx.lineTo(h[0] + h[3] * 40, -h[2] - 42)
+    ctx.stroke()
+  }
+  ctx.beginPath() // the hanging yard on the middle wreck
+  ctx.lineWidth = 1.6
+  ctx.moveTo(-8, -44)
+  ctx.lineTo(16, -30)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(60, 62, 64, 0.7)' // carrion birds, patient
+  ctx.lineWidth = 1.3
+  for (var b = 0; b < 2; b++) {
+    var bx = Math.sin(t * 0.3 + b * 2.8) * 90
+    var by = -78 - b * 14
+    var flap = Math.sin(t * 4.5 + b * 2) * 2.4
+    ctx.beginPath()
+    ctx.moveTo(bx - 5, by - flap * 0.5)
+    ctx.quadraticCurveTo(bx, by + flap, bx + 5, by - flap * 0.5)
+    ctx.stroke()
+  }
+}
+
+// Side effect: THE VOLCANO — Hephaestus' chimney on the horizon, throat
+// aglow, shearing its ash plume east on the wind
+function skVolcano (ctx, t) {
+  ctx.fillStyle = 'rgba(110, 96, 92, 0.6)'
+  ctx.beginPath() // the cone
+  ctx.moveTo(-320, 0)
+  ctx.lineTo(-46, -218)
+  ctx.lineTo(-14, -204) // the notched crater lip
+  ctx.lineTo(16, -216)
+  ctx.lineTo(320, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(70, 60, 58, 0.5)' // its shadowed east face
+  ctx.beginPath()
+  ctx.moveTo(16, -216)
+  ctx.lineTo(320, 0)
+  ctx.lineTo(120, 0)
+  ctx.lineTo(-4, -206)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255, 120, 50, ' + (0.2 + Math.sin(t * 1.7) * 0.08).toFixed(2) + ')'
+  ctx.lineWidth = 2 // old lava scars down the flank
+  ctx.beginPath()
+  ctx.moveTo(-18, -200)
+  ctx.quadraticCurveTo(-40, -150, -34, -96)
+  ctx.moveTo(2, -198)
+  ctx.quadraticCurveTo(24, -140, 46, -110)
+  ctx.stroke()
+  var glow = 0.3 + Math.sin(t * 1.7) * 0.12 // the throat, breathing
+  ctx.fillStyle = 'rgba(255, 120, 50, ' + glow.toFixed(2) + ')'
+  ctx.beginPath()
+  ctx.ellipse(-15, -207, 26, 7, 0, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(118, 108, 104, 0.4)' // the plume, shearing east
+  for (var p = 0; p < 5; p++) {
+    var rise = p * 24 + ((t * 8 + p * 13) % 24)
+    ctx.beginPath()
+    ctx.arc(-14 + p * 6 + rise * 0.9, -224 - rise, 15 + p * 8 + rise * 0.2, 0, SD.TAU)
+    ctx.fill()
+  }
+}
+
+// Side effect: thunderheads towering over Poseidon's plain, lightning
+// walking around inside them
+function skThunderheads (ctx, t) {
+  ctx.fillStyle = 'rgba(66, 72, 84, 0.68)'
+  ctx.beginPath()
+  ctx.ellipse(-90, -90, 110, 44, 0, 0, SD.TAU)
+  ctx.ellipse(60, -110, 130, 52, 0, 0, SD.TAU)
+  ctx.ellipse(-10, -170, 150, 56, 0, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(52, 56, 68, 0.7)' // the flat anvil top
+  ctx.beginPath()
+  ctx.ellipse(0, -212, 190, 30, 0, 0, SD.TAU)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(178, 184, 198, 0.3)' // rim light where the sun still argues
+  ctx.beginPath()
+  ctx.ellipse(-40, -232, 120, 14, 0, 0, SD.TAU)
+  ctx.fill()
+  if (Math.sin(t * 2.3) > 0.955) { // lightning walking the cloud
+    ctx.strokeStyle = 'rgba(240, 242, 255, 0.85)'
+    ctx.lineWidth = 2.2
+    ctx.beginPath()
+    ctx.moveTo(20, -150)
+    ctx.lineTo(-4, -104)
+    ctx.lineTo(14, -92)
+    ctx.lineTo(-12, -34)
+    ctx.stroke()
+  }
+}
+
+// Side effect: a pod of dolphins arcing along the eastern rise, straight
+// off the pottery — each shows only the crown of its leap
+function skDolphins (ctx, t) {
+  ctx.fillStyle = 'rgba(50, 74, 88, 0.8)'
+  for (var i = 0; i < 3; i++) {
+    var k = ((t * 0.34 + i * 0.37) % 1)
+    if (k < 0.12 || k > 0.88) continue // underwater between leaps
+    var dx = -150 + k * 300
+    var dyv = -Math.sin(k * Math.PI) * 34
+    var ang = Math.cos(k * Math.PI) * -0.9
+    ctx.save()
+    ctx.translate(dx, dyv)
+    ctx.rotate(ang)
+    ctx.beginPath() // the leaping back
+    ctx.moveTo(-13, 0)
+    ctx.quadraticCurveTo(0, -9, 13, -1)
+    ctx.quadraticCurveTo(3, -2.5, -9, 1.5)
+    ctx.closePath()
+    ctx.fill()
+    ctx.beginPath() // dorsal fin
+    ctx.moveTo(-1, -5)
+    ctx.lineTo(2, -10)
+    ctx.lineTo(4, -4.5)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+  }
+}
+
+// Side effect: APHRODITE'S TEMPLE — a white tholos on a blushing headland,
+// gold at its crown, doves turning above it
+function skAphroditeTemple (ctx, t) {
+  ctx.fillStyle = 'rgba(178, 140, 138, 0.5)' // her headland
+  ctx.beginPath()
+  ctx.moveTo(-300, 0)
+  ctx.quadraticCurveTo(-160, -110, 0, -96)
+  ctx.quadraticCurveTo(170, -106, 300, 0)
+  ctx.closePath()
+  ctx.fill()
+  var by = -100
+  ctx.fillStyle = 'rgba(248, 240, 232, 0.9)'
+  ctx.fillRect(-50, by, 100, 8) // the stylobate
+  for (var c = -3; c <= 3; c++) { // the ring of columns
+    ctx.fillRect(c * 14 - 2.4, by - 30, 4.8, 30)
+  }
+  ctx.fillRect(-48, by - 37, 96, 7) // entablature
+  ctx.beginPath() // the shallow dome
+  ctx.moveTo(-46, by - 37)
+  ctx.quadraticCurveTo(0, by - 76, 46, by - 37)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(196, 174, 168, 0.45)' // dome shading
+  ctx.beginPath()
+  ctx.moveTo(8, by - 68)
+  ctx.quadraticCurveTo(34, by - 58, 46, by - 37)
+  ctx.lineTo(20, by - 37)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = 'rgba(212, 175, 55, 0.85)' // her golden finial
+  ctx.beginPath()
+  ctx.arc(0, by - 74, 3.4, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(252, 248, 242, 0.75)' // the doves
+  ctx.lineWidth = 1.6
+  for (var d = 0; d < 3; d++) {
+    var da = t * 0.7 + d * 2.1
+    var dx = Math.cos(da) * (58 + d * 14)
+    var dyv = by - 92 + Math.sin(da * 1.3) * 12
+    var flap = Math.sin(t * 7 + d) * 3
+    ctx.beginPath()
+    ctx.moveTo(dx - 5, dyv - flap * 0.5)
+    ctx.quadraticCurveTo(dx, dyv + flap, dx + 5, dyv - flap * 0.5)
+    ctx.stroke()
+  }
+}
+
+// the horizon, west to east — each landmark anchored to its home stretch
+var SKY_SET = [
+  { x: 1500, f: 0.3, draw: skHeadland },
+  { x: 4600, f: 0.42, draw: skSails },
+  { x: 7700, f: 0.3, draw: skShepherdIsle },
+  { x: 11400, f: 0.26, draw: skKelpIsle },
+  { x: 15500, f: 0.36, draw: skSkerries },
+  { x: 18500, f: 0.3, draw: skMarbleCliffs },
+  { x: 22000, f: 0.3, draw: skDeadFleet },
+  { x: 25500, f: 0.24, draw: skVolcano },
+  { x: 30600, f: 0.28, draw: skThunderheads },
+  { x: 36000, f: 0.5, draw: skDolphins },
+  { x: 38550, f: 0.3, draw: skAphroditeTemple }
+]
+
+// Side effect: draws every horizon landmark near enough to matter, at its
+// parallax position. Skipped once the waterline is well off the top.
+function drawSkyBackdrops (ctx, cam, wv, t) {
+  if (cam.y > 140) return
+  var camCX = cam.x + wv.w / 2
+  // vertical parallax about the camera's true at-surface rest (which the
+  // sky-top clamp sets) — never letting the horizon sag into the sea
+  var surfBase = Math.max(SD.config.world.skyTopPx, -wv.h * 0.44)
+  var dy = SD.clamp((cam.y - surfBase) * 0.3, -80, 14)
+  for (var i = 0; i < SKY_SET.length; i++) {
+    var s = SKY_SET[i]
+    var a = 1 - SD.smoothstep(2800, 5600, Math.abs(camCX - s.x))
+    if (a <= 0.02) continue
+    ctx.save()
+    ctx.translate(plaxX(s.x, s.f, camCX), dy)
+    ctx.globalAlpha = a
+    s.draw(ctx, t)
+    ctx.restore()
+  }
 }
 
 // Side effect: the home village on the left beach — whitewashed houses with
@@ -3338,9 +3776,14 @@ function drawDiver (ctx, state, t) {
     ctx.moveTo(15, 1.5)
     ctx.quadraticCurveTo(23, 3.6, handX, handY)
     ctx.stroke()
+    var sr = 3.6 + state.upgrades.stone * 1.1 // bigger tiers ride bigger stones
     ctx.fillStyle = '#7e8790' // the skandalopetra itself
     ctx.beginPath()
-    ctx.ellipse(34.5, 6.4, 6.6, 4.8, 0.35, 0, SD.TAU)
+    ctx.ellipse(34.5, 6.4, sr + 1.8, sr, 0.35, 0, SD.TAU)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(40, 48, 56, 0.4)' // its shaded under-face
+    ctx.beginPath()
+    ctx.ellipse(35.5, 7.6, sr * 0.6, sr * 0.4, 0.35, 0, SD.TAU)
     ctx.fill()
   } else if (striking) {
     handX = 36
@@ -3494,6 +3937,216 @@ function drawDiver (ctx, state, t) {
   }
 
   ctx.restore()
+}
+
+// ---------- Delphinus' Gift: the dolphin and the orca ----------
+
+// Side effect: the player in Delphinus' shape. Same motion language as the
+// diver — velocity-aligned, back kept up — but the tail is a MAMMAL's, and
+// in a breach the whole body somersaults through the open air (p.flipA).
+function drawMarineForm (ctx, state, t) {
+  var p = state.player
+  if (p.invuln > 0 && Math.floor(t * 12) % 2 === 0) return // hurt blink
+
+  var speed = SD.dist(0, 0, p.vx, p.vy)
+  var targetA = speed > 36 ? Math.atan2(p.vy, p.vx) : (p.facing === 1 ? 0 : Math.PI)
+  if (p._ang === undefined) p._ang = targetA
+  var da = Math.atan2(Math.sin(targetA - p._ang), Math.cos(targetA - p._ang))
+  p._ang += da * Math.min(1, 7 * (t - (p._angT || t)) + 0.12)
+  p._angT = t
+
+  ctx.save()
+  ctx.translate(p.x, p.y)
+  ctx.rotate(p._ang)
+  if (Math.cos(p._ang) < 0) ctx.scale(1, -1) // back stays up heading west
+  if (p.breachT > 0) ctx.rotate(p.flipA)     // the somersault rides on top
+
+  var beat = Math.sin(p.swimPhase * 2.1) * (speed > 25 ? 1 : 0.3)
+  if (p.form === 'orca') drawOrcaBody(ctx, beat)
+  else drawDolphinBody(ctx, beat)
+
+  // the net bag still rides along — no hands, but the strap holds
+  var wt = SD.bagWeight(p.bag)
+  if (wt > 0) {
+    var br = 3.6 + Math.min(10, wt) * 0.6
+    ctx.fillStyle = 'rgba(52, 38, 22, 0.92)'
+    ctx.beginPath()
+    ctx.ellipse(-16, 9 + br * 0.4, br, br * 0.7, 0.3, 0, SD.TAU)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(58, 42, 24, 0.9)'
+    ctx.lineWidth = 1.2
+    ctx.beginPath()
+    ctx.moveTo(-10, 5)
+    ctx.lineTo(-15, 8 + br * 0.2)
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
+// Side effect: the dolphin — a sleek spindle with a bottlenose, a falcate
+// dorsal, and a fluke that beats UP AND DOWN, the mammal's stroke
+function drawDolphinBody (ctx, beat) {
+  ctx.save()
+  // the fluke first, behind the body — twin lobes on a flexing stock
+  ctx.fillStyle = '#4a5a66'
+  ctx.save()
+  ctx.translate(-36, beat * 6)
+  ctx.rotate(beat * 0.3)
+  ctx.beginPath()
+  ctx.moveTo(2, 0)
+  ctx.quadraticCurveTo(-8, -11, -16, -8)   // upper lobe
+  ctx.quadraticCurveTo(-8, -2, -14, 0)     // the notch
+  ctx.quadraticCurveTo(-8, 2, -16, 8)      // lower lobe
+  ctx.quadraticCurveTo(-6, 11, 2, 2)
+  ctx.closePath()
+  ctx.fill()
+  ctx.restore()
+
+  // the body: one smooth spindle, nose to tail stock
+  ctx.fillStyle = '#5f7280'
+  ctx.beginPath()
+  ctx.moveTo(38, 0.5)                           // the nose tip
+  ctx.quadraticCurveTo(31, -3.5, 21, -5.5)      // the melon
+  ctx.quadraticCurveTo(4, -8.5, -12, -6.5)      // the back
+  ctx.quadraticCurveTo(-26, -4.5, -35, -1.5)    // to the tail stock
+  ctx.lineTo(-35, 1.8)
+  ctx.quadraticCurveTo(-20, 6.5, -2, 8)         // the belly
+  ctx.quadraticCurveTo(18, 7.5, 30, 4)          // chest to chin
+  ctx.quadraticCurveTo(36, 2.6, 38, 0.5)        // under the beak
+  ctx.closePath()
+  ctx.fill()
+  // the falcate dorsal, swept back
+  ctx.beginPath()
+  ctx.moveTo(-1, -7)
+  ctx.quadraticCurveTo(-7, -17, -14, -7.5)
+  ctx.closePath()
+  ctx.fill()
+  // the pale belly
+  ctx.fillStyle = 'rgba(211, 220, 225, 0.9)'
+  ctx.beginPath()
+  ctx.ellipse(3, 4.6, 25, 3.4, 0.03, 0, SD.TAU)
+  ctx.fill()
+  // pectoral flipper
+  ctx.fillStyle = '#4a5a66'
+  ctx.beginPath()
+  ctx.moveTo(12, 4.5)
+  ctx.quadraticCurveTo(6, 13, 0, 12)
+  ctx.quadraticCurveTo(6, 7, 10, 3.5)
+  ctx.closePath()
+  ctx.fill()
+  // the beak crease + the easy smile
+  ctx.strokeStyle = 'rgba(40, 52, 60, 0.6)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(36, 1.6)
+  ctx.quadraticCurveTo(28, 3.8, 22, 3.4)
+  ctx.stroke()
+  // eye + blowhole
+  ctx.fillStyle = '#1a2228'
+  ctx.beginPath()
+  ctx.arc(24.5, -1, 1.4, 0, SD.TAU)
+  ctx.fill()
+  ctx.strokeStyle = '#1a2228'
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  ctx.moveTo(9, -7.2)
+  ctx.lineTo(11.5, -7.4)
+  ctx.stroke()
+  ctx.restore()
+}
+
+// Side effect: THE ORCA — blunt-headed, black over white, the tall dorsal
+// and the saddle patch. Half again the dolphin's size, and looks it.
+function drawOrcaBody (ctx, beat) {
+  ctx.save()
+  // fluke behind, broad and heavy
+  ctx.fillStyle = '#0d1116'
+  ctx.save()
+  ctx.translate(-46, beat * 7)
+  ctx.rotate(beat * 0.28)
+  ctx.beginPath()
+  ctx.moveTo(3, 0)
+  ctx.quadraticCurveTo(-9, -14, -20, -10)
+  ctx.quadraticCurveTo(-10, -2, -18, 0)
+  ctx.quadraticCurveTo(-10, 2, -20, 10)
+  ctx.quadraticCurveTo(-8, 14, 3, 2)
+  ctx.closePath()
+  ctx.fill()
+  ctx.restore()
+
+  // the body: blunt nose, thick through the chest
+  ctx.fillStyle = '#161c22'
+  ctx.beginPath()
+  ctx.moveTo(44, 1)                             // the blunt nose
+  ctx.quadraticCurveTo(40, -6, 28, -9)          // brow
+  ctx.quadraticCurveTo(4, -13, -16, -9.5)       // the long back
+  ctx.quadraticCurveTo(-34, -6, -45, -2)        // tail stock
+  ctx.lineTo(-45, 2.5)
+  ctx.quadraticCurveTo(-26, 8.5, -4, 11.5)      // the belly
+  ctx.quadraticCurveTo(22, 11.5, 37, 7)         // chest
+  ctx.quadraticCurveTo(43, 4.5, 44, 1)
+  ctx.closePath()
+  ctx.fill()
+  // THE dorsal — tall, proud, unmistakable
+  ctx.beginPath()
+  ctx.moveTo(-2, -10.5)
+  ctx.quadraticCurveTo(-7, -34, -17, -11)
+  ctx.closePath()
+  ctx.fill()
+  // the white: chin and belly...
+  ctx.fillStyle = '#e8eef1'
+  ctx.beginPath()
+  ctx.moveTo(40, 3.5)
+  ctx.quadraticCurveTo(20, 10.5, -2, 9.5)
+  ctx.quadraticCurveTo(12, 5.5, 30, 2.5)
+  ctx.quadraticCurveTo(37, 1.8, 40, 3.5)
+  ctx.closePath()
+  ctx.fill()
+  // ...the flank blaze sweeping up behind the belly...
+  ctx.beginPath()
+  ctx.ellipse(-13, 4.5, 8, 3, -0.5, 0, SD.TAU)
+  ctx.fill()
+  // ...and the eye patch
+  ctx.beginPath()
+  ctx.ellipse(27, -5.5, 6.5, 2.6, -0.18, 0, SD.TAU)
+  ctx.fill()
+  // the gray saddle behind the dorsal
+  ctx.fillStyle = '#8d99a2'
+  ctx.beginPath()
+  ctx.ellipse(-17, -6.5, 7, 2.8, -0.35, 0, SD.TAU)
+  ctx.fill()
+  // pectoral paddle, big and round
+  ctx.fillStyle = '#0d1116'
+  ctx.beginPath()
+  ctx.ellipse(13, 12, 8.5, 4.5, 0.85 + beat * 0.1, 0, SD.TAU)
+  ctx.fill()
+  // the eye, low at the front of the patch
+  ctx.fillStyle = '#0a0d10'
+  ctx.beginPath()
+  ctx.arc(31.5, -3.2, 1.5, 0, SD.TAU)
+  ctx.fill()
+  ctx.restore()
+}
+
+// Side effect: spent skandalopetra tumbling down, then fading into the sand
+function drawDroppedStones (ctx, list) {
+  if (!list) return // art-lab mocks carry no stone ledger
+  for (var i = 0; i < list.length; i++) {
+    var s = list[i]
+    ctx.save()
+    ctx.globalAlpha = s.settled ? Math.max(0, s.life / 4) * 0.9 : 0.95
+    ctx.translate(s.x, s.y)
+    ctx.rotate(s.spin)
+    ctx.fillStyle = '#7e8790'
+    ctx.beginPath()
+    ctx.ellipse(0, 0, s.r + 1.6, s.r, 0.3, 0, SD.TAU)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(40, 48, 56, 0.45)'
+    ctx.beginPath()
+    ctx.ellipse(1.2, 1.2, s.r * 0.6, s.r * 0.42, 0.3, 0, SD.TAU)
+    ctx.fill()
+    ctx.restore()
+  }
 }
 
 // Side effect: rising bubbles
@@ -4269,14 +4922,19 @@ SD.render = function (state, ctx, view, zoom) {
   var shakeY = state.effects.shake > 0.2 ? (Math.random() - 0.5) * state.effects.shake * 2 : 0
   ctx.translate(-cam.x + shakeX, -cam.y + shakeY)
 
-  drawSkyline(ctx, t)
+  drawSkyline(ctx, t, cam, wv)
+  drawSkyBackdrops(ctx, cam, wv, t)
   drawGodrays(ctx, t, cam, wv)
   drawFloor(ctx, cam, wv)
-  drawVillage(ctx, t)
+  if (cam.x < 1700) drawVillage(ctx, t) // the beach ends well before this
 
   var i
   var decor = w.decor
-  for (i = 0; i < decor.columns.length; i++) drawColumn(ctx, decor.columns[i])
+  for (i = 0; i < decor.columns.length; i++) {
+    var col = decor.columns[i]
+    if (col.x < cam.x - 260 || col.x > cam.x + wv.w + 260) continue
+    drawColumn(ctx, col)
+  }
   for (i = 0; i < decor.wrecks.length; i++) {
     var wr = decor.wrecks[i]
     if (wr.x < cam.x - 300 || wr.x > cam.x + wv.w + 300) continue
@@ -4377,7 +5035,11 @@ SD.render = function (state, ctx, view, zoom) {
   if (cam.x + wv.w > SD.config.world.mountain.faceX - 600) drawMountain(ctx, t)
   drawStoryDecor(ctx, decor, cam, wv, t)
   if (state.buddy && !state.buddy.aboard && state.mode !== 'gameover') drawBuddy(ctx, state, t)
-  if (state.mode !== 'blackout' && !state.player.aboard) drawDiver(ctx, state, t)
+  if (state.mode !== 'blackout' && !state.player.aboard) {
+    if (state.player.form) drawMarineForm(ctx, state, t)
+    else drawDiver(ctx, state, t)
+  }
+  drawDroppedStones(ctx, state.effects.droppedStones)
   drawBubbles(ctx, state.effects.bubbles)
   drawWaterline(ctx, t, cam, wv)
   drawBoat(ctx, state, t)
